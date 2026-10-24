@@ -302,6 +302,12 @@ export function createHero({
 
   document.addEventListener('visibilitychange', onVisibilityChange)
   frame = requestAnimationFrame(tick)
+  if (!sound.isRunning()) {
+    void sound.whenRunning().then(() => {
+      clock = createBeatClock(sound.now() + START_LEAD_S, -COUNT_IN_BEATS, tempo.bpm)
+      nextClickBeat = -COUNT_IN_BEATS
+    })
+  }
 
   return {
     element,

@@ -74,6 +74,13 @@ export function createSettingsScreen({ settings: initial, getProgress, onChange,
     return row(label, toggle(settings[key], (next) => update({ [key]: next })), hint)
   }
 
+  function vibrationRow(): HTMLElement {
+    if ('vibrate' in navigator) return toggleRow('Vibration', 'vibration')
+    const control = toggle(false, () => {})
+    control.setAttribute('disabled', '')
+    return row('Vibration', control, 'Non disponible sur cet appareil')
+  }
+
   function choiceControl<T>(choices: Choice<T>[], isActive: (value: T) => boolean, onPick: (value: T) => void): HTMLElement {
     const options = choices.map((choice) => {
       const option = button('segment', choice.label, () => onPick(choice.value))
@@ -173,7 +180,7 @@ export function createSettingsScreen({ settings: initial, getProgress, onChange,
         'Son',
         row('Sons', toggle(!settings.muted, (next) => update({ muted: !next }))),
         toggleRow('Métronome', 'metronome'),
-        toggleRow('Vibration', 'vibration'),
+        vibrationRow(),
         volumeRow(),
       ),
       section(

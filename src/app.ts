@@ -15,8 +15,11 @@ import { createHome, type HomeChoice } from './ui/home'
 import { createSeries, type Series } from './ui/series'
 import { createSettingsScreen } from './ui/settings'
 import { createStatsScreen } from './ui/stats'
+import { showToast } from './ui/toast'
 
 const TRANSITION_MS = 200
+const UNLOCK_EVENTS = ['pointerup', 'touchend', 'click', 'keydown'] as const
+const SOUND_BLOCKED_TOAST_GAP_MS = 4000
 
 interface Destroyable {
   destroy: () => void
@@ -31,8 +34,10 @@ export function startApp(root: HTMLElement): void {
   let activeSeries: Series | null = null
   let leaving: Element[] = []
   let leaveTimeout = 0
-  const sound = createSound()
+  let lastBlockedToast = -Infinity
+  const sound = createSound({ onBlocked: warnSoundBlocked })
   const appearance = createAppearance()
+  unlockSoundOnGesture()
 
   const backButton = iconButton('back', goHome, 'Accueil')
   const muteButton = iconButton('sound-on', toggleMute, 'Son')
@@ -85,6 +90,22 @@ export function startApp(root: HTMLElement): void {
       else releaseClock?.()
     })
     return true
+  }
+
+  function unlockSoundOnGesture(): void {
+    const unlock = () => {
+      sound.unlock()
+      if (!sound.isRunning()) return
+      for (const type of UNLOCK_EVENTS) document.removeEventListener(type, unlock)
+    }
+    for (const type of UNLOCK_EVENTS) document.addEventListener(type, unlock)
+  }
+
+  function warnSoundBlocked(): void {
+    const now = performance.now()
+    if (now - lastBlockedToast < SOUND_BLOCKED_TOAST_GAP_MS) return
+    lastBlockedToast = now
+    showToast('Son bloqué, touche l’écran')
   }
 
   function applySettings(): void {
