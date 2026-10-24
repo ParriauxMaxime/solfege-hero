@@ -38,7 +38,9 @@ export interface ScrollingStaff {
 const CONTENT_TOP = 0
 const CONTENT_BOTTOM = stepY(-4) + 16
 const CONTENT_HEIGHT = CONTENT_BOTTOM - CONTENT_TOP
-const BEATS_AHEAD = 6
+const BEATS_AHEAD_LANDSCAPE = 6
+const BEATS_AHEAD_PORTRAIT = 3.5
+const PORTRAIT_ASPECT = 0.8
 const MIN_PX_PER_BEAT = 80
 // Tighter than the single-note staff so an accidental never reaches back into the previous eighth.
 const ACCIDENTAL_OFFSET = -24
@@ -156,7 +158,8 @@ export function createScrollingStaff(initialClef: Clef, initialFifths: number): 
   let fifths = initialFifths
   let clipLeft = CLIP_LEFT_WITHOUT_SIGNATURE
   let hitX = clipLeft + HIT_DISTANCE_FROM_CLIP
-  let viewWidth = hitX + BEATS_AHEAD * MIN_PX_PER_BEAT
+  let beatsAhead = BEATS_AHEAD_LANDSCAPE
+  let viewWidth = hitX + beatsAhead * MIN_PX_PER_BEAT
   let pxPerBeat = MIN_PX_PER_BEAT
   let size: { width: number; height: number } | null = null
   const svg = svgElement('svg', {
@@ -190,7 +193,8 @@ export function createScrollingStaff(initialClef: Clef, initialFifths: number): 
   const notes = createKeyedLayer(noteGroup)
 
   function layout(width: number, height: number): void {
-    const scale = Math.min(height / CONTENT_HEIGHT, width / (hitX + BEATS_AHEAD * MIN_PX_PER_BEAT))
+    beatsAhead = height > width * PORTRAIT_ASPECT ? BEATS_AHEAD_PORTRAIT : BEATS_AHEAD_LANDSCAPE
+    const scale = Math.min(height / CONTENT_HEIGHT, width / (hitX + beatsAhead * MIN_PX_PER_BEAT))
     viewWidth = width / scale
     const viewHeight = height / scale
     const top = CONTENT_TOP + (CONTENT_HEIGHT - viewHeight) / 2
@@ -201,7 +205,7 @@ export function createScrollingStaff(initialClef: Clef, initialFifths: number): 
     const nextLines = staffLines(STAFF_LEFT, viewWidth)
     lines.replaceWith(nextLines)
     lines = nextLines
-    pxPerBeat = (viewWidth - hitX) / BEATS_AHEAD
+    pxPerBeat = (viewWidth - hitX) / beatsAhead
     notes.clear()
   }
 

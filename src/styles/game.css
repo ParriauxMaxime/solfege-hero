@@ -152,6 +152,10 @@
   transition: none;
 }
 
+.answer.neutral {
+  box-shadow: inset 0 0 0 3px var(--ink-dim);
+}
+
 :root[data-key-names='off'] .answer > * {
   position: absolute;
   width: 1px;

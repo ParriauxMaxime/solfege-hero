@@ -7,6 +7,13 @@ export function formatTime(ms: number): string {
   return `${Math.floor(seconds / SECONDS_PER_MINUTE)}:${remainder}`
 }
 
+const MS_PER_TENTH = 100
+
+export function formatTenths(ms: number): string {
+  const tenths = Math.floor(ms / MS_PER_TENTH)
+  return `${formatTime(ms)}.${tenths % 10}`
+}
+
 export interface ShareSquares {
   ok: string
   bad: string

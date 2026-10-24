@@ -25,7 +25,8 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
   }
 
   function heroSection(hero: Progress['hero']): HTMLElement {
-    const perfectRatio = hero.hits > 0 ? `${Math.round((hero.perfects / hero.hits) * 100)} %` : '–'
+    const judged = hero.hits + hero.misses
+    const perfectRatio = judged > 0 ? `${Math.round((hero.perfects / judged) * 100)} %` : '–'
     return el(
       'div',
       'clef-section',

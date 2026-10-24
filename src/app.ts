@@ -8,7 +8,7 @@ import { loadProgress, loadSettings, resetProgress, saveProgress, saveSettings, 
 import { createChallengeIntro } from './ui/challengeIntro'
 import { button, el } from './ui/dom'
 import { createGame } from './ui/game'
-import { createHero } from './ui/hero'
+import { createHero, type Hero } from './ui/hero'
 import { createHeroStart } from './ui/heroStart'
 import { createHome, type HomeChoice } from './ui/home'
 import { createSeries } from './ui/series'
@@ -25,12 +25,14 @@ export function startApp(root: HTMLElement): void {
   let settings = loadSettings()
   let progress = loadProgress()
   let running: Destroyable | null = null
+  let pushed = false
+  let activeHero: Hero | null = null
   let leaving: Element[] = []
   let leaveTimeout = 0
   const sound = createSound()
   const appearance = createAppearance()
 
-  const backButton = button('icon-button', '←', showHome)
+  const backButton = button('icon-button', '←', goHome)
   backButton.setAttribute('aria-label', 'Accueil')
   const muteButton = button('icon-button', '', toggleMute)
   muteButton.setAttribute('aria-label', 'Son')
@@ -40,7 +42,32 @@ export function startApp(root: HTMLElement): void {
   applySettings()
 
   window.addEventListener('hashchange', openLaunchChallenge)
-  if (!openLaunchChallenge()) showHome()
+  window.addEventListener('popstate', onPopState)
+  if (!openLaunchChallenge()) renderHome()
+
+  function enterFromHome(open: () => void): void {
+    if (!pushed) {
+      history.pushState({ screen: 'inside' }, '')
+      pushed = true
+    }
+    open()
+  }
+
+  function goHome(): void {
+    if (pushed) history.back()
+    else renderHome()
+  }
+
+  function onPopState(): void {
+    pushed = false
+    if (activeHero) {
+      activeHero.pause()
+      history.pushState({ screen: 'inside' }, '')
+      pushed = true
+      return
+    }
+    renderHome()
+  }
 
   function openLaunchChallenge(): boolean {
     const received = parseChallenge(location.hash)
@@ -96,6 +123,7 @@ export function startApp(root: HTMLElement): void {
   function show(content: HTMLElement, withTopBar: boolean, next: Destroyable | null = null): void {
     running?.destroy()
     running = next
+    activeHero = null
     topBar.hidden = !withTopBar
     swapScreen(content)
   }
@@ -104,8 +132,13 @@ export function startApp(root: HTMLElement): void {
     return { seed: newSeed(), clefs: settings.clefs, armures: settings.accidentals }
   }
 
-  function showHome(): void {
-    show(createHome({ onChoose: choose, onSettings: showSettings, onStats: showStats }), false)
+  function renderHome(): void {
+    const home = createHome({
+      onChoose: (choice) => enterFromHome(() => choose(choice)),
+      onSettings: () => enterFromHome(showSettings),
+      onStats: () => enterFromHome(showStats),
+    })
+    show(home, false)
   }
 
   function choose(choice: HomeChoice): void {
@@ -135,6 +168,7 @@ export function startApp(root: HTMLElement): void {
       onQuit: showHeroStart,
     })
     show(hero.element, false, hero)
+    activeHero = hero
   }
 
   function showSeries(config: SeriesConfig, against: Challenge | null): void {
@@ -146,7 +180,8 @@ export function startApp(root: HTMLElement): void {
       sound,
       onProgress: changeProgress,
       onReplay: () => showSeries(freshSeriesConfig(), null),
-      onHome: showHome,
+      onRetry: () => showSeries(config, against),
+      onHome: goHome,
     })
     show(series.element, true, series)
   }
@@ -165,7 +200,7 @@ export function startApp(root: HTMLElement): void {
         changeSettings(data.settings)
         changeProgress(data.progress)
       },
-      onBack: showHome,
+      onBack: goHome,
     })
     show(screenElement, false)
   }
@@ -175,6 +210,6 @@ export function startApp(root: HTMLElement): void {
       changeProgress(resetProgress())
       return progress
     }
-    show(createStatsScreen({ progress, onReset, onBack: showHome }), false)
+    show(createStatsScreen({ progress, onReset, onBack: goHome }), false)
   }
 }

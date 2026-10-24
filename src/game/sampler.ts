@@ -36,17 +36,24 @@ export function recordAnswer(
   stats: NoteStats,
   id: string,
   correct: boolean,
-  ms: number,
+  ms: number | null,
 ): NoteStats {
   const previous = stats[id]
   const misses = previous?.misses ?? 0
+  const knownAvgMs = previous?.avgMs ?? 0
   const record: NoteRecord = {
     attempts: (previous?.attempts ?? 0) + 1,
     correct: (previous?.correct ?? 0) + (correct ? 1 : 0),
     misses: correct ? Math.max(0, misses - MISS_RECOVERY) : misses + 1,
-    avgMs: previous ? AVG_ALPHA * ms + (1 - AVG_ALPHA) * previous.avgMs : ms,
+    avgMs: nextAverage(knownAvgMs, ms),
   }
   return { ...stats, [id]: record }
+}
+
+/** An average of 0 means no timing yet; a null sample (untimed answer) leaves it untouched. */
+function nextAverage(avgMs: number, ms: number | null): number {
+  if (ms === null) return avgMs
+  return avgMs === 0 ? ms : AVG_ALPHA * ms + (1 - AVG_ALPHA) * avgMs
 }
 
 export function noteWeight(record: NoteRecord | undefined): number {

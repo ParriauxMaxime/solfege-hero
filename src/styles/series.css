@@ -82,20 +82,34 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: stretch;
   gap: 8px;
   margin-top: 12px;
 }
 
-.result-actions .primary,
-.segment-button {
-  min-height: 56px;
+.result-actions > * {
   padding: 0 20px;
+}
+
+.segment-button,
+.overlay .danger {
   border-radius: 14px;
+  background: var(--card-raised);
+  box-shadow: none;
+  color: var(--ink);
   font-weight: 700;
 }
 
-.segment-button {
-  background: var(--card-raised);
+.overlay .primary + .danger {
+  margin-top: 24px;
+}
+
+.versus {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .verdict {
@@ -195,9 +209,25 @@
   animation: shake 0.4s;
 }
 
-@media (max-height: 500px) {
+@media (orientation: landscape) and (max-height: 500px) {
   .series-end {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 240px;
+    column-gap: 28px;
+    width: min(92%, 640px);
     padding: 12px 24px;
+  }
+
+  .series-end > * {
+    grid-column: 1;
+  }
+
+  .series-end > .result-actions {
+    grid-column: 2;
+    grid-row: 1 / span 8;
+    flex-direction: column;
+    align-self: center;
+    margin: 0;
   }
 
   .series-total {
@@ -206,9 +236,5 @@
 
   .result-strip {
     margin: 4px 0;
-  }
-
-  .result-actions {
-    margin-top: 6px;
   }
 }

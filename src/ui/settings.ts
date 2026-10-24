@@ -1,6 +1,7 @@
 import { CLEFS, type Clef } from '../music/notes'
 import { exportData, importData, type KeySize, type Progress, type Settings, type Theme } from '../storage'
 import { button, el } from './dom'
+import { restartAnimation } from './effects'
 import { showToast } from './toast'
 
 export interface SettingsOptions {
@@ -41,6 +42,7 @@ const EXPORT_FILE = 'solfege-progress.json'
 export function createSettingsScreen({ settings: initial, getProgress, onChange, onReset, onImport, onBack }: SettingsOptions): HTMLElement {
   let settings = initial
   const element = el('section', 'screen settings-list')
+  let clefControl: HTMLElement | null = null
 
   function update(patch: Partial<Settings>, rerender = true): void {
     settings = { ...settings, ...patch }
@@ -80,13 +82,18 @@ export function createSettingsScreen({ settings: initial, getProgress, onChange,
 
   function toggleClef(clef: Clef): void {
     const selected = settings.clefs.includes(clef)
-    if (selected && settings.clefs.length === 1) return
+    if (selected && settings.clefs.length === 1) {
+      showToast('Garde au moins une clé')
+      if (clefControl) restartAnimation(clefControl, 'shake')
+      return
+    }
     update({ clefs: CLEFS.filter((candidate) => (candidate === clef ? !selected : settings.clefs.includes(candidate))) })
   }
 
   function clefRow(): HTMLElement {
     const choices = CLEFS.map((clef) => ({ value: clef, label: CLEF_LABELS[clef] }))
-    return row('Clés', choiceControl(choices, (clef) => settings.clefs.includes(clef), toggleClef))
+    clefControl = choiceControl(choices, (clef) => settings.clefs.includes(clef), toggleClef)
+    return row('Clés', clefControl)
   }
 
   function volumeRow(): HTMLElement {

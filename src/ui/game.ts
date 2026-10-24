@@ -7,6 +7,7 @@ import { vibrate } from '../platform/haptics'
 import type { Progress, Settings } from '../storage'
 import { button, el } from './dom'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
+import { trackHiddenTime } from '../platform/visibility'
 import { createAnswerPad } from './answerPad'
 import { renderStaff } from './staff'
 
@@ -194,11 +195,16 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
     }
   }
 
+  const stopTrackingHiddenTime = trackHiddenTime((hiddenMs) => {
+    shownAt += hiddenMs
+    if (deadline !== null) deadline += hiddenMs
+  })
   startRound()
 
   return {
     element,
     destroy() {
+      stopTrackingHiddenTime()
       pad.destroy()
       window.clearInterval(ticker)
       window.clearTimeout(nextTimeout)

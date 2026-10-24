@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { challengeUrl, encodeChallenge, parseChallenge, type Challenge } from './challenge'
+import {
+  challengeTimeS,
+  challengeUrl,
+  challengeWon,
+  encodeChallenge,
+  parseChallenge,
+  type Challenge,
+} from './challenge'
 
 const challenge: Challenge = {
   config: { seed: 4821, clefs: ['treble', 'bass'], armures: true },
@@ -55,6 +62,44 @@ describe('parseChallenge', () => {
       config: { seed: 1234, clefs: ['treble'], armures: false },
       timeS: null,
     })
+  })
+})
+
+describe('challenge time', () => {
+  it('encodes one decimal and round-trips it', () => {
+    const timed = { ...challenge, timeS: 12.9 }
+    expect(encodeChallenge(timed)).toBe('s=4821&c=sol-fa&k=1&t=12.9')
+    expect(parseChallenge(encodeChallenge(timed))).toEqual(timed)
+  })
+
+  it('rounds a measured time up to the next tenth', () => {
+    expect(challengeTimeS(12_900)).toBe(12.9)
+    expect(challengeTimeS(12_901)).toBe(13)
+    expect(challengeTimeS(47_000)).toBe(47)
+    expect(challengeTimeS(12_850)).toBe(12.9)
+  })
+
+  it('accepts whole and one-decimal values within range', () => {
+    expect(parseChallenge('s=1234&c=sol&t=47')?.timeS).toBe(47)
+    expect(parseChallenge('s=1234&c=sol&t=0.1')?.timeS).toBe(0.1)
+    expect(parseChallenge('s=1234&c=sol&t=5999.9')?.timeS).toBe(5999.9)
+  })
+
+  it('drops out-of-range or malformed times but keeps the challenge', () => {
+    for (const t of ['0', '0.0', '6000', '99999999999', '1.25', '-3', '1e3', 'NaN', '']) {
+      expect(parseChallenge(`s=1234&c=sol&t=${t}`)).toEqual({
+        config: { seed: 1234, clefs: ['treble'], armures: false },
+        timeS: null,
+      })
+    }
+  })
+})
+
+describe('challengeWon', () => {
+  it('wins when faster or tied, loses when slower', () => {
+    expect(challengeWon(12_800, 12.9)).toBe(true)
+    expect(challengeWon(12_900, 12.9)).toBe(true)
+    expect(challengeWon(12_901, 12.9)).toBe(false)
   })
 })
 

@@ -58,6 +58,18 @@ describe('recordAnswer', () => {
     expect(stats.a?.avgMs).toBeCloseTo(1300)
   })
 
+  it('keeps the average when the answer is untimed', () => {
+    const timed = recordAnswer({}, 'a', true, 1000)
+    const untimed = recordAnswer(timed, 'a', false, null)
+    expect(untimed.a).toMatchObject({ attempts: 2, correct: 1, misses: 1, avgMs: 1000 })
+  })
+
+  it('starts untimed records at zero and adopts the first real sample', () => {
+    const untimed = recordAnswer({}, 'a', true, null)
+    expect(untimed.a?.avgMs).toBe(0)
+    expect(recordAnswer(untimed, 'a', true, 2000).a?.avgMs).toBe(2000)
+  })
+
   it('returns a new object and leaves the input untouched', () => {
     const stats: NoteStats = {}
     const next = recordAnswer(stats, 'a', true, 100)
@@ -78,6 +90,10 @@ describe('noteWeight', () => {
   it('weighs unseen and fast clean notes as 1', () => {
     expect(noteWeight(undefined)).toBe(1)
     expect(noteWeight(record({}))).toBe(1)
+  })
+
+  it('sees no slowness when no timing was recorded', () => {
+    expect(noteWeight(record({ avgMs: 0 }))).toBe(1)
   })
 
   it('adds two per miss', () => {

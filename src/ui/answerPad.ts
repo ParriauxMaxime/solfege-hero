@@ -4,7 +4,7 @@ import { el, trackPressed } from './dom'
 
 const NATURAL_PITCH_CLASSES = [0, 2, 4, 5, 7, 9, 11]
 const KEY_LETTERS = 'cdefgab'
-const FLASH_CLASSES = ['correct', 'wrong', 'reveal'] as const
+const FLASH_CLASSES = ['correct', 'wrong', 'reveal', 'neutral'] as const
 
 export type PadFlash = (typeof FLASH_CLASSES)[number]
 

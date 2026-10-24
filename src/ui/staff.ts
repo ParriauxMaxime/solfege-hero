@@ -14,11 +14,12 @@ import {
   svgElement,
 } from './glyphs'
 
-const VIEW_WIDTH = 300
-const VIEW_HEIGHT = 200
-const STAFF_LEFT = 16
-const STAFF_RIGHT = 284
-const MIN_NOTE_X = 196
+const VIEW_TOP = 4
+const VIEW_HEIGHT = 176
+const VIEW_PADDING = 4
+const STAFF_LEFT = 12
+const NOTE_TRAILING_SPACE = 34
+const MIN_NOTE_X = 170
 const SIGNATURE_X = 92
 const NOTE_CLEARANCE = 60
 
@@ -35,16 +36,17 @@ function renderNote(note: Note, step: number, fifths: number, noteX: number): SV
 
 export function renderStaff(clef: Clef, note: Note, fifths: number): SVGSVGElement {
   const noteX = Math.max(MIN_NOTE_X, SIGNATURE_X + keySignatureWidth(fifths) + NOTE_CLEARANCE)
+  const staffRight = noteX + NOTE_TRAILING_SPACE
   const svg = svgElement('svg', {
     class: 'staff',
-    viewBox: `0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`,
+    viewBox: `${STAFF_LEFT - VIEW_PADDING} ${VIEW_TOP} ${staffRight - STAFF_LEFT + 2 * VIEW_PADDING} ${VIEW_HEIGHT}`,
     width: '100%',
     preserveAspectRatio: 'xMidYMid meet',
     role: 'img',
     'aria-label': `Note sur la portée en clé ${CLEF_LABELS[clef]}`,
   })
   svg.append(
-    staffLines(STAFF_LEFT, STAFF_RIGHT),
+    staffLines(STAFF_LEFT, staffRight),
     clefGlyph(clef),
     keySignatureGlyph(clef, fifths, SIGNATURE_X),
     renderNote(note, staffStep(note, clef), fifths, noteX),

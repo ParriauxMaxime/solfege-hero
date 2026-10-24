@@ -1,5 +1,10 @@
-.hero .icon-button {
-  width: 56px;
+.hero .hud {
+  gap: 6px;
+}
+
+.hero .hud .hud-score {
+  min-width: 0;
+  margin-right: auto;
 }
 
 @media (orientation: landscape) {
@@ -37,7 +42,7 @@
 
 .select {
   width: 100%;
-  min-height: 52px;
+  min-height: 56px;
   padding: 0 12px;
   border: 0;
   border-radius: 14px;
@@ -48,6 +53,7 @@
 }
 
 .slider-row {
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -55,8 +61,43 @@
 
 .slider {
   flex: 1;
+  min-width: 0;
   accent-color: var(--accent);
-  height: 40px;
+  height: 56px;
+}
+
+@media (orientation: landscape) {
+  .panel:has(> .setting) {
+    max-width: 760px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 38%);
+    grid-auto-rows: min-content;
+    align-content: center;
+    gap: 8px 24px;
+  }
+
+  .panel:has(> .setting) > h1 {
+    grid-column: 1;
+  }
+
+  .panel:has(> .setting) > .setting {
+    grid-column: 1;
+    display: grid;
+    grid-template-columns: 7rem minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+  }
+
+  .panel:has(> .setting) > .setting h2 {
+    margin: 0;
+  }
+
+  .panel:has(> .setting) > .primary {
+    grid-column: 2;
+    grid-row: 1 / span 4;
+    align-self: stretch;
+    font-size: 1.6rem;
+  }
 }
 
 .tempo-label {

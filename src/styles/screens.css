@@ -30,7 +30,7 @@
 
 .segment {
   flex: 1;
-  min-height: 48px;
+  min-height: 56px;
   padding: 0 8px;
   border-radius: 10px;
   background: transparent;
@@ -44,8 +44,12 @@
 }
 
 .primary,
-.danger {
-  min-height: 52px;
+.danger,
+.segment-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
   padding: 0 28px;
   border-radius: 14px;
   background: var(--accent);
@@ -180,13 +184,30 @@
 }
 
 .settings-row .segment {
-  min-height: 40px;
   padding: 0 12px;
   white-space: nowrap;
 }
 
 .settings-row .slider {
   flex: 0 1 180px;
+}
+
+.settings-list > .primary:last-child {
+  position: sticky;
+  bottom: 0;
+  flex: none;
+  box-shadow: 0 0 0 8px var(--bg);
+}
+
+.panel > .actions:last-child {
+  position: sticky;
+  bottom: 0;
+  padding: 8px 0 12px;
+  background: var(--bg);
+}
+
+.settings-list .shake {
+  animation: shake 0.4s;
 }
 
 .toggle {
@@ -197,6 +218,12 @@
   border-radius: 16px;
   background: color-mix(in srgb, var(--ink) 22%, transparent);
   transition: background 0.2s, transform 60ms ease-out;
+}
+
+.toggle::before {
+  content: '';
+  position: absolute;
+  inset: -12px -4px;
 }
 
 .toggle::after {

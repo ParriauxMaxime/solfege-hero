@@ -1,6 +1,6 @@
 import type { Sound } from '../audio/sound'
 import { createBeatClock, withTempo, type BeatClock } from '../hero/clock'
-import { GOOD_WINDOW_MS, expiredNotes, noteInWindow, timingJudgement } from '../hero/judgement'
+import { expiredNotes, noteInWindow, timingJudgement } from '../hero/judgement'
 import { INITIAL_HERO_SCORE, applyJudgement, type HeroScore } from '../hero/scoring'
 import { melodySource, placeNotes, randomSource, type NoteSource } from '../hero/sources'
 import { adaptTempo, type TempoState } from '../hero/tempo'
@@ -13,7 +13,7 @@ import { vibrate } from '../platform/haptics'
 import type { Progress, Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
 import { button, el } from './dom'
-import { burstConfetti, burstParticles, floatText, restartAnimation } from './effects'
+import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
 import { createScrollingStaff } from './heroStaff'
 
 const COUNT_IN_BEATS = 4
@@ -22,6 +22,9 @@ const CLICK_LOOKAHEAD_S = 0.15
 const RESUME_LEAD_S = 0.3
 const START_LEAD_S = 0.1
 const INLINE_ACCIDENTAL_CHANCE = 0.02
+const QUIT_CONFIRM_MS = 3000
+const NEUTRAL_FLASH_MS = 150
+const FLOAT_OFFSET_PX = 40
 const JUDGEMENT_LABELS: Record<Judgement, string> = { parfait: 'Parfait', bien: 'Bien', rate: 'Raté' }
 
 export interface HeroOptions {
@@ -37,6 +40,7 @@ export interface HeroOptions {
 
 export interface Hero {
   element: HTMLElement
+  pause: () => void
   destroy: () => void
 }
 
@@ -132,46 +136,61 @@ export function createHero({
     if (frozenBeat === null) {
       fillBars(nowBeat)
       scheduleClicks()
-      for (const note of expiredNotes(notes, judged, nowBeat, clock)) judge(note, 'rate', GOOD_WINDOW_MS)
+      for (const note of expiredNotes(notes, judged, nowBeat, clock)) judge(note, 'rate')
     }
     renderCountIn(nowBeat)
     staff.render(notes, nowBeat, 0)
   }
 
+  function deadTap(chosen: number): void {
+    const nowBeat = currentBeat()
+    const nearest = notes
+      .filter((note) => note.pitch !== null)
+      .reduce<HeroNote | null>((best, note) => (!best || Math.abs(note.beat - nowBeat) < Math.abs(best.beat - nowBeat) ? note : best), null)
+    pad.clear()
+    pad.flash(chosen, 'neutral')
+    window.setTimeout(() => pad.clear(), NEUTRAL_FLASH_MS)
+    const zone = staff.element.querySelector('.hero-hit-zone') ?? staff.element
+    floatText(effectsLayer, centerOf(zone), nearest && nearest.beat < nowBeat ? 'Trop tard' : 'Trop tôt', 'neutral')
+  }
+
   function tap(chosen: number): void {
     if (frozenBeat !== null) return
     const target = noteInWindow(notes, judged, currentBeat(), clock)
-    if (!target || target.pitch === null) return
+    if (!target || target.pitch === null) {
+      deadTap(chosen)
+      return
+    }
     const deltaMs = (sound.now() - clock.timeAt(target.beat)) * 1000
     pad.clear()
     if (chosen !== pitchClass(target.pitch)) {
       pad.flash(chosen, 'wrong')
       pad.flash(pitchClass(target.pitch), 'reveal')
-      judge(target, 'rate', Math.abs(deltaMs))
+      judge(target, 'rate')
       return
     }
     const judgement = timingJudgement(deltaMs)
-    if (judgement) judge(target, judgement, Math.abs(deltaMs))
+    if (judgement) judge(target, judgement)
   }
 
-  function judge(note: HeroNote, judgement: Judgement, ms: number): void {
+  function judge(note: HeroNote, judgement: Judgement): void {
     judged.add(note.id)
     if (note.pitch === null || !note.note) return
     const hit = judgement !== 'rate'
     const result = applyJudgement(score, judgement)
     score = result.state
     adaptTempoTo(hit)
-    updateProgress(note.pitch, hit, ms, judgement)
+    updateProgress(note.pitch, hit, judgement)
     renderScore()
     if (hit) onHit(note.id, note.note, judgement, result.gained, result.milestone)
     else onMiss(note.id, noteName(note.note, settings.naming), result.brokenStreak)
   }
 
-  function updateProgress(pitch: number, hit: boolean, ms: number, judgement: Judgement): void {
+  function updateProgress(pitch: number, hit: boolean, judgement: Judgement): void {
     const { hero } = progress
     progress = {
       ...progress,
-      notes: recordAnswer(progress.notes, promptId({ clef, pitch }), hit, ms),
+      notes: recordAnswer(progress.notes, promptId({ clef, pitch }), hit, null),
       bestStreak: Math.max(progress.bestStreak, score.bestStreak),
       totalAnswered: progress.totalAnswered + 1,
       hero: {
@@ -213,7 +232,7 @@ export function createHero({
     const origin = staff.notePoint(id)
     if (origin) {
       burstParticles(effectsLayer, origin)
-      floatText(effectsLayer, origin, `${JUDGEMENT_LABELS[judgement]} +${gained}`)
+      floatText(effectsLayer, { x: origin.x, y: origin.y - FLOAT_OFFSET_PX }, `${JUDGEMENT_LABELS[judgement]} +${gained}`)
     }
     if (milestone !== null) {
       sound.milestone()
@@ -237,6 +256,19 @@ export function createHero({
   function pause(): void {
     if (frozenBeat !== null) return
     frozenBeat = currentBeat()
+    let quitArmed = false
+    const quit = button('danger', 'Quitter', () => {
+      if (quitArmed) {
+        onQuit()
+        return
+      }
+      quitArmed = true
+      quit.textContent = 'Vraiment quitter ?'
+      window.setTimeout(() => {
+        quitArmed = false
+        quit.textContent = 'Quitter'
+      }, QUIT_CONFIRM_MS)
+    })
     const overlay = el(
       'div',
       'overlay',
@@ -248,7 +280,7 @@ export function createHero({
           overlay.remove()
           resume()
         }),
-        button('danger', 'Quitter', onQuit),
+        quit,
       ),
     )
     element.append(overlay)
@@ -271,6 +303,7 @@ export function createHero({
 
   return {
     element,
+    pause,
     destroy() {
       cancelAnimationFrame(frame)
       document.removeEventListener('visibilitychange', onVisibilityChange)

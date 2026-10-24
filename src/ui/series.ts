@@ -3,7 +3,9 @@ import { promptId, recordAnswer } from '../game/sampler'
 import { motionReduced } from '../platform/appearance'
 import { pitchClass, spell } from '../music/notes'
 import { vibrate } from '../platform/haptics'
-import { challengeUrl, type Challenge } from '../series/challenge'
+import { copyText } from '../platform/clipboard'
+import { trackHiddenTime } from '../platform/visibility'
+import { challengeTimeS, challengeUrl, challengeWon, type Challenge } from '../series/challenge'
 import {
   INITIAL_RUN,
   PENALTY_MS,
@@ -15,7 +17,7 @@ import {
   type SeriesConfig,
   type SeriesRun,
 } from '../series/series'
-import { COLORBLIND_SQUARES, formatTime, shareText } from '../series/share'
+import { COLORBLIND_SQUARES, formatTenths, formatTime, shareText } from '../series/share'
 import type { Progress, Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
 import { button, el } from './dom'
@@ -35,6 +37,7 @@ export interface SeriesOptions {
   sound: Sound
   onProgress: (progress: Progress) => void
   onReplay: () => void
+  onRetry: () => void
   onHome: () => void
 }
 
@@ -58,6 +61,7 @@ export function createSeries({
   sound,
   onProgress,
   onReplay,
+  onRetry,
   onHome,
 }: SeriesOptions): Series {
   const items = generateSeries(config)
@@ -73,6 +77,7 @@ export function createSeries({
   let nextTimeout = 0
   let wrongTimeout = 0
   let countUpFrame = 0
+  let sharing = false
 
   const timerValue = el('span', 'series-timer', '0:00.0')
   const counter = el('span', 'series-count', `1/${SERIES_LENGTH}`)
@@ -166,7 +171,7 @@ export function createSeries({
     renderTimer()
     bar.style.width = '100%'
     const record = progress.series.bestMs === 0 || totalMs < progress.series.bestMs
-    const beaten = challenge?.timeS != null ? Math.floor(totalMs / 1000) <= challenge.timeS : null
+    const beaten = challenge?.timeS != null ? challengeWon(totalMs, challenge.timeS) : null
     progress = {
       ...progress,
       series: {
@@ -182,8 +187,30 @@ export function createSeries({
   }
 
   async function share(outcome: Outcome): Promise<void> {
-    const url = challengeUrl(location.origin + location.pathname, { config, timeS: Math.floor(outcome.totalMs / 1000) })
-    const text = shareText({
+    if (sharing) return
+    sharing = true
+    try {
+      await shareOrCopy(shareMessage(outcome))
+    } finally {
+      sharing = false
+    }
+  }
+
+  async function shareOrCopy(text: string): Promise<void> {
+    if (navigator.share) {
+      try {
+        await navigator.share({ text })
+        return
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return
+      }
+    }
+    showToast((await copyText(text)) ? 'Copié !' : 'Copie impossible')
+  }
+
+  function shareMessage(outcome: Outcome): string {
+    const url = challengeUrl(location.origin + location.pathname, { config, timeS: challengeTimeS(outcome.totalMs) })
+    return shareText({
       seed: config.seed,
       results: outcome.results,
       totalMs: outcome.totalMs,
@@ -191,16 +218,6 @@ export function createSeries({
       url,
       squares: settings.colorblind ? COLORBLIND_SQUARES : undefined,
     })
-    if (navigator.share) {
-      try {
-        await navigator.share({ text })
-      } catch (error) {
-        if (!(error instanceof DOMException && error.name === 'AbortError')) throw error
-      }
-      return
-    }
-    await navigator.clipboard.writeText(text)
-    showToast('Copié !')
   }
 
   function countUp(target: HTMLElement, totalMs: number): void {
@@ -224,8 +241,7 @@ export function createSeries({
       burstConfetti(effectsLayer)
       return el('p', 'verdict win', 'Gagné !')
     }
-    const lateMs = (Math.floor(outcome.totalMs / 1000) - challenge.timeS) * 1000
-    return el('p', 'verdict lose', `Perdu… à ${formatTime(lateMs)} près`)
+    return el('p', 'verdict lose', `Perdu… à ${formatTenths(outcome.totalMs - challenge.timeS * 1000)} près`)
   }
 
   function versus(outcome: Outcome): HTMLElement | string {
@@ -233,9 +249,14 @@ export function createSeries({
     return el(
       'div',
       'versus',
-      el('span', 'versus-you', `Toi ${formatTime(outcome.totalMs)}`),
-      el('span', 'versus-friend', `Ami ${formatTime(challenge.timeS * 1000)}`),
+      el('span', 'versus-you', `Toi ${formatTenths(outcome.totalMs)}`),
+      el('span', 'versus-friend', `Ami ${formatTenths(challenge.timeS * 1000)}`),
     )
+  }
+
+  function recordLine(outcome: Outcome, beaten: boolean | null): HTMLElement {
+    if (outcome.record && beaten !== false) return el('p', 'result-record', 'Nouveau record !')
+    return el('p', 'result-best', `Record : ${formatTime(progress.series.bestMs)}`)
   }
 
   function endOverlay(outcome: Outcome, beaten: boolean | null): HTMLElement {
@@ -252,7 +273,11 @@ export function createSeries({
       }),
     )
     const actions = challenge
-      ? [button('primary', 'Partager mon résultat', () => void share(outcome)), button('segment-button', 'Accueil', onHome)]
+      ? [
+          button('primary', 'Partager mon résultat', () => void share(outcome)),
+          button('segment-button', 'Réessayer ce défi', onRetry),
+          button('segment-button', 'Accueil', onHome),
+        ]
       : [
           button('primary', 'Défier un ami', () => void share(outcome)),
           button('segment-button', 'Rejouer', onReplay),
@@ -267,7 +292,7 @@ export function createSeries({
       outcome.penalty > 0 ? el('p', 'result-best', `(+${outcome.penalty / 1000} s)`) : '',
       el('p', '', `${hits}/${outcome.results.length} du premier coup`),
       strip,
-      el('p', outcome.record ? 'result-record' : 'result-best', outcome.record ? 'Nouveau record !' : `Record : ${formatTime(progress.series.bestMs)}`),
+      recordLine(outcome, beaten),
       el('div', 'result-actions', ...actions),
     )
     card.classList.toggle('win', beaten === true)
@@ -275,6 +300,10 @@ export function createSeries({
     return el('div', 'overlay', card)
   }
 
+  const stopTrackingHiddenTime = trackHiddenTime((hiddenMs) => {
+    startedAt += hiddenMs
+    shownAt += hiddenMs
+  })
   startedAt = performance.now()
   showItem()
   frame = requestAnimationFrame(tick)
@@ -282,6 +311,7 @@ export function createSeries({
   return {
     element,
     destroy() {
+      stopTrackingHiddenTime()
       cancelAnimationFrame(frame)
       cancelAnimationFrame(countUpFrame)
       window.clearTimeout(nextTimeout)

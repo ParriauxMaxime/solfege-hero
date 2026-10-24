@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { COLORBLIND_SQUARES, formatTime, shareText } from './share'
+import { COLORBLIND_SQUARES, formatTenths, formatTime, shareText } from './share'
 
 describe('formatTime', () => {
   it('shows minutes and zero-padded seconds', () => {
@@ -11,6 +11,15 @@ describe('formatTime', () => {
   it('floors to whole seconds', () => {
     expect(formatTime(59_999)).toBe('0:59')
     expect(formatTime(0)).toBe('0:00')
+  })
+})
+
+describe('formatTenths', () => {
+  it('shows minutes, seconds and one floored decimal', () => {
+    expect(formatTenths(12_900)).toBe('0:12.9')
+    expect(formatTenths(65_040)).toBe('1:05.0')
+    expect(formatTenths(59_999)).toBe('0:59.9')
+    expect(formatTenths(0)).toBe('0:00.0')
   })
 })
 
