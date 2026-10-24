@@ -6,7 +6,8 @@ import { parseChallenge, type Challenge } from './series/challenge'
 import { newSeed, type SeriesConfig } from './series/series'
 import { loadProgress, loadSettings, resetProgress, saveProgress, saveSettings, type Progress, type Settings } from './storage'
 import { createChallengeIntro } from './ui/challengeIntro'
-import { button, el } from './ui/dom'
+import { confirmOverlay } from './ui/confirm'
+import { el, iconButton, setIcon } from './ui/dom'
 import { createGame } from './ui/game'
 import { createHero, type Hero } from './ui/hero'
 import { createHeroStart } from './ui/heroStart'
@@ -32,10 +33,8 @@ export function startApp(root: HTMLElement): void {
   const sound = createSound()
   const appearance = createAppearance()
 
-  const backButton = button('icon-button', '←', goHome)
-  backButton.setAttribute('aria-label', 'Accueil')
-  const muteButton = button('icon-button', '', toggleMute)
-  muteButton.setAttribute('aria-label', 'Son')
+  const backButton = iconButton('back', goHome, 'Accueil')
+  const muteButton = iconButton('sound-on', toggleMute, 'Son')
   const topBar = el('header', 'top-bar', backButton, el('span', 'spacer'), muteButton)
   const screen = el('main', 'screen-host')
   root.replaceChildren(el('div', 'app', topBar, screen))
@@ -59,6 +58,7 @@ export function startApp(root: HTMLElement): void {
   }
 
   function onPopState(): void {
+    if (parseChallenge(location.hash)) return
     pushed = false
     if (activeHero) {
       activeHero.pause()
@@ -73,7 +73,14 @@ export function startApp(root: HTMLElement): void {
     const received = parseChallenge(location.hash)
     if (!received) return false
     history.replaceState(null, '', location.pathname + location.search)
-    showChallengeIntro(received)
+    if (!running) {
+      showChallengeIntro(received)
+      return true
+    }
+    activeHero?.pause()
+    void confirmOverlay(root, 'Abandonner la partie en cours ?', 'Abandonner', 'Continuer').then((abandon) => {
+      if (abandon) showChallengeIntro(received)
+    })
     return true
   }
 
@@ -82,7 +89,7 @@ export function startApp(root: HTMLElement): void {
     setVibrationEnabled(settings.vibration)
     sound.setMuted(settings.muted)
     sound.setVolume(settings.volume)
-    muteButton.textContent = settings.muted ? '🔇' : '🔊'
+    setIcon(muteButton, settings.muted ? 'sound-off' : 'sound-on')
   }
 
   function toggleMute(): void {

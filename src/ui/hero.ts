@@ -12,7 +12,7 @@ import { noteName, pitchClass, type Clef, type Note } from '../music/notes'
 import { vibrate } from '../platform/haptics'
 import type { Progress, Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
-import { button, el } from './dom'
+import { button, el, iconButton, setIcon } from './dom'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
 import { createScrollingStaff } from './heroStaff'
 
@@ -82,13 +82,15 @@ export function createHero({
   const multiplierValue = el('span', 'multiplier', '×1')
   const bpmValue = el('span', 'bpm-value', String(tempo.bpm))
   const bpm = el('div', 'bpm', bpmValue, el('small', '', 'BPM'))
-  const pauseButton = button('icon-button', '⏸', pause)
-  pauseButton.setAttribute('aria-label', 'Pause')
-  const muteButton = button('icon-button', '', () => {
-    onToggleMute()
-    renderMute()
-  })
-  muteButton.setAttribute('aria-label', 'Son')
+  const pauseButton = iconButton('pause', pause, 'Pause')
+  const muteButton = iconButton(
+    'sound-on',
+    () => {
+      onToggleMute()
+      renderMute()
+    },
+    'Son',
+  )
   renderMute()
   const hud = el('div', 'hud', el('div', 'hud-score', scoreValue), streak, multiplierValue, bpm, muteButton, pauseButton)
   const countIn = el('div', 'count-in')
@@ -99,7 +101,7 @@ export function createHero({
   const element = el('section', 'screen game hero', hud, staffArea, pad.element, flash, effectsLayer)
 
   function renderMute(): void {
-    muteButton.textContent = isMuted() ? '🔇' : '🔊'
+    setIcon(muteButton, isMuted() ? 'sound-off' : 'sound-on')
   }
 
   function currentBeat(): number {

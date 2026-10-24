@@ -1,3 +1,5 @@
+import { icon, type IconName } from './icons'
+
 export function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   className = '',
@@ -21,5 +23,16 @@ export function button(className: string, label: string, onClick: () => void): H
   element.type = 'button'
   element.addEventListener('click', onClick)
   trackPressed(element)
+  return element
+}
+
+export function setIcon(element: HTMLElement, name: IconName): void {
+  element.replaceChildren(icon(name))
+}
+
+export function iconButton(name: IconName, onClick: () => void, label: string): HTMLButtonElement {
+  const element = button('icon-button', '', onClick)
+  element.setAttribute('aria-label', label)
+  setIcon(element, name)
   return element
 }

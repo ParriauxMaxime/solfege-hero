@@ -168,7 +168,15 @@ button.pressed {
   border-radius: 12px;
   background: var(--card);
   box-shadow: var(--card-shadow);
-  font-size: 1.2rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  line-height: 0;
+}
+
+.icon-button svg {
+  width: 24px;
+  height: 24px;
 }
 
 .screen-host {

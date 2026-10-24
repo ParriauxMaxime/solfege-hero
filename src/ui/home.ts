@@ -1,4 +1,4 @@
-import { button, el } from './dom'
+import { button, el, iconButton } from './dom'
 import { clefGlyph, inkGroup, noteHead, staffLines, stem, svgElement } from './glyphs'
 
 export type HomeChoice = 'apprendre' | 'series' | 'hero'
@@ -91,14 +91,8 @@ function card(spec: CardSpec, index: number, onChoose: (choice: HomeChoice) => v
   return element
 }
 
-function iconButton(symbol: string, label: string, onClick: () => void): HTMLButtonElement {
-  const element = button('icon-button', symbol, onClick)
-  element.setAttribute('aria-label', label)
-  return element
-}
-
 export function createHome({ onChoose, onSettings, onStats }: HomeOptions): HTMLElement {
-  const actions = el('div', 'home-actions', iconButton('📊', 'Statistiques', onStats), iconButton('⚙️', 'Réglages', onSettings))
+  const actions = el('div', 'home-actions', iconButton('stats', onStats, 'Statistiques'), iconButton('settings', onSettings, 'Réglages'))
   const brand = el('div', 'home-brand', logo(), el('h1', 'home-title', 'Solfège ', el('span', '', 'hero')))
   const cards = el('div', 'home-cards', ...CARDS.map((spec, index) => card(spec, index, onChoose)))
   return el('section', 'home', brand, actions, cards)
