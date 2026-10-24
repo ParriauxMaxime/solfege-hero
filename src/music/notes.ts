@@ -48,8 +48,8 @@ const BOTTOM_LINE: Record<Clef, Note> = {
 }
 
 export const TOP_LINE_STEP = 8
-const LOWEST_STEP = -4
-const HIGHEST_STEP = TOP_LINE_STEP + 4
+export const LOWEST_STEP = -4
+export const HIGHEST_STEP =TOP_LINE_STEP + 4
 
 export function diatonicIndex(note: Note): number {
   return note.octave * 7 + LETTERS.indexOf(note.letter)

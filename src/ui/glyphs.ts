@@ -1,5 +1,7 @@
 import { ledgerSteps, TOP_LINE_STEP } from '../music/notes'
-import type { Alter, Clef } from '../music/notes'
+import { signatureSteps } from '../music/keySignature'
+import type { Accidental } from '../music/keySignature'
+import type { Clef } from '../music/notes'
 
 export type HeadFill = 'hollow' | 'filled'
 
@@ -42,9 +44,20 @@ const CLEF_DOTS: Record<Clef, { cx: number; cy: number; r: number }[]> = {
   ],
 }
 
-const SHARP_STEMS = ['M-3.5 -19 V21', 'M3.5 -21 V19']
-const SHARP_BARS = ['M-7.5 -3 L7.5 -8', 'M-7.5 8 L7.5 3']
+interface AccidentalShape {
+  stems: string[]
+  bars: string[]
+}
+
+const ACCIDENTAL_SHAPES: Record<Exclude<Accidental, 'flat'>, AccidentalShape> = {
+  sharp: { stems: ['M-3.5 -19 V21', 'M3.5 -21 V19'], bars: ['M-7.5 -3 L7.5 -8', 'M-7.5 8 L7.5 3'] },
+  natural: { stems: ['M-3.5 -21 V5', 'M3.5 -5 V21'], bars: ['M-3.5 -2 L3.5 -5', 'M-3.5 5 L3.5 2'] },
+}
 const FLAT_PATH = 'M-3 -24 V8 C8 2 13 -4 13 -9 C13 -16 3 -15 -3 -5'
+
+const SIGNATURE_SPACING = 14
+const SIGNATURE_GAP = 6
+const SIGNATURE_GLYPH_HALF_WIDTH = 8
 
 const HEAD_PATHS: Record<HeadFill, string> = {
   hollow:
@@ -104,18 +117,33 @@ export function clefGlyph(clef: Clef): SVGGElement {
   return group
 }
 
-export function accidentalGlyph(alter: Exclude<Alter, 0>, x: number, step: number): SVGGElement {
+export function accidentalGlyph(accidental: Accidental, x: number, step: number): SVGGElement {
   const group = svgElement('g', {
     transform: `translate(${x} ${stepY(step)})`,
     fill: 'none',
     'stroke-linejoin': 'round',
   })
-  if (alter === 1) {
-    for (const d of SHARP_STEMS) group.append(svgElement('path', { d, 'stroke-width': 1.8, 'stroke-linecap': 'butt' }))
-    for (const d of SHARP_BARS) group.append(svgElement('path', { d, 'stroke-width': 4, 'stroke-linecap': 'butt' }))
-  } else {
+  if (accidental === 'flat') {
     group.append(svgElement('path', { d: FLAT_PATH, 'stroke-width': 2.4 }))
+    return group
   }
+  const { stems, bars } = ACCIDENTAL_SHAPES[accidental]
+  for (const d of stems) group.append(svgElement('path', { d, 'stroke-width': 1.8, 'stroke-linecap': 'butt' }))
+  for (const d of bars) group.append(svgElement('path', { d, 'stroke-width': 4, 'stroke-linecap': 'butt' }))
+  return group
+}
+
+export function keySignatureWidth(fifths: number): number {
+  return fifths === 0 ? 0 : Math.abs(fifths) * SIGNATURE_SPACING + SIGNATURE_GAP
+}
+
+/** Accidentals of the key signature, with `x` as the left edge of the first one. */
+export function keySignatureGlyph(clef: Clef, fifths: number, x: number): SVGGElement {
+  const group = inkGroup()
+  signatureSteps(fifths, clef).forEach(({ alter, step }, index) => {
+    const centre = x + SIGNATURE_GLYPH_HALF_WIDTH + index * SIGNATURE_SPACING
+    group.append(accidentalGlyph(alter === 1 ? 'sharp' : 'flat', centre, step))
+  })
   return group
 }
 

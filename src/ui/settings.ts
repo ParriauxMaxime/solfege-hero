@@ -52,7 +52,7 @@ export function createSettingsScreen({ settings: initial, onChange, onBack }: Se
     element.replaceChildren(
       el('h1', '', 'Réglages'),
       clefSetting(),
-      onOffSetting('Altérations', 'accidentals'),
+      onOffSetting('Armures', 'accidentals'),
       onOffSetting('Mode chrono 60 s', 'timed'),
       button('primary', 'Retour', onBack),
     )

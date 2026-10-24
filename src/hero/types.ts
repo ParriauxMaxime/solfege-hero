@@ -26,6 +26,8 @@ export type Judgement = 'parfait' | 'bien' | 'rate'
 export interface Melody {
   name: string
   clef: Clef
+  /** Key signature as a fifths index: positive = sharps, negative = flats. */
+  key: number
   tempo: number
   notes: NoteSpec[]
 }

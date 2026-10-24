@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { BEATS_PER_BAR, DURATION_BEATS } from '../hero/types'
 import { MELODIES } from './melodies'
+import { spellInKey } from './keySignature'
 import { pitchesInRange } from './notes'
 
 describe('MELODIES', () => {
@@ -39,6 +40,12 @@ describe('MELODIES', () => {
   it.each(MELODIES)('$name stays inside its clef range', (melody) => {
     const allowed = new Set(pitchesInRange(melody.clef, true))
     for (const { pitch } of melody.notes) expect(allowed.has(pitch as number)).toBe(true)
+  })
+
+  it.each(MELODIES)('$name only uses notes of its key signature', (melody) => {
+    for (const { pitch } of melody.notes) {
+      expect(spellInKey(pitch as number, melody.key)).not.toBeNull()
+    }
   })
 
   it.each(MELODIES)('$name only rests on quarters and has a sensible tempo', (melody) => {

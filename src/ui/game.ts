@@ -1,6 +1,7 @@
 import type { Sound } from '../audio/sound'
 import { INITIAL_SCORE, applyAnswer, multiplier, type AnswerOutcome, type ScoreState } from '../game/scoring'
 import { buildPool, pickPrompt, promptId, recordAnswer, type Prompt } from '../game/sampler'
+import { chooseKey } from '../music/keySignature'
 import { midi, noteName, pitchClass, spell, type Note } from '../music/notes'
 import { vibrate } from '../platform/haptics'
 import type { Progress, Settings } from '../storage'
@@ -59,10 +60,12 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
 
   function showNext(): void {
     const prompt = pickPrompt(pool, progress.notes, previousId)
-    const note = spell(prompt.pitch, Math.random() < 0.5)
+    const { fifths, note } = settings.accidentals
+      ? chooseKey(prompt.pitch, prompt.clef)
+      : { fifths: 0, note: spell(prompt.pitch, false) }
     shown = { prompt, note }
     previousId = promptId(prompt)
-    staffCard.replaceChildren(renderStaff(prompt.clef, note))
+    staffCard.replaceChildren(renderStaff(prompt.clef, note, fifths))
     feedback.textContent = ''
     feedback.className = 'feedback'
     pad.clear()

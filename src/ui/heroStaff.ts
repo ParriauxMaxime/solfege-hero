@@ -1,5 +1,6 @@
 import { BEATS_PER_BAR } from '../hero/types'
 import type { HeroNote } from '../hero/types'
+import { inlineAccidental } from '../music/keySignature'
 import { staffStep } from '../music/notes'
 import type { Clef } from '../music/notes'
 import {
@@ -9,6 +10,8 @@ import {
   clefGlyph,
   flag,
   inkGroup,
+  keySignatureGlyph,
+  keySignatureWidth,
   ledgerLines,
   noteHead,
   quarterRest,
@@ -25,7 +28,7 @@ import { restartAnimation } from './effects'
 
 export interface ScrollingStaff {
   element: SVGSVGElement
-  setClef(clef: Clef): void
+  setClef(clef: Clef, fifths: number): void
   render(notes: readonly HeroNote[], nowBeat: number, firstBarBeat: number): void
   markHit(id: number): void
   markMiss(id: number, label: string): void
@@ -35,14 +38,14 @@ export interface ScrollingStaff {
 const CONTENT_TOP = 0
 const CONTENT_BOTTOM = stepY(-4) + 16
 const CONTENT_HEIGHT = CONTENT_BOTTOM - CONTENT_TOP
-const HIT_X = 110
 const BEATS_AHEAD = 6
 const MIN_PX_PER_BEAT = 80
-const MIN_VIEW_WIDTH = HIT_X + BEATS_AHEAD * MIN_PX_PER_BEAT
 // Tighter than the single-note staff so an accidental never reaches back into the previous eighth.
 const ACCIDENTAL_OFFSET = -24
 const BAR_LINE_OFFSET_BEATS = -0.4
-const CLIP_LEFT = 92
+const SIGNATURE_X = 90
+const CLIP_LEFT_WITHOUT_SIGNATURE = 92
+const HIT_DISTANCE_FROM_CLIP = 32
 const STAFF_LEFT = 8
 const OFFSCREEN_MARGIN = 40
 const HIT_BAND_HALF_WIDTH = 20
@@ -113,6 +116,7 @@ function createNoteGroup(
   previous: HeroNote | undefined,
   next: HeroNote | undefined,
   clef: Clef,
+  fifths: number,
   pxPerBeat: number,
 ): SVGGElement {
   const group = inkGroup({ class: 'hero-note' })
@@ -124,7 +128,8 @@ function createNoteGroup(
   const step = staffStep(hero.note, clef)
   const fill: HeadFill = hero.duration === 'whole' || hero.duration === 'half' ? 'hollow' : 'filled'
   group.append(...ledgerLines(step, 0))
-  if (hero.note.alter !== 0) group.append(accidentalGlyph(hero.note.alter, ACCIDENTAL_OFFSET, step))
+  const accidental = inlineAccidental(hero.note, fifths)
+  if (accidental) group.append(accidentalGlyph(accidental, ACCIDENTAL_OFFSET, step))
   group.append(noteHead(fill, 0, step))
   if (hero.duration === 'whole') return group
 
@@ -146,10 +151,14 @@ function createNoteGroup(
   return group
 }
 
-export function createScrollingStaff(initialClef: Clef): ScrollingStaff {
+export function createScrollingStaff(initialClef: Clef, initialFifths: number): ScrollingStaff {
   let clef = initialClef
-  let viewWidth = MIN_VIEW_WIDTH
+  let fifths = initialFifths
+  let clipLeft = CLIP_LEFT_WITHOUT_SIGNATURE
+  let hitX = clipLeft + HIT_DISTANCE_FROM_CLIP
+  let viewWidth = hitX + BEATS_AHEAD * MIN_PX_PER_BEAT
   let pxPerBeat = MIN_PX_PER_BEAT
+  let size: { width: number; height: number } | null = null
   const svg = svgElement('svg', {
     class: 'hero-staff-svg',
     viewBox: `0 ${CONTENT_TOP} ${viewWidth} ${CONTENT_HEIGHT}`,
@@ -157,12 +166,11 @@ export function createScrollingStaff(initialClef: Clef): ScrollingStaff {
     role: 'img',
     'aria-label': 'Portée défilante',
   })
-  const clipRect = svgElement('rect', { x: CLIP_LEFT })
+  const clipRect = svgElement('rect', { x: clipLeft })
   const clip = svgElement('clipPath', { id: CLIP_ID })
   clip.append(clipRect)
   const hitZone = svgElement('rect', {
     class: 'hero-hit-zone',
-    x: HIT_X - HIT_BAND_HALF_WIDTH,
     y: CONTENT_TOP + HIT_BAND_INSET,
     width: HIT_BAND_HALF_WIDTH * 2,
     height: CONTENT_HEIGHT - HIT_BAND_INSET * 2,
@@ -175,44 +183,52 @@ export function createScrollingStaff(initialClef: Clef): ScrollingStaff {
   const noteGroup = svgElement('g', {})
   scrolling.append(barGroup, noteGroup)
   // Outside the clip: a note judged late has already slid under the clef.
-  const missLabel = svgElement('text', { class: 'hero-miss-label', x: HIT_X, y: MISS_LABEL_Y })
+  const missLabel = svgElement('text', { class: 'hero-miss-label', y: MISS_LABEL_Y })
   svg.append(clip, hitZone, lines, clefHolder, scrolling, missLabel)
 
   const bars = createKeyedLayer(barGroup)
   const notes = createKeyedLayer(noteGroup)
 
   function layout(width: number, height: number): void {
-    const scale = Math.min(height / CONTENT_HEIGHT, width / MIN_VIEW_WIDTH)
+    const scale = Math.min(height / CONTENT_HEIGHT, width / (hitX + BEATS_AHEAD * MIN_PX_PER_BEAT))
     viewWidth = width / scale
     const viewHeight = height / scale
     const top = CONTENT_TOP + (CONTENT_HEIGHT - viewHeight) / 2
     svg.setAttribute('viewBox', `0 ${top} ${viewWidth} ${viewHeight}`)
     clipRect.setAttribute('y', String(top))
-    clipRect.setAttribute('width', String(viewWidth - CLIP_LEFT))
+    clipRect.setAttribute('width', String(viewWidth - clipLeft))
     clipRect.setAttribute('height', String(viewHeight))
     const nextLines = staffLines(STAFF_LEFT, viewWidth)
     lines.replaceWith(nextLines)
     lines = nextLines
-    pxPerBeat = (viewWidth - HIT_X) / BEATS_AHEAD
+    pxPerBeat = (viewWidth - hitX) / BEATS_AHEAD
     notes.clear()
   }
 
   function beatToX(beat: number, nowBeat: number): number {
-    return HIT_X + (beat - nowBeat) * pxPerBeat
+    return hitX + (beat - nowBeat) * pxPerBeat
   }
 
   new ResizeObserver(() => {
-    if (svg.clientWidth > 0 && svg.clientHeight > 0) layout(svg.clientWidth, svg.clientHeight)
+    size = { width: svg.clientWidth, height: svg.clientHeight }
+    if (size.width > 0 && size.height > 0) layout(size.width, size.height)
   }).observe(svg)
 
-  function setClef(value: Clef): void {
+  function setClef(value: Clef, signature: number): void {
     clef = value
-    clefHolder.replaceChildren(clefGlyph(clef))
+    fifths = signature
+    clefHolder.replaceChildren(clefGlyph(clef), keySignatureGlyph(clef, fifths, SIGNATURE_X))
+    clipLeft = CLIP_LEFT_WITHOUT_SIGNATURE + keySignatureWidth(fifths)
+    hitX = clipLeft + HIT_DISTANCE_FROM_CLIP
+    clipRect.setAttribute('x', String(clipLeft))
+    hitZone.setAttribute('x', String(hitX - HIT_BAND_HALF_WIDTH))
+    missLabel.setAttribute('x', String(hitX))
     notes.clear()
+    if (size && size.width > 0 && size.height > 0) layout(size.width, size.height)
   }
 
   function renderBars(nowBeat: number, firstBarBeat: number): void {
-    const first = Math.max(0, Math.ceil((nowBeat - (HIT_X + OFFSCREEN_MARGIN) / pxPerBeat - firstBarBeat) / BEATS_PER_BAR))
+    const first = Math.max(0, Math.ceil((nowBeat - (hitX + OFFSCREEN_MARGIN) / pxPerBeat - firstBarBeat) / BEATS_PER_BAR))
     bars.begin()
     for (let bar = first; ; bar++) {
       const x = beatToX(firstBarBeat + bar * BEATS_PER_BAR, nowBeat) + BAR_LINE_OFFSET_BEATS * pxPerBeat
@@ -226,7 +242,7 @@ export function createScrollingStaff(initialClef: Clef): ScrollingStaff {
     bars.end()
   }
 
-  setClef(clef)
+  setClef(clef, fifths)
 
   return {
     element: svg,
@@ -239,7 +255,7 @@ export function createScrollingStaff(initialClef: Clef): ScrollingStaff {
         const x = beatToX(hero.beat, nowBeat)
         if (x < -OFFSCREEN_MARGIN) continue
         if (x > viewWidth + OFFSCREEN_MARGIN) break
-        notes.place(hero.id, x, () => createNoteGroup(hero, heroNotes[i - 1], heroNotes[i + 1], clef, pxPerBeat))
+        notes.place(hero.id, x, () => createNoteGroup(hero, heroNotes[i - 1], heroNotes[i + 1], clef, fifths, pxPerBeat))
       }
       notes.end()
     },

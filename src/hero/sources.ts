@@ -1,5 +1,6 @@
 import { pickPrompt, promptId, type NoteStats, type Prompt } from '../game/sampler'
-import { spell } from '../music/notes'
+import { spellInKey, withInlineAccidental } from '../music/keySignature'
+import { midi, spell, type Note } from '../music/notes'
 import { randomBarRhythm } from './rhythm'
 import { BEATS_PER_BAR, DURATION_BEATS, type HeroNote, type Melody, type NoteSpec } from './types'
 
@@ -57,18 +58,26 @@ export function placeNotes(
   specs: NoteSpec[],
   startBeat: number,
   firstId: number,
-  preferFlat: () => boolean,
+  fifths: number,
+  inlineChance: number,
+  random: () => number = Math.random,
 ): HeroNote[] {
   let beat = startBeat
   return specs.map((spec, index) => {
+    const note = spec.pitch === null ? null : writeNote(spec.pitch, fifths, inlineChance, random)
     const placed: HeroNote = {
       id: firstId + index,
       beat,
       duration: spec.duration,
-      pitch: spec.pitch,
-      note: spec.pitch === null ? null : spell(spec.pitch, preferFlat()),
+      pitch: note && midi(note),
+      note,
     }
     beat += DURATION_BEATS[spec.duration]
     return placed
   })
+}
+
+function writeNote(pitch: number, fifths: number, inlineChance: number, random: () => number): Note {
+  const inKey = spellInKey(pitch, fifths) ?? spell(pitch, fifths < 0)
+  return random() < inlineChance ? withInlineAccidental(inKey, fifths, random) : inKey
 }

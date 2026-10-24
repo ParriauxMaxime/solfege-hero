@@ -7,7 +7,8 @@ import { adaptTempo, type TempoState } from '../hero/tempo'
 import { BEATS_PER_BAR, type HeroNote, type Judgement, type Melody } from '../hero/types'
 import { buildPool, promptId, recordAnswer } from '../game/sampler'
 import { multiplier } from '../game/scoring'
-import { noteName, pitchClass, type Clef } from '../music/notes'
+import { randomKey, spellInKey } from '../music/keySignature'
+import { noteName, pitchClass, type Clef, type Note } from '../music/notes'
 import { vibrate } from '../platform/haptics'
 import type { Progress, Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
@@ -20,6 +21,7 @@ const BARS_AHEAD = 3
 const CLICK_LOOKAHEAD_S = 0.15
 const RESUME_LEAD_S = 0.3
 const START_LEAD_S = 0.1
+const INLINE_ACCIDENTAL_CHANCE = 0.02
 const JUDGEMENT_LABELS: Record<Judgement, string> = { parfait: 'Parfait', bien: 'Bien', rate: 'Raté' }
 
 export interface HeroOptions {
@@ -38,9 +40,13 @@ export interface Hero {
 
 export function createHero({ settings, progress: initialProgress, sound, melody, onProgress, onQuit }: HeroOptions): Hero {
   const clef: Clef = melody?.clef ?? (settings.clefs[Math.floor(Math.random() * settings.clefs.length)] as Clef)
+  const fifths = melody ? melody.key : settings.accidentals ? randomKey() : 0
   const source: NoteSource = melody
     ? melodySource(melody)
-    : randomSource(buildPool([clef], settings.accidentals), () => progress.notes)
+    : randomSource(
+        buildPool([clef], true).filter((prompt) => spellInKey(prompt.pitch, fifths) !== null),
+        () => progress.notes,
+      )
   let progress = initialProgress
   let score: HeroScore = INITIAL_HERO_SCORE
   let tempo: TempoState = { bpm: settings.heroTempo, hitsInRow: 0 }
@@ -54,7 +60,7 @@ export function createHero({ settings, progress: initialProgress, sound, melody,
   let introDone = false
   let frame = 0
 
-  const staff = createScrollingStaff(clef)
+  const staff = createScrollingStaff(clef, fifths)
   const scoreValue = el('span', 'hud-value', '0')
   const streakValue = el('span', 'streak-value', '0')
   const streak = el('div', 'hud-streak', el('span', 'flame', '🔥'), streakValue)
@@ -77,7 +83,7 @@ export function createHero({ settings, progress: initialProgress, sound, melody,
 
   function fillBars(nowBeat: number): void {
     while (nextBarBeat < nowBeat + BARS_AHEAD * BEATS_PER_BAR) {
-      const placed = placeNotes(source.nextBar(), nextBarBeat, nextId, () => Math.random() < 0.5)
+      const placed = placeNotes(source.nextBar(), nextBarBeat, nextId, fifths, melody ? 0 : INLINE_ACCIDENTAL_CHANCE)
       notes.push(...placed)
       nextId += placed.length
       nextBarBeat += BEATS_PER_BAR
@@ -105,7 +111,7 @@ export function createHero({ settings, progress: initialProgress, sound, melody,
     if (frozenBeat === null) {
       fillBars(nowBeat)
       scheduleClicks()
-      for (const note of expiredNotes(notes, judged, nowBeat, clock)) judge(note, 'rate', GOOD_WINDOW_MS, '')
+      for (const note of expiredNotes(notes, judged, nowBeat, clock)) judge(note, 'rate', GOOD_WINDOW_MS)
     }
     renderCountIn(nowBeat)
     staff.render(notes, nowBeat, 0)
@@ -114,20 +120,20 @@ export function createHero({ settings, progress: initialProgress, sound, melody,
   function tap(chosen: number): void {
     if (frozenBeat !== null) return
     const target = noteInWindow(notes, judged, currentBeat(), clock)
-    if (!target?.note || target.pitch === null) return
+    if (!target || target.pitch === null) return
     const deltaMs = (sound.now() - clock.timeAt(target.beat)) * 1000
     pad.clear()
     if (chosen !== pitchClass(target.pitch)) {
       pad.flash(chosen, 'wrong')
       pad.flash(pitchClass(target.pitch), 'reveal')
-      judge(target, 'rate', Math.abs(deltaMs), noteName(target.note))
+      judge(target, 'rate', Math.abs(deltaMs))
       return
     }
     const judgement = timingJudgement(deltaMs)
-    if (judgement) judge(target, judgement, Math.abs(deltaMs), '')
+    if (judgement) judge(target, judgement, Math.abs(deltaMs))
   }
 
-  function judge(note: HeroNote, judgement: Judgement, ms: number, missLabel: string): void {
+  function judge(note: HeroNote, judgement: Judgement, ms: number): void {
     judged.add(note.id)
     if (note.pitch === null || !note.note) return
     const hit = judgement !== 'rate'
@@ -136,8 +142,8 @@ export function createHero({ settings, progress: initialProgress, sound, melody,
     adaptTempoTo(hit)
     updateProgress(note.pitch, hit, ms, judgement)
     renderScore()
-    if (hit) onHit(note, judgement, result.gained, result.milestone)
-    else onMiss(note, missLabel || noteName(note.note), result.brokenStreak)
+    if (hit) onHit(note.id, note.note, judgement, result.gained, result.milestone)
+    else onMiss(note.id, noteName(note.note), result.brokenStreak)
   }
 
   function updateProgress(pitch: number, hit: boolean, ms: number, judgement: Judgement): void {
@@ -176,15 +182,14 @@ export function createHero({ settings, progress: initialProgress, sound, melody,
     streak.classList.toggle('hot', score.streak >= 5)
   }
 
-  function onHit(note: HeroNote, judgement: Judgement, gained: number, milestone: number | null): void {
-    if (!note.note) return
+  function onHit(id: number, note: Note, judgement: Judgement, gained: number, milestone: number | null): void {
     sound.correct(score.streak)
-    sound.playNote(note.note)
+    sound.playNote(note)
     vibrate(15)
-    staff.markHit(note.id)
+    staff.markHit(id)
     restartAnimation(flash, 'flash-ok')
     restartAnimation(streakValue, 'bump')
-    const origin = staff.notePoint(note.id)
+    const origin = staff.notePoint(id)
     if (origin) {
       burstParticles(effectsLayer, origin)
       floatText(effectsLayer, origin, `${JUDGEMENT_LABELS[judgement]} +${gained}`)
@@ -196,10 +201,10 @@ export function createHero({ settings, progress: initialProgress, sound, melody,
     }
   }
 
-  function onMiss(note: HeroNote, label: string, brokenStreak: number): void {
+  function onMiss(id: number, label: string, brokenStreak: number): void {
     sound.wrong()
     vibrate([40, 30, 40])
-    staff.markMiss(note.id, label)
+    staff.markMiss(id, label)
     restartAnimation(flash, 'flash-bad')
     if (brokenStreak > 0) {
       const dropped = el('span', 'streak-drop', String(brokenStreak))

@@ -9,6 +9,8 @@ const DURATION_BY_SYMBOL: Record<string, Duration> = {
 }
 
 const OCTAVE = 12
+const D_MAJOR_SHIFT = 2
+const F_MAJOR_SHIFT = 5
 const TOKEN = /^([A-G])(\d)([whqe])$/
 
 /** Notes read like "C4q": letter, octave, then w/h/q/e for whole/half/quarter/eighth; "|" marks bars. */
@@ -51,10 +53,40 @@ const VIVE_LE_VENT = `
   F4q F4q F4q F4q | F4q E4q E4q E4e E4e | E4q D4q D4q E4q | D4h G4h`
 
 export const MELODIES: Melody[] = [
-  { name: 'Frère Jacques', clef: 'treble', tempo: 72, notes: score(FRERE_JACQUES, OCTAVE) },
-  { name: 'Frère Jacques (clé de fa)', clef: 'bass', tempo: 72, notes: score(FRERE_JACQUES, -OCTAVE) },
-  { name: 'Au clair de la lune', clef: 'treble', tempo: 72, notes: score(AU_CLAIR_DE_LA_LUNE, OCTAVE) },
-  { name: 'Ode à la joie', clef: 'treble', tempo: 84, notes: score(ODE_A_LA_JOIE, OCTAVE) },
-  { name: 'À la claire fontaine', clef: 'treble', tempo: 80, notes: score(A_LA_CLAIRE_FONTAINE) },
-  { name: 'Vive le vent', clef: 'treble', tempo: 96, notes: score(VIVE_LE_VENT) },
+  { name: 'Frère Jacques', clef: 'treble', key: 0, tempo: 72, notes: score(FRERE_JACQUES, OCTAVE) },
+  {
+    name: 'Frère Jacques (clé de fa)',
+    clef: 'bass',
+    key: 0,
+    tempo: 72,
+    notes: score(FRERE_JACQUES, -OCTAVE),
+  },
+  {
+    name: 'Au clair de la lune',
+    clef: 'treble',
+    key: 0,
+    tempo: 72,
+    notes: score(AU_CLAIR_DE_LA_LUNE, OCTAVE),
+  },
+  {
+    name: 'Ode à la joie',
+    clef: 'treble',
+    key: 2,
+    tempo: 84,
+    notes: score(ODE_A_LA_JOIE, OCTAVE + D_MAJOR_SHIFT),
+  },
+  {
+    name: 'À la claire fontaine',
+    clef: 'treble',
+    key: -1,
+    tempo: 80,
+    notes: score(A_LA_CLAIRE_FONTAINE),
+  },
+  {
+    name: 'Vive le vent',
+    clef: 'treble',
+    key: -1,
+    tempo: 96,
+    notes: score(VIVE_LE_VENT, F_MAJOR_SHIFT),
+  },
 ]
