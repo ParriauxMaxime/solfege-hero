@@ -24,7 +24,8 @@ const DEFAULT_SQUARES: ShareSquares = { ok: '🟩', bad: '🟥' }
 export const COLORBLIND_SQUARES: ShareSquares = { ok: '🟦', bad: '🟧' }
 
 export function shareText(input: {
-  seed: number
+  /** What was played, after "Solfège hero · ", e.g. "Série #4821". */
+  title: string
   results: boolean[]
   totalMs: number
   penaltyMs: number
@@ -35,7 +36,7 @@ export function shareText(input: {
   const penalty = input.penaltyMs > 0 ? ` (+${input.penaltyMs / MS_PER_SECOND} s)` : ''
   const firstTry = input.results.filter(Boolean).length
   return [
-    `Solfège hero · Série #${input.seed}`,
+    `Solfège hero · ${input.title}`,
     input.results.map((result) => (result ? ok : bad)).join(''),
     `⏱ ${formatTenths(input.totalMs)}${penalty} · ${firstTry}/${input.results.length}`,
     `Bats-moi : ${input.url}`,

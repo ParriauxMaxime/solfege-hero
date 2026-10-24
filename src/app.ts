@@ -12,8 +12,10 @@ import {
   type SeriesItem,
 } from './series/series'
 import { loadProgress, loadSettings, resetProgress, saveProgress, saveSettings, type Progress, type Settings } from './storage'
-import { BUILTIN_SCORES, createScoreLibrary, indexedDbBackend } from './storage/scores'
+import { BUILTIN_SCORES, createScoreLibrary, indexedDbBackend, type NewScore } from './storage/scores'
+import { decodeScoreBlob, parseScoreHash } from './scores/link'
 import { createChallengeIntro } from './ui/challengeIntro'
+import { createScoreChallengeIntro, createScoreReceived } from './ui/scoreReceived'
 import { confirmOverlay } from './ui/confirm'
 import { el, iconButton, setIcon } from './ui/dom'
 import { createGame } from './ui/game'
@@ -21,7 +23,7 @@ import { createHero, type Hero } from './ui/hero'
 import { createHeroStart } from './ui/heroStart'
 import { createHome, type HomeChoice } from './ui/home'
 import { createLibrary } from './ui/library'
-import { createSeries, type Series } from './ui/series'
+import { createSeries, type ChallengeTarget, type Series } from './ui/series'
 import { isInstrumentPickerOpen } from './ui/instrumentPicker'
 import { createSettingsScreen } from './ui/settings'
 import { createStatsScreen } from './ui/stats'
@@ -76,7 +78,7 @@ export function startApp(root: HTMLElement): void {
 
   function onPopState(): void {
     if (isInstrumentPickerOpen()) return
-    if (parseChallenge(location.hash)) return
+    if (parseChallenge(location.hash) || parseScoreHash(location.hash)) return
     pushed = false
     if (activeHero) {
       activeHero.pause()
@@ -88,17 +90,22 @@ export function startApp(root: HTMLElement): void {
   }
 
   function openLaunchChallenge(): boolean {
-    const received = parseChallenge(location.hash)
-    if (!received) return false
+    const challenge = parseChallenge(location.hash)
+    const scoreLink = challenge ? null : parseScoreHash(location.hash)
+    if (!challenge && !scoreLink) return false
     history.replaceState(null, '', location.pathname + location.search)
+    const open = () => {
+      if (challenge) showChallengeIntro(challenge)
+      else if (scoreLink) void openScoreLink(scoreLink)
+    }
     if (!running) {
-      showChallengeIntro(received)
+      open()
       return true
     }
     activeHero?.pause()
     const releaseClock = activeSeries?.hold()
     void confirmOverlay(root, 'Abandonner la partie en cours ?', 'Abandonner', 'Continuer').then((abandon) => {
-      if (abandon) showChallengeIntro(received)
+      if (abandon) open()
       else releaseClock?.()
     })
     return true
@@ -235,17 +242,16 @@ export function startApp(root: HTMLElement): void {
     activeHero = hero
   }
 
-  async function showSeries(config: SeriesConfig, against: Challenge | null): Promise<void> {
+  async function showSeries(config: SeriesConfig, against: ChallengeTarget | null): Promise<void> {
     let items: SeriesItem[]
-    let title: string | null = null
+    let score: Score | null = null
     if (config.kind === 'score') {
-      const score = await scoreLibrary.get(config.scoreId)
+      score = (await scoreLibrary.get(config.scoreId)) ?? null
       if (!score) {
         showToast('Partition introuvable')
         return
       }
       items = scoreSeries(score)
-      title = score.name
     } else {
       items = generateSeries(config)
     }
@@ -253,7 +259,7 @@ export function startApp(root: HTMLElement): void {
       settings,
       config,
       items,
-      title,
+      score,
       challenge: against,
       progress,
       sound,
@@ -268,6 +274,34 @@ export function startApp(root: HTMLElement): void {
 
   function showChallengeIntro(challenge: Challenge): void {
     show(createChallengeIntro({ challenge, onStart: () => void showSeries(challenge.config, challenge) }), true)
+  }
+
+  /** Adds a score to the library unless it is already there; returns whether it was new. */
+  async function addScoreIfNew(score: NewScore): Promise<{ stored: Score; added: boolean }> {
+    const existing = (await scoreLibrary.list()).find((candidate) => candidate.id === score.id)
+    if (existing) return { stored: existing, added: false }
+    return { stored: await scoreLibrary.add(score, 'link'), added: true }
+  }
+
+  async function openScoreLink(link: { blob: string; timeS: number | null }): Promise<void> {
+    const score = await decodeScoreBlob(link.blob)
+    if (!score) {
+      showToast('Lien de partition invalide')
+      renderHome()
+      return
+    }
+    const { timeS } = link
+    if (timeS === null) {
+      const play = async () => playScore((await addScoreIfNew(score)).stored)
+      const add = async () => showToast((await addScoreIfNew(score)).added ? 'Ajoutée à ta bibliothèque' : 'Déjà dans ta bibliothèque')
+      show(createScoreReceived({ score, onAdd: () => void add(), onPlay: () => void play() }), true)
+      return
+    }
+    const start = async () => {
+      await addScoreIfNew(score)
+      await showSeries({ kind: 'score', scoreId: score.id }, { timeS })
+    }
+    show(createScoreChallengeIntro({ score, timeS, onStart: () => void start() }), true)
   }
 
   function showSettings(): void {

@@ -26,7 +26,7 @@ describe('formatTenths', () => {
 describe('shareText', () => {
   const results = Array.from({ length: 20 }, (_, i) => i !== 3 && i !== 11)
   const base = {
-    seed: 4821,
+    title: 'Série #4821',
     results,
     totalMs: 47_300,
     penaltyMs: 10_000,

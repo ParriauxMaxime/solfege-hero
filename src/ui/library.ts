@@ -4,6 +4,7 @@ import { importScoreFile } from '../music/musicxml'
 import type { createScoreLibrary } from '../storage/scores'
 import { confirmOverlay } from './confirm'
 import { button, el } from './dom'
+import { shareScore } from './sharing'
 import { showToast } from './toast'
 
 type ScoreLibrary = ReturnType<typeof createScoreLibrary>
@@ -43,6 +44,7 @@ export function createLibrary({ library, onPlayHero, onPlaySeries }: LibraryOpti
   notice.hidden = true
   const list = el('div', 'library-list')
   const element = el('section', 'screen library', header, notice, list)
+  let sharing = false
 
   function showWarnings(warnings: string[]): void {
     notice.hidden = warnings.length === 0
@@ -72,6 +74,16 @@ export function createLibrary({ library, onPlayHero, onPlaySeries }: LibraryOpti
     }
   }
 
+  async function share(score: Score): Promise<void> {
+    if (sharing) return
+    sharing = true
+    try {
+      await shareScore(score)
+    } finally {
+      sharing = false
+    }
+  }
+
   async function remove(score: Score): Promise<void> {
     if (!(await confirmOverlay(element, `Supprimer « ${score.name} » ?`, 'Supprimer', 'Annuler'))) return
     await library.remove(score.id)
@@ -87,6 +99,9 @@ export function createLibrary({ library, onPlayHero, onPlaySeries }: LibraryOpti
       button('primary', 'Hero', () => onPlayHero(score)),
       button('primary', 'Série', () => onPlaySeries(score)),
     )
+    const shareButton = button('icon-button', '🔗', () => void share(score))
+    shareButton.setAttribute('aria-label', `Partager ${score.name}`)
+    actions.append(shareButton)
     if (!builtin) {
       const deleteButton = button('icon-button', '🗑', () => void remove(score))
       deleteButton.setAttribute('aria-label', `Supprimer ${score.name}`)

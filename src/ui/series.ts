@@ -3,9 +3,10 @@ import { promptId, recordAnswer } from '../game/sampler'
 import { motionReduced } from '../platform/appearance'
 import { pitchClass, spell } from '../music/notes'
 import { vibrate } from '../platform/haptics'
-import { copyText } from '../platform/clipboard'
+import type { Score } from '../hero/types'
+import { scoreLink } from './sharing'
 import { trackHiddenTime } from '../platform/visibility'
-import { challengeTimeS, challengeUrl, challengeWon, type Challenge } from '../series/challenge'
+import { challengeTimeS, challengeUrl, challengeWon } from '../series/challenge'
 import {
   INITIAL_RUN,
   PENALTY_MS,
@@ -23,19 +24,25 @@ import { createAnswerPad } from './answerPad'
 import { button, el } from './dom'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
 import { renderStaff } from './staff'
+import { downloadScoreFile, shareOrCopy } from './sharing'
 import { showToast } from './toast'
 
 const NEXT_DELAY_MS = 150
 const WRONG_FLASH_MS = 350
 const COUNT_UP_MS = 600
 
+/** What a series is racing against: the friend's time, when the challenge carries one. */
+export interface ChallengeTarget {
+  timeS: number | null
+}
+
 export interface SeriesOptions {
   settings: Settings
   config: SeriesConfig
   items: SeriesItem[]
-  /** Name of the score being played; null for random series. */
-  title: string | null
-  challenge: Challenge | null
+  /** The score being played; null for random series. */
+  score: Score | null
+  challenge: ChallengeTarget | null
   progress: Progress
   sound: Sound
   onProgress: (progress: Progress) => void
@@ -63,7 +70,7 @@ export function createSeries({
   settings,
   config,
   items,
-  title,
+  score,
   challenge,
   progress: initialProgress,
   sound,
@@ -95,7 +102,7 @@ export function createSeries({
     counter,
     timerValue,
     el('span', 'series-count-balance'),
-    ...(title ? [el('div', 'series-title', title)] : []),
+    ...(score ? [el('div', 'series-title', score.name)] : []),
     el('div', 'progress', bar),
   )
   const staffCard = el('div', 'staff-card')
@@ -219,31 +226,33 @@ export function createSeries({
   }
 
   async function share(outcome: Outcome): Promise<void> {
-    if (sharing || config.kind !== 'random') return
+    if (sharing) return
     sharing = true
     try {
-      await shareOrCopy(shareMessage(outcome, config))
+      if (config.kind === 'random') await shareOrCopy(resultText(outcome, randomChallengeUrl(outcome, config), `Série #${config.seed}`))
+      else if (score) await shareScoreChallenge(outcome, score)
     } finally {
       sharing = false
     }
   }
 
-  async function shareOrCopy(text: string): Promise<void> {
-    if (navigator.share) {
-      try {
-        await navigator.share({ text })
-        return
-      } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') return
-      }
-    }
-    showToast((await copyText(text)) ? 'Copié !' : 'Copie impossible')
+  function randomChallengeUrl(outcome: Outcome, random: RandomSeriesConfig): string {
+    return challengeUrl(location.origin + location.pathname, { config: random, timeS: challengeTimeS(outcome.totalMs) })
   }
 
-  function shareMessage(outcome: Outcome, config: RandomSeriesConfig): string {
-    const url = challengeUrl(location.origin + location.pathname, { config, timeS: challengeTimeS(outcome.totalMs) })
+  async function shareScoreChallenge(outcome: Outcome, shared: Score): Promise<void> {
+    const url = await scoreLink(shared, challengeTimeS(outcome.totalMs))
+    if (!url) {
+      showToast("Partition trop longue : partage d'abord le fichier")
+      downloadScoreFile(shared)
+      return
+    }
+    await shareOrCopy(resultText(outcome, url, `« ${shared.name} »`))
+  }
+
+  function resultText(outcome: Outcome, url: string, title: string): string {
     return shareText({
-      seed: config.seed,
+      title,
       results: outcome.results,
       totalMs: outcome.totalMs,
       penaltyMs: outcome.penalty,
@@ -313,8 +322,8 @@ export function createSeries({
           button('segment-button', 'Accueil', onHome),
         ]
       : [
-          ...(config.kind === 'random' ? [button('primary', 'Défier un ami', () => void share(outcome))] : []),
-          button(config.kind === 'random' ? 'segment-button' : 'primary', 'Rejouer', onReplay),
+          button('primary', 'Défier un ami', () => void share(outcome)),
+          button('segment-button', 'Rejouer', onReplay),
           button('segment-button', 'Accueil', onHome),
         ]
     const card = el(
