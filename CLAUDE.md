@@ -5,9 +5,8 @@ Offline PWA to learn to read sheet music. Personal project, French UI, played mo
 ## Working rules
 
 - Push to `main` without asking. Nothing is live for anyone but the owner.
-- Fable plans and dispatches; code goes to an Opus agent that delegates to Sonnet subagents and reviews. One commit per feature, pushed. A Sonnet "tester" agent plays the game on `npm run preview` and ranks bugs/feel issues; fix the top items, retest.
-- `npm test` and `npm run build` must be green before every push. Browser check at 390x844, 360x780 and 844x390.
-- Pure logic lives in tested modules; UI is verified with screenshots in `scratch/` (gitignored).
+- `npm test` and `npm run build` must be green before every push. Browser check at 390x844, 360x780 and 844x390 with screenshots in `scratch/` (gitignored).
+- Pure logic lives in tested modules; UI is verified in the browser, not unit-tested.
 - Icons are inline SVG from `src/ui/icons.ts`, never text glyphs in buttons (they sit off-centre).
 - No new runtime dependencies. Sounds are synthesized (WebAudio), no audio assets.
 - Self-descriptive code, no verbose comments, boy-scout but no drive-by refactors.
@@ -32,14 +31,18 @@ The Tailscale node needs `.env` with `TS_AUTHKEY` (copied from the `maisons` rep
 - Hardware back button is intercepted (`popstate`): pause in hero, close overlays, else home.
 - Time spent in background is not counted in Séries and the 60 s chrono.
 
-## Product decisions (settled, do not reopen)
+## Core decisions (settled, only the owner reopens them)
 
-- Clefs: sol (default), fa, ut 3. Multi-select, random per prompt.
 - Answers: 12 chromatic keys, enharmonics merged (`Fa#/Solb`), octave ignored. Piano layout; portrait = 1 octave always, landscape = 1 / 1,5 (Sol…Do) / 2 octaves setting.
 - Key signatures drawn after the clef (0–7 sharps/flats, 0 most common), notes without inline accidentals; "Armures" off = C major only. Hero adds ~2 % explicit ♮/♯/♭ on single notes.
-- Modes: **Apprendre** (one note, adaptive sampler weighted by misses and slowness, speed bonus ×2 < 1 s, 60 s chrono option), **Séries** (20 notes seeded, +5 s per error, Wordle-style share and challenge links `#s=&c=&k=&t=`), **Solfège hero** (scrolling staff, real durations + metronome, Parfait ±80 ms ×2, Bien ±200 ms, Raté breaks streak, no lives, adaptive tempo +2/8 hits −4/miss), **Partitions** (MusicXML library).
-- Scores: MusicXML `.musicxml`/`.xml`/`.mxl` parsed in `src/music/musicxml.ts` (first part, voice 1, chord top note, ties merged, dots, tuplets). Stored in IndexedDB. Shared by `#score=<deflate+base64url>` link when < ~6 kB, else `.musicxml` file. Séries on a score = whole score.
-- Instruments: sine / piano / organ / guitar, all synthesized in `src/audio/instruments.ts`, picker modal with test keyboard.
+- Hero judgement: Parfait ±80 ms (×2), Bien ±200 ms, Raté outside or wrong pitch, Raté breaks the streak, no lives, endless.
+
+## Current state
+
+- Clefs: sol (default), fa, ut 3, multi-select, random per prompt.
+- Modes: **Apprendre** (one note, adaptive sampler weighted by misses and slowness, speed bonus ×2 under 1 s, 60 s chrono option), **Séries** (20 seeded notes, +5 s per error, Wordle-style share and challenge links `#s=&c=&k=&t=`), **Solfège hero** (scrolling staff, real durations + metronome, adaptive tempo +2 per 8 hits, −4 per miss), **Partitions** (MusicXML library).
+- Scores: `.musicxml`/`.xml`/`.mxl` parsed in `src/music/musicxml.ts` (first part, voice 1, chord top note, ties merged, dots, tuplets). Stored in IndexedDB. Shared by `#score=<deflate+base64url>` link under ~6 kB, else as a `.musicxml` file. Séries on a score = whole score.
+- Instruments: sine / piano / organ / guitar, all synthesized in `src/audio/instruments.ts`, picker modal with a test keyboard.
 - Settings à la Tusmo: Jeu / Affichage (dark/light/system, colourblind blue/orange, reduced motion, key size) / Son / Données (JSON export/import).
 
 ## Layout
@@ -50,8 +53,13 @@ The Tailscale node needs `.env` with `TS_AUTHKEY` (copied from the `maisons` rep
 - `src/ui/` screens and widgets; `staff.ts`/`heroStaff.ts`/`glyphs.ts` draw everything in SVG.
 - `src/audio/` sound engine and instruments. `src/platform/` haptics.
 
-## In flight / next
+## Backlog, in order
 
-- Opus agent queued: tonal seeded melody generator (motifs, sequences, scale runs, calibrated against a hand-transcribed public-domain corpus), hero difficulty ramp 1–5 with stars in the HUD, **Défi du jour** (seed `YYYYMMDD` Europe/Paris, first attempt counts, `#daily=` share, daily streak). Check `git log` to see whether `feat: tonal seeded melody generator` and `feat: défi du jour` landed.
-- Known gaps: no real-device test by agents (sound, vibration, install verified only by the owner); hero portrait staff still small (3 beats ahead); Apprendre 60 s chrono keeps running during the "Abandonner ?" prompt; challenge links leave an extra history entry.
-- Ideas not started: Séries difficulty setting, melody catalogue curated in the repo, octave-strict mode.
+1. **Hero more musical + difficulty ramp** (may already be in flight, check `git log` for `feat: tonal seeded melody generator`): seeded generator with motifs, sequences, scale runs, calibrated against a hand-transcribed public-domain corpus in `src/music/melodies.ts`; hero difficulty 1–5 (range, intervals, rhythm, accidentals, tempo cap) shown as stars in the HUD; Séries and daily use difficulty 2.
+2. **Défi du jour** (check `git log` for `feat: défi du jour`): seed `YYYYMMDD` Europe/Paris, forced settings, first attempt of the day counts, retries labelled "Entraînement", share `#daily=YYYYMMDD`, daily streak and best daily time in stats.
+3. **Séries difficulty setting** 1–5, carried in the challenge link.
+4. **Score catalogue in the repo**: `public/scores/` with community PRs, index generated at build, shown in the library as built-in.
+5. **Octave-strict mode**: answer must be in the right octave, forces the 2-octave keyboard, stats per exact pitch.
+6. **Known small fixes**: Apprendre 60 s chrono keeps running during the "Abandonner ?" prompt; challenge links leave an extra history entry; Volume and Données rows stack oddly in portrait settings; hero portrait staff still small (3 beats ahead).
+
+Agents never test on a real device: sound, vibration, install and PWA update are verified only by the owner on Android.
