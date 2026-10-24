@@ -57,9 +57,11 @@ The Tailscale node needs `.env` with `TS_AUTHKEY` (copied from the `maisons` rep
 
 1. **Hero more musical + difficulty ramp** (may already be in flight, check `git log` for `feat: tonal seeded melody generator`): seeded generator with motifs, sequences, scale runs, calibrated against a hand-transcribed public-domain corpus in `src/music/melodies.ts`; hero difficulty 1–5 (range, intervals, rhythm, accidentals, tempo cap) shown as stars in the HUD; Séries and daily use difficulty 2.
 2. **Défi du jour** (check `git log` for `feat: défi du jour`): seed `YYYYMMDD` Europe/Paris, forced settings, first attempt of the day counts, retries labelled "Entraînement", share `#daily=YYYYMMDD`, daily streak and best daily time in stats.
-3. **Séries difficulty setting** 1–5, carried in the challenge link.
-4. **Score catalogue in the repo**: `public/scores/` with community PRs, index generated at build, shown in the library as built-in.
-5. **Octave-strict mode**: answer must be in the right octave, forces the 2-octave keyboard, stats per exact pitch.
-6. **Known small fixes**: Apprendre 60 s chrono keeps running during the "Abandonner ?" prompt; challenge links leave an extra history entry; Volume and Données rows stack oddly in portrait settings; hero portrait staff still small (3 beats ahead).
+3. **Survie mode**: endless, 3 lives (hearts in the HUD, one breaks per error, game over on the third), 3 s or 5 s per note (setting, default 5 s) with a draining bar, timeout = error. Notes from the tonal generator, difficulty rising every 20 hits. Challenge link `#v=<seed>&c=&k=&d=<delay>&n=<score>`, Wordle-style share text, friend plays the same sequence, end screen compares scores. Stats: best score, challenges won/lost.
+4. **Hero challenges**: from the hero result screen (or "Terminer" in pause), share a link with generation seed, clef, armures, start tempo, fixed difficulty, length in bars (e.g. 16) and the sender's stats (`&p=<success %>&s=<score>`). A hero challenge lasts exactly those bars with adaptive tempo off; end screen compares success percentage, then points.
+5. **Séries difficulty setting** 1–5, carried in the challenge link.
+6. **Score catalogue in the repo**: `public/scores/` with community PRs, index generated at build, shown in the library as built-in.
+7. **Octave-strict mode**: answer must be in the right octave, forces the 2-octave keyboard, stats per exact pitch.
+8. **Known small fixes**: Apprendre 60 s chrono keeps running during the "Abandonner ?" prompt; challenge links leave an extra history entry; Volume and Données rows stack oddly in portrait settings; hero portrait staff still small (3 beats ahead).
 
 Agents never test on a real device: sound, vibration, install and PWA update are verified only by the owner on Android.
