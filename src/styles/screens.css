@@ -1,0 +1,117 @@
+.panel {
+  overflow-y: auto;
+  padding: 16px;
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.panel h2 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: var(--ink-dim);
+}
+
+.segmented {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--card);
+}
+
+.segment {
+  flex: 1;
+  min-height: 48px;
+  padding: 0 8px;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink-dim);
+  font-weight: 600;
+}
+
+.segment.active {
+  background: var(--accent);
+  color: var(--ink);
+}
+
+.primary,
+.danger {
+  min-height: 52px;
+  padding: 0 28px;
+  border-radius: 14px;
+  background: var(--accent);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.danger {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--error);
+  color: var(--error);
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding-bottom: 12px;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 4px;
+  border-radius: 14px;
+  background: var(--card);
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--ink-dim);
+}
+
+.summary-item strong {
+  font-size: 1.6rem;
+  color: var(--ink);
+}
+
+.clef-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.note-row {
+  display: grid;
+  grid-template-columns: 1fr 5ch 6ch;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--tint, var(--card));
+  font-variant-numeric: tabular-nums;
+}
+
+.note-row.unseen {
+  color: var(--ink-dim);
+}
+
+.note-row span:not(.note-name) {
+  text-align: right;
+}
+
+.note-name {
+  font-weight: 600;
+}

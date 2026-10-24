@@ -1,0 +1,9 @@
+import './styles/base.css'
+import './styles/game.css'
+import './styles/screens.css'
+import './styles/effects.css'
+import './pwa'
+import { startApp } from './app'
+
+const root = document.querySelector<HTMLElement>('#app')
+if (root) startApp(root)

@@ -1,0 +1,174 @@
+.effects-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 20;
+}
+
+.flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.flash-ok {
+  animation: flash-ok 0.35s ease-out;
+}
+
+.flash-bad {
+  animation: flash-bad 0.45s ease-out;
+}
+
+.staff-note.pop {
+  animation: note-pop 0.22s ease-out forwards;
+}
+
+.staff-card.shake {
+  animation: shake 0.4s;
+}
+
+.answer.wrong {
+  animation: shake 0.4s;
+}
+
+.streak-value.bump {
+  animation: bump 0.3s ease-out;
+}
+
+.streak-drop {
+  position: absolute;
+  right: 0;
+  pointer-events: none;
+  color: var(--error);
+  animation: drop 0.7s ease-in forwards;
+}
+
+.particle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--color);
+  animation: particle 0.55s ease-out forwards;
+}
+
+.confetti {
+  position: absolute;
+  top: -16px;
+  width: 9px;
+  height: 14px;
+  background: var(--color);
+  animation: confetti 1.6s ease-in var(--delay) forwards;
+}
+
+.float-text {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-weight: 800;
+  font-size: 1.4rem;
+  white-space: nowrap;
+  color: var(--success);
+  text-shadow: 0 2px 8px rgb(0 0 0 / 0.5);
+  animation: float-up 0.8s ease-out forwards;
+}
+
+@keyframes flash-ok {
+  from {
+    background: rgb(46 230 166 / 0.18);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@keyframes flash-bad {
+  from {
+    background: rgb(255 77 109 / 0.22);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@keyframes note-pop {
+  40% {
+    transform: scale(1.5);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes shake {
+  20%,
+  60% {
+    transform: translateX(-8px);
+  }
+  40%,
+  80% {
+    transform: translateX(8px);
+  }
+}
+
+@keyframes bump {
+  50% {
+    transform: scale(1.6);
+  }
+}
+
+@keyframes drop {
+  to {
+    transform: translateY(48px) rotate(18deg);
+    opacity: 0;
+  }
+}
+
+@keyframes particle {
+  to {
+    transform: translate(var(--dx), var(--dy)) scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes confetti {
+  to {
+    transform: translate(var(--dx), 105vh) rotate(var(--spin));
+    opacity: 0.6;
+  }
+}
+
+@keyframes float-up {
+  from {
+    transform: translate(-50%, -50%);
+  }
+  to {
+    transform: translate(-50%, -140px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .particle,
+  .confetti,
+  .float-text,
+  .streak-drop {
+    display: none;
+  }
+
+  .staff-card.shake,
+  .answer.wrong,
+  .staff-note.pop,
+  .streak-value.bump {
+    animation: none;
+  }
+
+  .flash-ok,
+  .flash-bad {
+    animation-duration: 0.15s;
+  }
+}
