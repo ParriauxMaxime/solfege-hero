@@ -1,10 +1,11 @@
 import { createSound } from './audio/sound'
-import type { Melody } from './hero/types'
+import type { Melody, Score } from './hero/types'
 import { createAppearance, motionReduced } from './platform/appearance'
 import { setVibrationEnabled } from './platform/haptics'
 import { parseChallenge, type Challenge } from './series/challenge'
 import { newSeed, type SeriesConfig } from './series/series'
 import { loadProgress, loadSettings, resetProgress, saveProgress, saveSettings, type Progress, type Settings } from './storage'
+import { BUILTIN_SCORES, createScoreLibrary, indexedDbBackend } from './storage/scores'
 import { createChallengeIntro } from './ui/challengeIntro'
 import { confirmOverlay } from './ui/confirm'
 import { el, iconButton, setIcon } from './ui/dom'
@@ -12,10 +13,11 @@ import { createGame } from './ui/game'
 import { createHero, type Hero } from './ui/hero'
 import { createHeroStart } from './ui/heroStart'
 import { createHome, type HomeChoice } from './ui/home'
+import { createLibrary } from './ui/library'
 import { createSeries, type Series } from './ui/series'
+import { isInstrumentPickerOpen } from './ui/instrumentPicker'
 import { createSettingsScreen } from './ui/settings'
 import { createStatsScreen } from './ui/stats'
-import { isInstrumentPickerOpen } from './ui/instrumentPicker'
 import { showToast } from './ui/toast'
 
 const TRANSITION_MS = 200
@@ -38,6 +40,7 @@ export function startApp(root: HTMLElement): void {
   let lastBlockedToast = -Infinity
   const sound = createSound({ onBlocked: warnSoundBlocked })
   const appearance = createAppearance()
+  const scoreLibrary = createScoreLibrary(indexedDbBackend(), BUILTIN_SCORES)
   unlockSoundOnGesture()
 
   const backButton = iconButton('back', goHome, 'Accueil')
@@ -65,10 +68,10 @@ export function startApp(root: HTMLElement): void {
   }
 
   function onPopState(): void {
+    if (isInstrumentPickerOpen()) return
     if (parseChallenge(location.hash)) return
     pushed = false
     if (activeHero) {
-    if (isInstrumentPickerOpen()) return
       activeHero.pause()
       history.pushState({ screen: 'inside' }, '')
       pushed = true
@@ -115,10 +118,10 @@ export function startApp(root: HTMLElement): void {
     setVibrationEnabled(settings.vibration)
     sound.setMuted(settings.muted)
     sound.setVolume(settings.volume)
+    sound.setInstrument(settings.instrument)
     setIcon(muteButton, settings.muted ? 'sound-off' : 'sound-on')
   }
 
-    sound.setInstrument(settings.instrument)
   function toggleMute(): void {
     changeSettings({ muted: !settings.muted })
   }
@@ -179,7 +182,17 @@ export function startApp(root: HTMLElement): void {
   function choose(choice: HomeChoice): void {
     if (choice === 'apprendre') showLearn()
     else if (choice === 'series') showSeries(freshSeriesConfig(), null)
+    else if (choice === 'partitions') showLibrary()
     else showHeroStart()
+  }
+
+  function showLibrary(): void {
+    show(createLibrary({ library: scoreLibrary, onPlayHero: playScore }), true)
+  }
+
+  function playScore(score: Score): void {
+    changeSettings({ heroMelody: score.name, heroTempo: score.tempo })
+    playHero(score)
   }
 
   function showLearn(): void {
@@ -188,7 +201,7 @@ export function startApp(root: HTMLElement): void {
   }
 
   function showHeroStart(): void {
-    show(createHeroStart({ settings, onChange: changeSettings, onPlay: playHero }), true)
+    show(createHeroStart({ settings, library: scoreLibrary, onChange: changeSettings, onPlay: playHero }), true)
   }
 
   function playHero(melody: Melody | null): void {
@@ -229,6 +242,7 @@ export function startApp(root: HTMLElement): void {
   function showSettings(): void {
     const screenElement = createSettingsScreen({
       settings,
+      sound,
       getProgress: () => progress,
       onChange: changeSettings,
       onReset: () => changeProgress(resetProgress()),
@@ -242,7 +256,6 @@ export function startApp(root: HTMLElement): void {
   }
 
   function showStats(): void {
-      sound,
     const onReset = () => {
       changeProgress(resetProgress())
       return progress

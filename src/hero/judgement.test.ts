@@ -15,6 +15,7 @@ const heroNote = (id: number, beat: number, pitch: number | null = 60): HeroNote
   id,
   beat,
   duration: 'quarter',
+  dots: 0,
   pitch,
   note: null,
 })

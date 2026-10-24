@@ -101,6 +101,11 @@
   --to: var(--sunset-to);
 }
 
+.home-card[data-accent='ocean'] {
+  --from: #0369a1;
+  --to: #0ea5e9;
+}
+
 .home-card-icon {
   flex: none;
   width: clamp(48px, 9dvh, 72px);
@@ -121,6 +126,34 @@
 .home-card-subtitle {
   font-size: 0.9rem;
   opacity: 0.88;
+}
+
+@media (orientation: portrait) {
+  .home-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+
+  .home-card {
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 12px;
+    text-align: center;
+  }
+
+  .home-card-icon {
+    width: clamp(48px, 10dvh, 80px);
+  }
+
+  .home-card-title {
+    font-size: 1.2rem;
+  }
+
+  .home-card-subtitle {
+    font-size: 0.8rem;
+  }
 }
 
 @media (orientation: landscape) {

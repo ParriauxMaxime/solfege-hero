@@ -6,6 +6,7 @@ import './styles/hero.css'
 import './styles/hero-screen.css'
 import './styles/home.css'
 import './styles/series.css'
+import './styles/library.css'
 import './pwa'
 import { startApp } from './app'
 

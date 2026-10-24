@@ -2,6 +2,7 @@ import { ledgerSteps, TOP_LINE_STEP } from '../music/notes'
 import { signatureSteps } from '../music/keySignature'
 import type { Accidental } from '../music/keySignature'
 import type { Clef } from '../music/notes'
+import type { Duration, TimeSignature } from '../hero/types'
 
 export type HeadFill = 'hollow' | 'filled'
 
@@ -12,6 +13,7 @@ const MIDDLE_LINE_STEP = TOP_LINE_STEP / 2
 const STEM_LENGTH = 28
 const STEM_OFFSET: Record<HeadFill, number> = { hollow: 11, filled: 8.2 }
 const BEAM_THICKNESS = 5
+const BEAM_GAP = 3
 const LEDGER_HALF_WIDTH = 19
 
 export const ACCIDENTAL_OFFSET = -34
@@ -68,7 +70,16 @@ const HEAD_PATHS: Record<HeadFill, string> = {
 const HEAD_TILT: Record<HeadFill, number> = { hollow: -15, filled: -20 }
 
 const FLAG_PATH = 'M0 0 C1 8 12 12 10 24'
-const QUARTER_REST_PATH = 'M-4 -16 L3 -9 L-3 -1 L4 7 C-4 8 -5 14 2 18'
+const REST_BLOCK_HALF_WIDTH = 7
+const REST_BLOCK_HEIGHT = 5
+const REST_FLAG_PATH = 'M-5 -6 C-1 -4 2 -6 4 -10'
+const DOT_SPACING = 7
+const DOT_GAP = 6
+const DIGIT_WIDTH = 20
+const DIGIT_FONT_SIZE = 34
+const DIGIT_BASELINE_LIFT = 4
+const TIME_SIGNATURE_GAP = 8
+const QUARTER_REST_PATH ='M-4 -16 L3 -9 L-3 -1 L4 7 C-4 8 -5 14 2 18'
 
 export function stepY(step: number): number {
   return BOTTOM_LINE_Y - step * STEP_HEIGHT
@@ -188,20 +199,82 @@ export function flag(stemXPosition: number, tipY: number, up: boolean): SVGPathE
   })
 }
 
-/** Horizontal beam whose outer edge sits on `tipY`, between two stems. */
-export function beam(x1: number, x2: number, tipY: number, up: boolean): SVGLineElement {
-  const y = tipY + (up ? BEAM_THICKNESS / 2 : -BEAM_THICKNESS / 2)
+/** Horizontal beam whose outer edge sits on `tipY`; `level` 1 is the second beam, drawn inward. */
+export function beam(x1: number, x2: number, tipY: number, up: boolean, level = 0): SVGLineElement {
+  const inward = up ? 1 : -1
+  const y = tipY + inward * (BEAM_THICKNESS / 2 + level * (BEAM_THICKNESS + BEAM_GAP))
   return svgElement('line', { x1, x2, y1: y, y2: y, 'stroke-width': BEAM_THICKNESS, 'stroke-linecap': 'butt' })
 }
 
-export function quarterRest(x: number): SVGPathElement {
-  return svgElement('path', {
-    d: QUARTER_REST_PATH,
-    transform: `translate(${x} ${stepY(MIDDLE_LINE_STEP)})`,
-    fill: 'none',
-    'stroke-width': 3,
-    'stroke-linejoin': 'round',
+function restBlock(step: number, hanging: boolean): SVGRectElement {
+  const top = hanging ? stepY(step) : stepY(step) - REST_BLOCK_HEIGHT
+  return svgElement('rect', {
+    x: -REST_BLOCK_HALF_WIDTH,
+    y: top,
+    width: REST_BLOCK_HALF_WIDTH * 2,
+    height: REST_BLOCK_HEIGHT,
+    fill: 'currentColor',
+    stroke: 'none',
   })
+}
+
+function flaggedRest(flags: number): SVGGElement {
+  const group = svgElement('g', { transform: `translate(0 ${stepY(MIDDLE_LINE_STEP)})` })
+  group.append(svgElement('path', { d: flags === 1 ? 'M5 -10 L-2 12' : 'M6 -14 L-2 12' }))
+  for (let flag = 0; flag < flags; flag++) {
+    const flagGroup = svgElement('g', { transform: `translate(${-flag * 2.5} ${flag * 8})` })
+    flagGroup.append(
+      svgElement('path', { d: REST_FLAG_PATH }),
+      svgElement('circle', { cx: -5, cy: -6, r: 2.4, fill: 'currentColor', stroke: 'none' }),
+    )
+    group.append(flagGroup)
+  }
+  return group
+}
+
+export function restGlyph(duration: Duration, x: number): SVGGElement {
+  const group = svgElement('g', { transform: `translate(${x} 0)`, fill: 'none', 'stroke-width': 3, 'stroke-linejoin': 'round' })
+  if (duration === 'whole') group.append(restBlock(6, true))
+  else if (duration === 'half') group.append(restBlock(MIDDLE_LINE_STEP, false))
+  else if (duration === 'quarter') {
+    group.append(svgElement('path', { d: QUARTER_REST_PATH, transform: `translate(0 ${stepY(MIDDLE_LINE_STEP)})` }))
+  } else group.append(flaggedRest(duration === 'eighth' ? 1 : 2))
+  return group
+}
+
+/** Augmentation dots right of a head; a head on a line gets its dots in the space above. */
+export function augmentationDots(x: number, step: number, count: number): SVGCircleElement[] {
+  const y = stepY(step % 2 === 0 ? step + 1 : step)
+  return Array.from({ length: count }, (_, index) =>
+    svgElement('circle', { cx: x + index * DOT_SPACING, cy: y, r: 2.3, fill: 'currentColor', stroke: 'none' }),
+  )
+}
+
+export function dotsStartX(fill: HeadFill): number {
+  return STEM_OFFSET[fill] + DOT_GAP
+}
+
+export function timeSignatureWidth(time: TimeSignature): number {
+  return Math.max(String(time.beats).length, String(time.beatType).length) * DIGIT_WIDTH + TIME_SIGNATURE_GAP
+}
+
+/** Two stacked bold digits, `x` being the left edge. */
+export function timeSignatureGlyph(time: TimeSignature, x: number): SVGGElement {
+  const centre = x + (timeSignatureWidth(time) - TIME_SIGNATURE_GAP) / 2
+  const group = svgElement('g', {
+    fill: 'currentColor',
+    stroke: 'none',
+    'font-weight': 800,
+    'font-size': DIGIT_FONT_SIZE,
+    'font-family': 'system-ui, sans-serif',
+    'text-anchor': 'middle',
+  })
+  const top = svgElement('text', { x: centre, y: stepY(MIDDLE_LINE_STEP) - DIGIT_BASELINE_LIFT })
+  top.textContent = String(time.beats)
+  const bottom = svgElement('text', { x: centre, y: stepY(0) - DIGIT_BASELINE_LIFT })
+  bottom.textContent = String(time.beatType)
+  group.append(top, bottom)
+  return group
 }
 
 export function barLine(x: number): SVGLineElement {

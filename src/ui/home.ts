@@ -1,7 +1,7 @@
 import { button, el, iconButton } from './dom'
 import { clefGlyph, inkGroup, noteHead, staffLines, stem, svgElement } from './glyphs'
 
-export type HomeChoice = 'apprendre' | 'series' | 'hero'
+export type HomeChoice = 'apprendre' | 'series' | 'hero' | 'partitions'
 
 interface HomeOptions {
   onChoose: (choice: HomeChoice) => void
@@ -67,6 +67,19 @@ const CARDS: CardSpec[] = [
         ['path', { d: 'M38.5 28V6', 'stroke-width': 2.5 }],
         ['ellipse', { cx: 52, cy: 19, rx: 6, ry: 4.5, fill: 'currentColor', stroke: 'none' }],
         ['path', { d: 'M46 19V42', 'stroke-width': 2.5 }],
+      ]),
+  },
+  {
+    choice: 'partitions',
+    accent: 'ocean',
+    title: 'Partitions',
+    subtitle: 'Importe tes MusicXML',
+    icon: () =>
+      icon([
+        ['path', { d: 'M14 6H40L50 16V58H14Z' }],
+        ['path', { d: 'M40 6V16H50' }],
+        ['ellipse', { cx: 29, cy: 46, rx: 5.5, ry: 4, fill: 'currentColor', stroke: 'none' }],
+        ['path', { d: 'M34.5 46V28L44 31', 'stroke-width': 2.5 }],
       ]),
   },
 ]

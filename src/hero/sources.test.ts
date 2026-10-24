@@ -65,6 +65,80 @@ describe('melodySource', () => {
   })
 })
 
+describe('melodySource with other meters', () => {
+  const waltz: Melody = {
+    name: 'waltz',
+    clef: 'treble',
+    key: 0,
+    tempo: 90,
+    timeSignature: { beats: 3, beatType: 4 },
+    notes: [
+      { pitch: 60, duration: 'half', dots: 1 },
+      { pitch: 62, duration: 'quarter', dots: 1 },
+      { pitch: 64, duration: 'eighth' },
+      { pitch: 65, duration: 'eighth', beats: 1 / 3 },
+      { pitch: 67, duration: 'eighth', beats: 1 / 3 },
+      { pitch: 69, duration: 'eighth', beats: 1 / 3 },
+      { pitch: null, duration: 'half', dots: 1 },
+    ],
+  }
+
+  it('splits bars by the time signature and the exact note lengths', () => {
+    const source = melodySource(waltz)
+    expect(source.nextBar().map((spec) => spec.pitch)).toEqual([60])
+    expect(source.nextBar().map((spec) => spec.pitch)).toEqual([62, 64, 65, 67, 69])
+    expect(source.nextBar().map((spec) => spec.pitch)).toEqual([null])
+    expect(source.nextBar().map((spec) => spec.pitch)).toEqual([60])
+  })
+
+  it('keeps dots and tuplet lengths on the yielded specs', () => {
+    const [first] = melodySource(waltz).nextBar()
+    expect(first).toEqual({ pitch: 60, duration: 'half', dots: 1 })
+  })
+})
+
+describe('melodySource with a note across a bar line', () => {
+  it('realigns the next chunk on the real bar lines', () => {
+    const quarter = (pitch: number): NoteSpec => ({ pitch, duration: 'quarter' })
+    const source = melodySource({
+      name: 'tie',
+      clef: 'treble',
+      key: 0,
+      tempo: 90,
+      timeSignature: { beats: 3, beatType: 4 },
+      notes: [
+        { pitch: 60, duration: 'half', dots: 1 },
+        quarter(61),
+        quarter(62),
+        { pitch: 63, duration: 'half' },
+        quarter(64),
+        quarter(65),
+      ],
+    })
+    expect(source.nextBar().map((spec) => spec.pitch)).toEqual([60])
+    expect(source.nextBar().map((spec) => spec.pitch)).toEqual([61, 62, 63])
+    expect(source.nextBar().map((spec) => spec.pitch)).toEqual([64, 65])
+  })
+})
+
+describe('placeNotes with dots and tuplets', () => {
+  it('advances by the played length and copies dots', () => {
+    const placed = placeNotes(
+      [
+        { pitch: 60, duration: 'quarter', dots: 1 },
+        { pitch: 62, duration: 'eighth', beats: 1 / 3 },
+        { pitch: 64, duration: 'quarter' },
+      ],
+      0,
+      0,
+      0,
+      0,
+    )
+    expect(placed.map((note) => note.beat)).toEqual([0, 1.5, 1.5 + 1 / 3])
+    expect(placed.map((note) => note.dots)).toEqual([1, 0, 0])
+  })
+})
+
 describe('placeNotes', () => {
   const specs: NoteSpec[] = [
     { pitch: 61, duration: 'quarter' },

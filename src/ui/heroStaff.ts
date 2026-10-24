@@ -1,21 +1,26 @@
-import { BEATS_PER_BAR } from '../hero/types'
-import type { HeroNote } from '../hero/types'
+import { COMMON_TIME } from '../hero/types'
+import type { HeroNote, TimeSignature } from '../hero/types'
+import { barClicks, barLength } from '../hero/meter'
 import { inlineAccidental } from '../music/keySignature'
 import { staffStep } from '../music/notes'
-import type { Clef } from '../music/notes'
+import type { Clef, Note } from '../music/notes'
 import {
   accidentalGlyph,
+  augmentationDots,
   barLine,
   beam,
   clefGlyph,
+  dotsStartX,
   flag,
   inkGroup,
   keySignatureGlyph,
   keySignatureWidth,
   ledgerLines,
   noteHead,
-  quarterRest,
+  restGlyph,
   staffLines,
+  timeSignatureGlyph,
+  timeSignatureWidth,
   stemsUp,
   stem,
   stemTipY,
@@ -28,7 +33,7 @@ import { restartAnimation } from './effects'
 
 export interface ScrollingStaff {
   element: SVGSVGElement
-  setClef(clef: Clef, fifths: number): void
+  setClef(clef: Clef, fifths: number, time?: TimeSignature): void
   render(notes: readonly HeroNote[], nowBeat: number, firstBarBeat: number): void
   markHit(id: number): void
   markMiss(id: number, label: string): void
@@ -50,6 +55,11 @@ const PORTRAIT_ASPECT = 0.8
 // Tighter than the single-note staff so an accidental never reaches back into the previous eighth.
 const ACCIDENTAL_OFFSET = -20
 const BAR_LINE_OFFSET_BEATS = -0.4
+const GROUP_EPSILON = 1e-6
+const BEAM_STUB = 10
+const FLAG_PITCH = 8
+const REST_DOT_X = 10
+const REST_DOT_STEP = 5
 const SIGNATURE_X = 90
 const CLIP_LEFT_WITHOUT_SIGNATURE = 92
 const STAFF_LEFT = 8
@@ -104,30 +114,54 @@ function createKeyedLayer(parent: SVGElement): KeyedLayer {
   }
 }
 
-function isBeamStart(first: HeroNote | undefined, second: HeroNote | undefined): boolean {
-  return (
-    first !== undefined &&
-    second !== undefined &&
-    first.duration === 'eighth' &&
-    second.duration === 'eighth' &&
-    first.note !== null &&
-    second.note !== null &&
-    Number.isInteger(first.beat) &&
-    second.beat === first.beat + 0.5
-  )
+type PitchedNote = HeroNote & { note: Note }
+
+function isBeamable(hero: HeroNote | undefined): hero is PitchedNote {
+  return hero?.note != null && (hero.duration === 'eighth' || hero.duration === 'sixteenth')
+}
+
+/** Consecutive eighths and sixteenths sharing one beat group (a beat, or a dotted quarter in compound time). */
+function beamRun(notes: readonly HeroNote[], index: number, beamUnit: number): PitchedNote[] {
+  const hero = notes[index]
+  if (!isBeamable(hero)) return []
+  const group = (candidate: HeroNote) => Math.floor(candidate.beat / beamUnit + GROUP_EPSILON)
+  const joins = (candidate: HeroNote | undefined) => isBeamable(candidate) && group(candidate) === group(hero)
+  let start = index
+  while (joins(notes[start - 1])) start--
+  let end = index
+  while (joins(notes[end + 1])) end++
+  return notes.slice(start, end + 1) as PitchedNote[]
+}
+
+function appendBeams(group: SVGGElement, run: readonly PitchedNote[], fill: HeadFill, up: boolean, tipY: number, pxPerBeat: number): void {
+  const first = run[0] as PitchedNote
+  const stemAt = (hero: HeroNote) => stemX(fill, (hero.beat - first.beat) * pxPerBeat, up)
+  const last = run[run.length - 1] as PitchedNote
+  group.append(beam(stemAt(first), stemAt(last), tipY, up))
+  run.forEach((hero, index) => {
+    if (hero.duration !== 'sixteenth') return
+    const next = run[index + 1]
+    const previous = run[index - 1]
+    if (next?.duration === 'sixteenth') group.append(beam(stemAt(hero), stemAt(next), tipY, up, 1))
+    else if (previous?.duration !== 'sixteenth') {
+      const direction = next ? 1 : -1
+      group.append(beam(stemAt(hero), stemAt(hero) + direction * BEAM_STUB, tipY, up, 1))
+    }
+  })
 }
 
 function createNoteGroup(
-  hero: HeroNote,
-  previous: HeroNote | undefined,
-  next: HeroNote | undefined,
+  notes: readonly HeroNote[],
+  index: number,
   clef: Clef,
   fifths: number,
   pxPerBeat: number,
+  beamUnit: number,
 ): SVGGElement {
+  const hero = notes[index] as HeroNote
   const group = inkGroup({ class: 'hero-note' })
   if (!hero.note) {
-    group.append(quarterRest(0))
+    group.append(restGlyph(hero.duration, 0), ...augmentationDots(REST_DOT_X, REST_DOT_STEP, hero.dots))
     return group
   }
 
@@ -136,30 +170,38 @@ function createNoteGroup(
   group.append(...ledgerLines(step, 0))
   const accidental = inlineAccidental(hero.note, fifths)
   if (accidental) group.append(accidentalGlyph(accidental, ACCIDENTAL_OFFSET, step))
-  group.append(noteHead(fill, 0, step))
+  group.append(noteHead(fill, 0, step), ...augmentationDots(dotsStartX(fill), step, hero.dots))
   if (hero.duration === 'whole') return group
 
-  const startsBeam = isBeamStart(hero, next)
-  const partner = startsBeam ? next : isBeamStart(previous, hero) ? previous : undefined
-  if (!partner?.note) {
-    const up = stemsUp(step)
-    const tipY = stemTipY(step, up)
-    group.append(stem(fill, 0, step, up, tipY))
-    if (hero.duration === 'eighth') group.append(flag(stemX(fill, 0, up), tipY, up))
-    return group
-  }
-
-  const up = stemsUp((step + staffStep(partner.note, clef)) / 2)
-  const tips = [stemTipY(step, up), stemTipY(staffStep(partner.note, clef), up)]
+  const run = beamRun(notes, index, beamUnit)
+  const steps = run.length > 1 ? run.map((member) => staffStep(member.note, clef)) : [step]
+  const up = stemsUp(steps.reduce((sum, value) => sum + value, 0) / steps.length)
+  const tips = steps.map((value) => stemTipY(value, up))
   const tipY = up ? Math.min(...tips) : Math.max(...tips)
   group.append(stem(fill, 0, step, up, tipY))
-  if (startsBeam) group.append(beam(stemX(fill, 0, up), stemX(fill, pxPerBeat / 2, up), tipY, up))
+  if (run.length > 1) {
+    if (run[0] === hero) appendBeams(group, run, fill, up, tipY, pxPerBeat)
+    return group
+  }
+  const flagCount = hero.duration === 'sixteenth' ? 2 : hero.duration === 'eighth' ? 1 : 0
+  for (let level = 0; level < flagCount; level++) {
+    group.append(flag(stemX(fill, 0, up), tipY + (up ? 1 : -1) * level * FLAG_PITCH, up))
+  }
   return group
 }
 
-export function createScrollingStaff(initialClef: Clef, initialFifths: number): ScrollingStaff {
+function beamUnitOf(time: TimeSignature): number {
+  return barClicks(time)[1]?.offset ?? barLength(time)
+}
+
+export function createScrollingStaff(
+  initialClef: Clef,
+  initialFifths: number,
+  initialTime?: TimeSignature,
+): ScrollingStaff {
   let clef = initialClef
   let fifths = initialFifths
+  let time = initialTime
   let density = LANDSCAPE_DENSITY
   let clipLeft = CLIP_LEFT_WITHOUT_SIGNATURE
   let hitX = clipLeft + density.hitDistanceFromClip
@@ -197,7 +239,7 @@ export function createScrollingStaff(initialClef: Clef, initialFifths: number): 
   const notes = createKeyedLayer(noteGroup)
 
   function placeHitZone(): void {
-    clipLeft = CLIP_LEFT_WITHOUT_SIGNATURE + keySignatureWidth(fifths)
+    clipLeft = CLIP_LEFT_WITHOUT_SIGNATURE + keySignatureWidth(fifths) + (time ? timeSignatureWidth(time) : 0)
     hitX = clipLeft + density.hitDistanceFromClip
     clipRect.setAttribute('x', String(clipLeft))
     hitZone.setAttribute('x', String(hitX - HIT_BAND_HALF_WIDTH))
@@ -231,20 +273,23 @@ export function createScrollingStaff(initialClef: Clef, initialFifths: number): 
     if (size.width > 0 && size.height > 0) layout(size.width, size.height)
   }).observe(svg)
 
-  function setClef(value: Clef, signature: number): void {
+  function setClef(value: Clef, signature: number, timeSignature?: TimeSignature): void {
     clef = value
     fifths = signature
+    time = timeSignature
     clefHolder.replaceChildren(clefGlyph(clef), keySignatureGlyph(clef, fifths, SIGNATURE_X))
+    if (time) clefHolder.append(timeSignatureGlyph(time, SIGNATURE_X + keySignatureWidth(fifths)))
     placeHitZone()
     notes.clear()
     if (size && size.width > 0 && size.height > 0) layout(size.width, size.height)
   }
 
   function renderBars(nowBeat: number, firstBarBeat: number): void {
-    const first = Math.max(0, Math.ceil((nowBeat - (hitX + OFFSCREEN_MARGIN) / pxPerBeat - firstBarBeat) / BEATS_PER_BAR))
+    const length = barLength(time ?? COMMON_TIME)
+    const first = Math.max(0, Math.ceil((nowBeat - (hitX + OFFSCREEN_MARGIN) / pxPerBeat - firstBarBeat) / length))
     bars.begin()
     for (let bar = first; ; bar++) {
-      const x = beatToX(firstBarBeat + bar * BEATS_PER_BAR, nowBeat) + BAR_LINE_OFFSET_BEATS * pxPerBeat
+      const x = beatToX(firstBarBeat + bar * length, nowBeat) + BAR_LINE_OFFSET_BEATS * pxPerBeat
       if (x > viewWidth + OFFSCREEN_MARGIN) break
       bars.place(bar, x, () => {
         const group = svgElement('g', {})
@@ -255,7 +300,7 @@ export function createScrollingStaff(initialClef: Clef, initialFifths: number): 
     bars.end()
   }
 
-  setClef(clef, fifths)
+  setClef(clef, fifths, time)
 
   return {
     element: svg,
@@ -268,7 +313,7 @@ export function createScrollingStaff(initialClef: Clef, initialFifths: number): 
         const x = beatToX(hero.beat, nowBeat)
         if (x < -OFFSCREEN_MARGIN) continue
         if (x > viewWidth + OFFSCREEN_MARGIN) break
-        notes.place(hero.id, x, () => createNoteGroup(hero, heroNotes[i - 1], heroNotes[i + 1], clef, fifths, pxPerBeat))
+        notes.place(hero.id, x, () => createNoteGroup(heroNotes, i, clef, fifths, pxPerBeat, beamUnitOf(time ?? COMMON_TIME)))
       }
       notes.end()
     },

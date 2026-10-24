@@ -1,4 +1,5 @@
 import { buildPool, type Prompt } from '../game/sampler'
+import { hashText } from '../hash'
 import { chooseKey } from '../music/keySignature'
 import { pitchClass, spell, type Clef, type Note } from '../music/notes'
 import { seededRandom } from '../random'
@@ -24,12 +25,6 @@ export interface SeriesItem {
 
 export function newSeed(random: () => number = Math.random): number {
   return MIN_SEED + Math.floor(random() * SEED_COUNT)
-}
-
-function hashText(text: string): number {
-  let hash = 0x811c9dc5
-  for (const char of text) hash = Math.imul(hash ^ char.charCodeAt(0), 0x01000193)
-  return hash >>> 0
 }
 
 function writeItem({ clef, pitch }: Prompt, armures: boolean, random: () => number): SeriesItem {

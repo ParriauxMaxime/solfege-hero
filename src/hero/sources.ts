@@ -2,7 +2,8 @@ import { pickPrompt, promptId, type NoteStats, type Prompt } from '../game/sampl
 import { spellInKey, withInlineAccidental } from '../music/keySignature'
 import { midi, spell, type Note } from '../music/notes'
 import { randomBarRhythm } from './rhythm'
-import { BEATS_PER_BAR, DURATION_BEATS, type HeroNote, type Melody, type NoteSpec } from './types'
+import { barLength, specBeats } from './meter'
+import { COMMON_TIME, type HeroNote, type Melody, type NoteSpec } from './types'
 
 export interface NoteSource {
   nextBar(): NoteSpec[]
@@ -26,24 +27,28 @@ export function randomSource(
   }
 }
 
-function splitIntoBars(specs: NoteSpec[]): NoteSpec[][] {
+const BAR_TOLERANCE = 1e-6
+
+function splitIntoBars(specs: NoteSpec[], length: number): NoteSpec[][] {
   const bars: NoteSpec[][] = []
   let bar: NoteSpec[] = []
-  let beats = 0
+  let position = 0
+  let barEnd = length
   for (const spec of specs) {
     bar.push(spec)
-    beats += DURATION_BEATS[spec.duration]
-    if (beats >= BEATS_PER_BAR) {
+    position += specBeats(spec)
+    if (position >= barEnd - BAR_TOLERANCE) {
       bars.push(bar)
       bar = []
-      beats = 0
+      barEnd = (Math.floor((position + BAR_TOLERANCE) / length) + 1) * length
     }
   }
+  if (bar.length > 0) bars.push(bar)
   return bars
 }
 
 export function melodySource(melody: Melody): NoteSource {
-  const bars = splitIntoBars(melody.notes)
+  const bars = splitIntoBars(melody.notes, barLength(melody.timeSignature ?? COMMON_TIME))
   let index = 0
   return {
     nextBar() {
@@ -69,10 +74,11 @@ export function placeNotes(
       id: firstId + index,
       beat,
       duration: spec.duration,
+      dots: spec.dots ?? 0,
       pitch: note && midi(note),
       note,
     }
-    beat += DURATION_BEATS[spec.duration]
+    beat += specBeats(spec)
     return placed
   })
 }

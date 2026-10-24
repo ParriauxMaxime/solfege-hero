@@ -1,19 +1,21 @@
-import { MELODIES } from '../music/melodies'
-import type { Melody } from '../hero/types'
+import type { Melody, Score } from '../hero/types'
 import { START_BPM_MAX, START_BPM_MIN } from '../hero/tempo'
 import type { Settings } from '../storage'
+import type { createScoreLibrary } from '../storage/scores'
 import { button, el } from './dom'
 
 export interface HeroStartOptions {
   settings: Settings
+  library: ReturnType<typeof createScoreLibrary>
   onChange: (patch: Partial<Settings>) => void
   onPlay: (melody: Melody | null) => void
 }
 
 const RANDOM_LABEL = 'Aléatoire'
 
-export function createHeroStart({ settings: initial, onChange, onPlay }: HeroStartOptions): HTMLElement {
+export function createHeroStart({ settings: initial, library, onChange, onPlay }: HeroStartOptions): HTMLElement {
   let settings = initial
+  let scores: Score[] = []
   const element = el('section', 'screen panel')
 
   function update(patch: Partial<Settings>): void {
@@ -22,14 +24,14 @@ export function createHeroStart({ settings: initial, onChange, onPlay }: HeroSta
   }
 
   function selectedMelody(): Melody | null {
-    return MELODIES.find((melody) => melody.name === settings.heroMelody) ?? null
+    return scores.find((score) => score.name === settings.heroMelody) ?? null
   }
 
   function melodySetting(onPick: (melody: Melody | null) => void): HTMLElement {
     const select = el('select', 'select')
-    select.append(new Option(RANDOM_LABEL, ''), ...MELODIES.map((melody) => new Option(melody.name, melody.name)))
+    select.append(new Option(RANDOM_LABEL, ''), ...scores.map((score) => new Option(score.name, score.name)))
     select.value = selectedMelody()?.name ?? ''
-    select.addEventListener('change', () => onPick(MELODIES.find((melody) => melody.name === select.value) ?? null))
+    select.addEventListener('change', () => onPick(scores.find((score) => score.name === select.value) ?? null))
     return el('div', 'setting', el('h2', '', 'Mélodie'), select)
   }
 
@@ -73,5 +75,9 @@ export function createHeroStart({ settings: initial, onChange, onPlay }: HeroSta
   }
 
   render()
+  void Promise.resolve(library.list()).then((loaded) => {
+    scores = loaded
+    render()
+  })
   return element
 }
