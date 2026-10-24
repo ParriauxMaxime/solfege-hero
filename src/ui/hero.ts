@@ -2,13 +2,13 @@ import type { Sound } from '../audio/sound'
 import { createBeatClock, withTempo, type BeatClock } from '../hero/clock'
 import { expiredNotes, noteInWindow, timingJudgement } from '../hero/judgement'
 import { INITIAL_HERO_SCORE, applyJudgement, type HeroScore } from '../hero/scoring'
-import { melodySource, placeNotes, randomSource, type NoteSource } from '../hero/sources'
+import { INITIAL_DIFFICULTY, TEMPO_CAP, onJudgement, type DifficultyState } from '../hero/difficulty'
+import { generatedSource, melodySource, placeNotes, type NoteSource } from '../hero/sources'
 import { adaptTempo, type TempoState } from '../hero/tempo'
 import { barClicks, barLength, type Click } from '../hero/meter'
 import { COMMON_TIME, type HeroNote, type Judgement, type Melody } from '../hero/types'
-import { buildPool, promptId, recordAnswer } from '../game/sampler'
+import { promptId, recordAnswer } from '../game/sampler'
 import { multiplier } from '../game/scoring'
-import { randomKey, spellInKey } from '../music/keySignature'
 import { noteName, pitchClass, type Clef, type Note } from '../music/notes'
 import { vibrate } from '../platform/haptics'
 import type { Progress, Settings } from '../storage'
@@ -22,6 +22,17 @@ const CLICK_LOOKAHEAD_S = 0.15
 const RESUME_LEAD_S = 0.3
 const START_LEAD_S = 0.1
 const INLINE_ACCIDENTAL_CHANCE = 0.02
+const INLINE_FROM_LEVEL = 3
+const MAX_LEVEL = 5
+const SEED_RANGE = 1_000_000
+
+function randomSeed(): number {
+  return Math.floor(Math.random() * SEED_RANGE)
+}
+
+function renderStars(level: number): string {
+  return '★'.repeat(level) + '☆'.repeat(MAX_LEVEL - level)
+}
 const QUIT_CONFIRM_MS = 3000
 const NEUTRAL_FLASH_MS = 150
 const FLOAT_OFFSET_PX = 40
@@ -62,16 +73,15 @@ export function createHero({
   homeLabel,
 }: HeroOptions): Hero {
   const clef: Clef = melody?.clef ?? (settings.clefs[Math.floor(Math.random() * settings.clefs.length)] as Clef)
-  const fifths = melody ? melody.key : settings.accidentals ? randomKey() : 0
-  const time = melody?.timeSignature ?? COMMON_TIME
+  let difficulty: DifficultyState = INITIAL_DIFFICULTY
+  const generated = melody
+    ? null
+    : generatedSource(randomSeed(), { clef, armures: settings.accidentals }, () => difficulty.level)
+  const fifths = melody ? melody.key : (generated?.key ?? 0)
+  const time = melody ? (melody.timeSignature ?? COMMON_TIME) : (generated?.time ?? COMMON_TIME)
   const bar = barLength(time)
   const clicks = barClicks(time)
-  const source: NoteSource = melody
-    ? melodySource(melody)
-    : randomSource(
-        buildPool([clef], true).filter((prompt) => spellInKey(prompt.pitch, fifths) !== null),
-        () => progress.notes,
-      )
+  const source: NoteSource = melody ? melodySource(melody) : (generated?.source as NoteSource)
   let progress = initialProgress
   let score: HeroScore = INITIAL_HERO_SCORE
   let tempo: TempoState = { bpm: settings.heroTempo, hitsInRow: 0 }
@@ -106,7 +116,18 @@ export function createHero({
     'Son',
   )
   renderMute()
-  const hud = el('div', 'hud', el('div', 'hud-score', scoreValue), streak, multiplierValue, bpm, muteButton, pauseButton)
+  const stars = el('span', 'difficulty', renderStars(difficulty.level))
+  stars.hidden = melody !== null
+  const hud = el(
+    'div',
+    'hud',
+    el('div', 'hud-score', scoreValue),
+    streak,
+    multiplierValue,
+    el('div', 'bpm-block', bpm, stars),
+    muteButton,
+    pauseButton,
+  )
   const countIn = el('div', 'count-in')
   const staffArea = el('div', 'hero-staff', staff.element, countIn)
   const pad = createAnswerPad(tap, settings.naming, settings.keyboardSpan)
@@ -129,7 +150,7 @@ export function createHero({
         exhausted = true
         break
       }
-      const placed = placeNotes(specs, nextBarBeat, nextId, fifths, melody ? 0 : INLINE_ACCIDENTAL_CHANCE)
+      const placed = placeNotes(specs, nextBarBeat, nextId, fifths, melody || difficulty.level < INLINE_FROM_LEVEL ? 0 : INLINE_ACCIDENTAL_CHANCE)
       notes.push(...placed)
       nextId += placed.length
       nextBarBeat += bar
@@ -217,6 +238,7 @@ export function createHero({
     const hit = judgement !== 'rate'
     const result = applyJudgement(score, judgement)
     score = result.state
+    if (!melody) updateDifficulty(hit, Math.floor(note.beat / bar))
     adaptTempoTo(hit)
     updateProgress(note.pitch, hit, judgement)
     renderScore()
@@ -246,8 +268,18 @@ export function createHero({
     onProgress(progress)
   }
 
+  function updateDifficulty(hit: boolean, barIndex: number): void {
+    const next = onJudgement(difficulty, hit, barIndex)
+    if (next.level !== difficulty.level) {
+      stars.textContent = renderStars(next.level)
+      restartAnimation(stars, 'bump')
+      floatText(effectsLayer, centerOf(stars), `Niveau ${next.level}`, next.level > difficulty.level ? 'good' : 'neutral')
+    }
+    difficulty = next
+  }
+
   function adaptTempoTo(hit: boolean): void {
-    const next = adaptTempo(tempo, hit)
+    const next = adaptTempo(tempo, hit, melody ? undefined : TEMPO_CAP[difficulty.level])
     if (next.bpm !== tempo.bpm) {
       clock = withTempo(clock, sound.now(), next.bpm)
       bpmValue.textContent = String(next.bpm)

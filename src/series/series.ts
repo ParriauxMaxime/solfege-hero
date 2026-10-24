@@ -1,6 +1,7 @@
 import { buildPool, type Prompt } from '../game/sampler'
 import { hashText } from '../hash'
-import type { Score } from '../hero/types'
+import type { Melody } from '../hero/types'
+import { generateMelody } from '../music/generator'
 import { chooseKey, spellInKey } from '../music/keySignature'
 import { pitchClass, spell, type Clef, type Note } from '../music/notes'
 import { seededRandom } from '../random'
@@ -11,8 +12,11 @@ export const PENALTY_MS = 5000
 const MIN_SEED = 1000
 const SEED_COUNT = 9000
 
+/** Version 1 draws notes uniformly; version 2 plays the start of a generated melody. */
+export type SeriesVersion = 1 | 2
+
 export type SeriesConfig =
-  | { kind: 'random'; seed: number; clefs: Clef[]; armures: boolean }
+  | { kind: 'random'; version: SeriesVersion; seed: number; clefs: Clef[]; armures: boolean }
   | { kind: 'score'; scoreId: string }
 
 export type RandomSeriesConfig = Extract<SeriesConfig, { kind: 'random' }>
@@ -34,7 +38,7 @@ function writeItem({ clef, pitch }: Prompt, armures: boolean, random: () => numb
 }
 
 /** Every pitched note of the score in order, written in the score's own key. */
-export function scoreSeries(score: Score): SeriesItem[] {
+export function scoreSeries(score: Pick<Melody, 'clef' | 'key' | 'notes'>): SeriesItem[] {
   return score.notes.flatMap(({ pitch }) =>
     pitch === null
       ? []
@@ -49,7 +53,27 @@ export function scoreSeries(score: Score): SeriesItem[] {
   )
 }
 
-export function generateSeries({ seed, clefs, armures }: RandomSeriesConfig): SeriesItem[] {
+const MELODY_SERIES_DIFFICULTY = 2
+const MELODY_SERIES_BARS = 16
+
+function generateMelodySeries({ seed, clefs, armures }: RandomSeriesConfig): SeriesItem[] {
+  const clef = clefs[seed % clefs.length]
+  if (!clef) throw new Error('Cannot generate a series without a clef')
+
+  const melody = generateMelody(seed, {
+    clef,
+    armures,
+    difficulty: MELODY_SERIES_DIFFICULTY,
+    bars: MELODY_SERIES_BARS,
+  })
+  return scoreSeries(melody).slice(0, SERIES_LENGTH)
+}
+
+export function generateSeries(config: RandomSeriesConfig): SeriesItem[] {
+  return config.version === 2 ? generateMelodySeries(config) : generateUniformSeries(config)
+}
+
+function generateUniformSeries({ seed, clefs, armures }: RandomSeriesConfig): SeriesItem[] {
   const pool = buildPool(clefs, armures)
   if (pool.length === 0) throw new Error('Cannot generate a series without a clef')
 

@@ -37,6 +37,7 @@ export function encodeChallenge({ config, timeS }: Challenge): string {
     c: clefs,
     k: config.armures ? '1' : '0',
   })
+  if (config.version === 2) params.set('v', '2')
   if (timeS !== null) params.set('t', String(Math.round(timeS * 10) / 10))
   return params.toString()
 }
@@ -51,7 +52,13 @@ export function parseChallenge(hash: string): Challenge | null {
   if (clefs.length === 0) return null
 
   return {
-    config: { kind: 'random', seed: Number(seed), clefs, armures: params.get('k') === '1' },
+    config: {
+      kind: 'random',
+      version: params.get('v') === '2' ? 2 : 1,
+      seed: Number(seed),
+      clefs,
+      armures: params.get('k') === '1',
+    },
     timeS: parseTimeS(params.get('t') ?? ''),
   }
 }

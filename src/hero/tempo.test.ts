@@ -7,6 +7,28 @@ function hitTimes(state: TempoState, count: number): TempoState {
   return next
 }
 
+describe('adaptTempo with a cap', () => {
+  const eightHits = (state: TempoState, cap: number) => {
+    let next = state
+    for (let i = 0; i < 8; i++) next = adaptTempo(next, true, cap)
+    return next
+  }
+
+  it('speeds up until the cap and no further', () => {
+    expect(eightHits({ bpm: 70, hitsInRow: 0 }, 72)).toEqual({ bpm: 72, hitsInRow: 0 })
+    expect(eightHits({ bpm: 72, hitsInRow: 0 }, 72)).toEqual({ bpm: 72, hitsInRow: 0 })
+    expect(eightHits({ bpm: 71, hitsInRow: 0 }, 72).bpm).toBe(72)
+  })
+
+  it('leaves a tempo above the cap alone instead of pulling it down', () => {
+    expect(eightHits({ bpm: 120, hitsInRow: 0 }, 72).bpm).toBe(120)
+  })
+
+  it('still slows down on misses whatever the cap', () => {
+    expect(adaptTempo({ bpm: 120, hitsInRow: 3 }, false, 72)).toEqual({ bpm: 116, hitsInRow: 0 })
+  })
+})
+
 describe('adaptTempo', () => {
   it('counts hits without changing tempo before the eighth', () => {
     expect(hitTimes({ bpm: 60, hitsInRow: 0 }, 7)).toEqual({ bpm: 60, hitsInRow: 7 })

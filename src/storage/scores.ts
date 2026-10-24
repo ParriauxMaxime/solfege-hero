@@ -1,4 +1,4 @@
-import { DURATION_BEATS, type Duration, type NoteSpec, type Score, type TimeSignature } from '../hero/types'
+import { COMMON_TIME, DURATION_BEATS, type Duration, type NoteSpec, type Score, type TimeSignature } from '../hero/types'
 import { MELODIES } from '../music/melodies'
 import { scoreId } from '../music/musicxml'
 import { CLEFS, type Clef } from '../music/notes'
@@ -115,7 +115,7 @@ export function createScoreLibrary(backend: ScoreBackend, builtins: Score[]): Sc
 
 export const BUILTIN_SCORES: Score[] = MELODIES.map((melody) => ({
   ...melody,
-  timeSignature: { beats: 4, beatType: 4 },
+  timeSignature: melody.timeSignature ?? COMMON_TIME,
   id: scoreId(melody),
   source: 'builtin',
   importedAt: 0,

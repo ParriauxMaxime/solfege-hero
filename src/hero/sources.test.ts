@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { buildPool, promptId, type NoteStats, type Prompt } from '../game/sampler'
+import type { Difficulty } from '../music/generator'
+import { spellInKey } from '../music/keySignature'
 import { seededRandom } from '../random'
-import { melodySource, placeNotes, randomSource, type NoteSource } from './sources'
+import { barLength, specBeats } from './meter'
+import { generatedSource, melodySource, placeNotes, randomSource, type NoteSource } from './sources'
 import { BEATS_PER_BAR, DURATION_BEATS, type Melody, type NoteSpec } from './types'
 
 const barBeats = (bar: NoteSpec[]) => bar.reduce((sum, spec) => sum + DURATION_BEATS[spec.duration], 0)
@@ -77,6 +80,55 @@ describe('melodySource', () => {
   it('never ends for a random source', () => {
     const source = randomSource(buildPool(['treble'], false), () => ({}), seededRandom(2))
     for (let i = 0; i < 200; i++) expect(source.nextBar()).not.toBeNull()
+  })
+})
+
+describe('generatedSource', () => {
+  const settings = { clef: 'treble' as const, armures: true }
+
+  it('fixes key and time from the first chunk and never ends', () => {
+    const { key, time, source } = generatedSource(4821, settings, () => 2)
+    const length = barLength(time)
+    for (let i = 0; i < 40; i++) {
+      const bar = nextBar(source)
+      expect(bar.reduce((sum, spec) => sum + specBeats(spec), 0)).toBeCloseTo(length, 9)
+      expect(bar.every((spec) => spec.pitch !== null && spellInKey(spec.pitch, key) !== null)).toBe(true)
+    }
+  })
+
+  it('is deterministic from the seed', () => {
+    const play = () => {
+      const { key, source } = generatedSource(77, settings, () => 3)
+      return { key, bars: Array.from({ length: 20 }, () => source.nextBar()) }
+    }
+    expect(play()).toEqual(play())
+  })
+
+  it('reads the difficulty when each 8-bar chunk starts', () => {
+    let level: Difficulty = 1
+    const reads: Difficulty[] = []
+    const { source } = generatedSource(9, settings, () => {
+      reads.push(level)
+      return level
+    })
+    const firstChunk = Array.from({ length: 8 }, () => nextBar(source)).flat()
+    expect(firstChunk.every((spec) => ['quarter', 'half'].includes(spec.duration) && !spec.dots)).toBe(true)
+
+    level = 5
+    const later = Array.from({ length: 8 * 20 }, () => nextBar(source)).flat()
+    expect(reads.slice(0, 2)).toEqual([1, 5])
+    expect(later.some((spec) => ['eighth', 'sixteenth'].includes(spec.duration) || spec.dots === 1)).toBe(true)
+  })
+
+  it('keeps the same time signature and tonic across chunks', () => {
+    const { time, source } = generatedSource(1234, { clef: 'bass', armures: true }, () => 2)
+    const bars = Array.from({ length: 24 }, () => nextBar(source))
+    const length = barLength(time)
+    for (const bar of bars) {
+      expect(bar.reduce((sum, spec) => sum + specBeats(spec), 0)).toBeCloseTo(length, 9)
+    }
+    const finals = bars.filter((_, index) => index % 8 === 7).map((bar) => bar[bar.length - 1]?.pitch as number)
+    expect(new Set(finals.map((pitch) => pitch % 12)).size).toBe(1)
   })
 })
 

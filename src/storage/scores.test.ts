@@ -25,16 +25,13 @@ const draft = (pitch = 60, overrides: Partial<NewScore> = {}): NewScore => {
 }
 
 describe('BUILTIN_SCORES', () => {
-  it('turns every melody into a 4/4 builtin score with a content id', () => {
+  it('turns every melody into a builtin score with a content id and its time signature', () => {
     expect(BUILTIN_SCORES).toHaveLength(MELODIES.length)
-    for (const score of BUILTIN_SCORES) {
-      expect(score).toMatchObject({
-        source: 'builtin',
-        importedAt: 0,
-        timeSignature: { beats: 4, beatType: 4 },
-      })
+    BUILTIN_SCORES.forEach((score, index) => {
+      expect(score).toMatchObject({ source: 'builtin', importedAt: 0 })
+      expect(score.timeSignature).toEqual(MELODIES[index]?.timeSignature ?? { beats: 4, beatType: 4 })
       expect(score.id).toBe(scoreId(score))
-    }
+    })
   })
 
   it('has unique ids', () => {

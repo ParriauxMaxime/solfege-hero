@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { buildPool } from '../game/sampler'
 import type { Score } from '../hero/types'
-import { midi, pitchClass, type Note } from '../music/notes'
+import { generateMelody } from '../music/generator'
+import { midi, pitchClass, type Clef, type Note } from '../music/notes'
 import { seededRandom } from '../random'
 import {
   INITIAL_RUN,
@@ -17,7 +18,66 @@ import {
   type SeriesRun,
 } from './series'
 
-const config: RandomSeriesConfig = { kind: 'random', seed: 4821, clefs: ['treble', 'bass'], armures: true }
+const config: RandomSeriesConfig = {
+  kind: 'random',
+  version: 1,
+  seed: 4821,
+  clefs: ['treble', 'bass'],
+  armures: true,
+}
+
+const V1_GOLDEN_PITCHES = [68, 72, 47, 66, 36, 76, 58, 61, 45, 39, 75, 62, 68, 60, 82, 64, 40, 60, 64, 61]
+
+describe('generateSeries version 2', () => {
+  const v2: RandomSeriesConfig = { ...config, version: 2 }
+
+  it('plays the first twenty notes of a generated melody in its key', () => {
+    const items = generateSeries(v2)
+    const clef = v2.clefs[v2.seed % v2.clefs.length] as Clef
+    const melody = generateMelody(v2.seed, { clef, armures: true, difficulty: 2, bars: 16 })
+    expect(items).toHaveLength(SERIES_LENGTH)
+    expect(items.map((item) => item.pitch)).toEqual(
+      melody.notes.slice(0, SERIES_LENGTH).map((spec) => spec.pitch),
+    )
+    expect(items.every((item) => item.clef === clef && item.fifths === melody.key)).toBe(true)
+    for (const item of items) expect(midi(item.note)).toBe(item.pitch)
+  })
+
+  it('picks the clef from the seed', () => {
+    const clefs = new Set(
+      Array.from({ length: 10 }, (_, offset) =>
+        generateSeries({ ...v2, seed: 4000 + offset })[0]?.clef,
+      ),
+    )
+    expect(clefs).toEqual(new Set(['treble', 'bass']))
+  })
+
+  it('is deterministic and differs from version 1', () => {
+    expect(generateSeries(v2)).toEqual(generateSeries({ ...v2 }))
+    expect(generateSeries(v2)).not.toEqual(generateSeries(config))
+    expect(generateSeries({ ...v2, seed: 4822 })).not.toEqual(generateSeries(v2))
+  })
+
+  it('changes with the settings', () => {
+    const seeds = Array.from({ length: 20 }, (_, offset) => 4000 + offset)
+    const differs = (change: Partial<RandomSeriesConfig>) =>
+      seeds.filter(
+        (seed) =>
+          JSON.stringify(generateSeries({ ...v2, ...change, seed })) !==
+          JSON.stringify(generateSeries({ ...v2, seed })),
+      ).length
+    expect(differs({ armures: false })).toBeGreaterThan(10)
+    expect(differs({ clefs: ['treble'] })).toBeGreaterThan(5)
+  })
+
+  it('keeps version 1 series exactly as old links produced them', () => {
+    expect(generateSeries(config).map((item) => item.pitch)).toEqual(V1_GOLDEN_PITCHES)
+  })
+
+  it('fails without any clef', () => {
+    expect(() => generateSeries({ ...v2, clefs: [] })).toThrow()
+  })
+})
 
 describe('newSeed', () => {
   it('draws an integer from 1000 to 9999', () => {
@@ -49,7 +109,7 @@ describe('generateSeries', () => {
   it('only uses pitches of the chosen clefs', () => {
     for (const seed of [1000, 2345, 9999]) {
       for (const armures of [true, false]) {
-        const settings: RandomSeriesConfig = { kind: 'random', seed, clefs: ['treble', 'alto'], armures }
+        const settings: RandomSeriesConfig = { kind: 'random', version: 1, seed, clefs: ['treble', 'alto'], armures }
         const pool = new Set(buildPool(settings.clefs, armures).map((p) => `${p.clef}:${p.pitch}`))
         for (const item of generateSeries(settings)) {
           expect(pool.has(`${item.clef}:${item.pitch}`)).toBe(true)

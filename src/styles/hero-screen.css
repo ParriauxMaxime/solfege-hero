@@ -29,7 +29,7 @@
     margin-right: 0;
   }
 
-  .hero .hud .bpm {
+  .hero .hud .bpm-block {
     margin-left: auto;
   }
 
@@ -152,6 +152,24 @@
 
 .bpm small {
   font-size: 0.65rem;
+}
+
+.bpm-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.difficulty {
+  display: inline-block;
+  color: var(--warning, #ffd166);
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  line-height: 1;
+}
+
+.difficulty.bump {
+  animation: bump 0.3s ease-out;
 }
 
 .bpm-value {

@@ -9,9 +9,27 @@ import {
 } from './challenge'
 
 const challenge: Challenge = {
-  config: { kind: 'random', seed: 4821, clefs: ['treble', 'bass'], armures: true },
+  config: { kind: 'random', version: 1, seed: 4821, clefs: ['treble', 'bass'], armures: true },
   timeS: 47,
 }
+
+describe('series version', () => {
+  const v2: Challenge = { ...challenge, config: { ...challenge.config, version: 2 } }
+
+  it('writes v=2 for the melody series and nothing for version 1', () => {
+    expect(encodeChallenge(v2)).toBe('s=4821&c=sol-fa&k=1&v=2&t=47')
+    expect(encodeChallenge(challenge)).not.toContain('v=')
+  })
+
+  it('round-trips version 2', () => {
+    expect(parseChallenge(encodeChallenge(v2))).toEqual(v2)
+  })
+
+  it('reads links without v as version 1', () => {
+    expect(parseChallenge('s=4821&c=sol&k=1')?.config).toMatchObject({ version: 1 })
+    expect(parseChallenge('s=4821&c=sol&k=1&v=9')?.config).toMatchObject({ version: 1 })
+  })
+})
 
 describe('encodeChallenge', () => {
   it('writes seed, clef codes, armures and time', () => {
@@ -24,7 +42,7 @@ describe('encodeChallenge', () => {
 
   it('writes clefs in clef order with ut for alto and k=0 without armures', () => {
     const encoded = encodeChallenge({
-      config: { kind: 'random', seed: 1234, clefs: ['alto', 'treble'], armures: false },
+      config: { kind: 'random', version: 1, seed: 1234, clefs: ['alto', 'treble'], armures: false },
       timeS: null,
     })
     expect(encoded).toBe('s=1234&c=sol-ut&k=0')
@@ -59,7 +77,7 @@ describe('parseChallenge', () => {
 
   it('ignores a malformed time and treats unknown armures as off', () => {
     expect(parseChallenge('s=1234&c=sol&k=yes&t=fast')).toEqual({
-      config: { kind: 'random', seed: 1234, clefs: ['treble'], armures: false },
+      config: { kind: 'random', version: 1, seed: 1234, clefs: ['treble'], armures: false },
       timeS: null,
     })
   })
@@ -88,7 +106,7 @@ describe('challenge time', () => {
   it('drops out-of-range or malformed times but keeps the challenge', () => {
     for (const t of ['0', '0.0', '6000', '99999999999', '1.25', '-3', '1e3', 'NaN', '']) {
       expect(parseChallenge(`s=1234&c=sol&t=${t}`)).toEqual({
-        config: { kind: 'random', seed: 1234, clefs: ['treble'], armures: false },
+        config: { kind: 'random', version: 1, seed: 1234, clefs: ['treble'], armures: false },
         timeS: null,
       })
     }

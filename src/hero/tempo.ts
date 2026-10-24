@@ -14,9 +14,11 @@ export interface TempoState {
 
 const clampBpm = (bpm: number) => Math.min(MAX_BPM, Math.max(MIN_BPM, bpm))
 
-export function adaptTempo(state: TempoState, hit: boolean): TempoState {
+/** Speeding up never goes past `cap`, but it never pulls an already faster tempo down; slowing down always applies. */
+export function adaptTempo(state: TempoState, hit: boolean, cap: number = MAX_BPM): TempoState {
   if (!hit) return { bpm: clampBpm(state.bpm - MISS_SLOWDOWN_BPM), hitsInRow: 0 }
   const hitsInRow = state.hitsInRow + 1
   if (hitsInRow < HITS_PER_SPEEDUP) return { bpm: state.bpm, hitsInRow }
-  return { bpm: clampBpm(state.bpm + SPEEDUP_BPM), hitsInRow: 0 }
+  const faster = Math.min(clampBpm(state.bpm + SPEEDUP_BPM), Math.max(cap, state.bpm))
+  return { bpm: faster, hitsInRow: 0 }
 }
