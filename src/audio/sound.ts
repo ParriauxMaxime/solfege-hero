@@ -6,12 +6,18 @@ export interface Sound {
   wrong(): void
   milestone(): void
   playNote(note: Note): void
+  /** Audio clock in seconds; starts the audio context even when muted. */
+  now(): number
+  /** Schedules a metronome click at audio time `at`. */
+  click(at: number, accent: boolean): void
   setMuted(muted: boolean): void
 }
 
 const CORRECT_BASE_HZ = 523.25
 const MAX_STREAK_SEMITONES = 12
 const MILESTONE_SEMITONES = [0, 4, 7, 12]
+const CLICK_HZ = 1200
+const CLICK_ACCENT_HZ = 1800
 
 function transpose(hz: number, semitones: number): number {
   return hz * 2 ** (semitones / 12)
@@ -21,20 +27,31 @@ export function createSound(): Sound {
   let context: AudioContext | null = null
   let muted = false
 
-  function audio(): AudioContext | null {
-    if (muted) return null
+  function ensureContext(): AudioContext {
     context ??= new AudioContext()
     if (context.state === 'suspended') void context.resume()
     return context
   }
 
-  function tone(ctx: AudioContext, type: OscillatorType, hz: number, start: number, duration: number, volume: number) {
+  function audio(): AudioContext | null {
+    return muted ? null : ensureContext()
+  }
+
+  function tone(
+    ctx: AudioContext,
+    type: OscillatorType,
+    hz: number,
+    start: number,
+    duration: number,
+    volume: number,
+    attack = 0.012,
+  ) {
     const oscillator = ctx.createOscillator()
     const gain = ctx.createGain()
     oscillator.type = type
     oscillator.frequency.value = hz
     gain.gain.setValueAtTime(0.0001, start)
-    gain.gain.exponentialRampToValueAtTime(volume, start + 0.012)
+    gain.gain.exponentialRampToValueAtTime(volume, start + attack)
     gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
     oscillator.connect(gain).connect(ctx.destination)
     oscillator.start(start)
@@ -96,6 +113,12 @@ export function createSound(): Sound {
       const ctx = audio()
       if (!ctx) return
       tone(ctx, 'triangle', frequency(note), ctx.currentTime, 0.6, 0.25)
+    },
+    now: () => ensureContext().currentTime,
+    click(at, accent) {
+      const ctx = audio()
+      if (!ctx) return
+      tone(ctx, 'sine', accent ? CLICK_ACCENT_HZ : CLICK_HZ, at, 0.06, accent ? 0.4 : 0.22, 0.002)
     },
     setMuted(value) {
       muted = value

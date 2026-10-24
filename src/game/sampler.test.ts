@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isNatural, pitchClass } from '../music/notes'
+import { seededRandom } from '../testing/seededRandom'
 import {
   accuracy,
   buildPool,
@@ -11,14 +12,6 @@ import {
   type NoteStats,
   type Prompt,
 } from './sampler'
-
-function seededRandom(seed: number): () => number {
-  let state = seed
-  return () => {
-    state = (state * 1664525 + 1013904223) % 4294967296
-    return state / 4294967296
-  }
-}
 
 describe('promptId', () => {
   it('joins clef and MIDI pitch', () => {

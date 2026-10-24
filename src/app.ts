@@ -1,22 +1,39 @@
 import { createSound } from './audio/sound'
+import type { Melody } from './hero/types'
 import { loadProgress, loadSettings, resetProgress, saveProgress, saveSettings, type Progress, type Settings } from './storage'
 import { button, el } from './ui/dom'
-import { createGame, type Game } from './ui/game'
+import { createGame } from './ui/game'
+import { createHero } from './ui/hero'
+import { createHeroStart } from './ui/heroStart'
 import { createSettingsScreen } from './ui/settings'
 import { createStatsScreen } from './ui/stats'
+
+type Mode = 'single' | 'hero'
+
+const MODE_LABELS: Record<Mode, string> = { single: 'Une note', hero: 'Solfège hero' }
 
 export function startApp(root: HTMLElement): void {
   let settings = loadSettings()
   let progress = loadProgress()
-  let game: Game | null = null
+  let mode: Mode = 'single'
+  let running: { destroy: () => void } | null = null
   const sound = createSound()
   sound.setMuted(settings.muted)
 
+  const modeButtons = (Object.keys(MODE_LABELS) as Mode[]).map((candidate) => {
+    const modeButton = button('segment', MODE_LABELS[candidate], () => {
+      mode = candidate
+      showMode()
+    })
+    modeButton.dataset['mode'] = candidate
+    return modeButton
+  })
   const muteButton = button('icon-button', '', toggleMute)
   const topBar = el(
     'header',
     'top-bar',
-    el('span', 'brand', 'Solfège'),
+    el('div', 'segmented mode-switch', ...modeButtons),
+    el('span', 'spacer'),
     muteButton,
     button('icon-button', '📊', showStats),
     button('icon-button', '⚙️', showSettings),
@@ -25,7 +42,7 @@ export function startApp(root: HTMLElement): void {
   const screen = el('main', 'screen-host')
   root.replaceChildren(el('div', 'app', topBar, screen))
   renderMute()
-  showGame()
+  showMode()
 
   function renderMute(): void {
     muteButton.textContent = settings.muted ? '🔇' : '🔊'
@@ -48,11 +65,17 @@ export function startApp(root: HTMLElement): void {
     saveProgress(progress)
   }
 
-  function show(content: HTMLElement, withTopBar: boolean, nextGame: Game | null = null): void {
-    game?.destroy()
-    game = nextGame
+  function show(content: HTMLElement, withTopBar: boolean, next: { destroy: () => void } | null = null): void {
+    running?.destroy()
+    running = next
     topBar.hidden = !withTopBar
+    for (const modeButton of modeButtons) modeButton.classList.toggle('active', modeButton.dataset['mode'] === mode)
     screen.replaceChildren(content)
+  }
+
+  function showMode(): void {
+    if (mode === 'single') showGame()
+    else showHeroStart()
   }
 
   function showGame(): void {
@@ -60,8 +83,17 @@ export function startApp(root: HTMLElement): void {
     show(created.element, true, created)
   }
 
+  function showHeroStart(): void {
+    show(createHeroStart({ settings, onChange: changeSettings, onPlay: playHero }), true)
+  }
+
+  function playHero(melody: Melody | null): void {
+    const created = createHero({ settings, progress, sound, melody, onProgress: changeProgress, onQuit: showHeroStart })
+    show(created.element, false, created)
+  }
+
   function showSettings(): void {
-    show(createSettingsScreen({ settings, onChange: changeSettings, onBack: showGame }), false)
+    show(createSettingsScreen({ settings, onChange: changeSettings, onBack: showMode }), false)
   }
 
   function showStats(): void {
@@ -69,6 +101,6 @@ export function startApp(root: HTMLElement): void {
       changeProgress(resetProgress())
       return progress
     }
-    show(createStatsScreen({ progress, onReset, onBack: showGame }), false)
+    show(createStatsScreen({ progress, onReset, onBack: showMode }), false)
   }
 }

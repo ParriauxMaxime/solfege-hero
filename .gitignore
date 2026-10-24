@@ -5,3 +5,5 @@ dev-dist
 *.log
 scratch
 .claude/settings.local.json
+.env
+tailscale/state/

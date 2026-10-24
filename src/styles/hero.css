@@ -1,0 +1,38 @@
+.hero-staff {
+  display: block;
+  color: var(--ink);
+}
+
+.hero-hit-zone {
+  fill: rgba(124, 92, 255, 0.16);
+  stroke: var(--accent);
+  stroke-opacity: 0.55;
+  stroke-width: 1.5;
+}
+
+.hero-note.hit {
+  color: var(--success);
+  animation: hero-hit-fade 0.7s ease-out forwards;
+}
+
+.hero-note.miss {
+  color: var(--error);
+}
+
+.hero-miss-label {
+  display: none;
+  fill: var(--error);
+  stroke: none;
+  font: 700 14px system-ui, sans-serif;
+  text-anchor: middle;
+}
+
+.hero-note.miss .hero-miss-label {
+  display: block;
+}
+
+@keyframes hero-hit-fade {
+  to {
+    opacity: 0;
+  }
+}

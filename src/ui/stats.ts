@@ -19,8 +19,27 @@ function hasData(progress: Progress, clef: Clef): boolean {
 export function createStatsScreen({ progress: initial, onReset, onBack }: StatsOptions): HTMLElement {
   const element = el('section', 'screen panel')
 
-  function summary(label: string, value: number): HTMLElement {
+  function summary(label: string, value: number | string): HTMLElement {
     return el('div', 'summary-item', el('strong', '', String(value)), el('span', '', label))
+  }
+
+  function heroSection(hero: Progress['hero']): HTMLElement {
+    const perfectRatio = hero.hits > 0 ? `${Math.round((hero.perfects / hero.hits) * 100)} %` : '–'
+    return el(
+      'div',
+      'clef-section',
+      el('h2', '', 'Solfège hero'),
+      el(
+        'div',
+        'summary hero-summary',
+        summary('meilleur score', hero.bestScore),
+        summary('meilleure série', hero.bestStreak),
+        summary('BPM max', hero.maxBpm),
+        summary('réussies', hero.hits),
+        summary('ratées', hero.misses),
+        summary('parfaits', perfectRatio),
+      ),
+    )
   }
 
   function pitchRow(progress: Progress, clef: Clef, pitch: number): HTMLElement {
@@ -55,6 +74,7 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
         summary('réponses', progress.totalAnswered),
         summary('meilleur 60 s', progress.bestTimed),
       ),
+      heroSection(progress.hero),
       ...CLEFS.filter((clef) => hasData(progress, clef)).map((clef) => clefSection(progress, clef)),
       el(
         'div',

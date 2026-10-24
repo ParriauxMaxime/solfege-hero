@@ -1,4 +1,5 @@
 import type { NoteRecord, NoteStats } from './game/sampler'
+import { START_BPM_MAX, START_BPM_MIN } from './hero/tempo'
 import { CLEFS, type Clef } from './music/notes'
 
 export interface Settings {
@@ -6,6 +7,10 @@ export interface Settings {
   accidentals: boolean
   timed: boolean
   muted: boolean
+  heroTempo: number
+  metronome: boolean
+  /** Melody name; empty means random notes. */
+  heroMelody: string
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -13,6 +18,18 @@ export const DEFAULT_SETTINGS: Settings = {
   accidentals: true,
   timed: false,
   muted: false,
+  heroTempo: 60,
+  metronome: true,
+  heroMelody: '',
+}
+
+export interface HeroProgress {
+  bestScore: number
+  bestStreak: number
+  maxBpm: number
+  hits: number
+  misses: number
+  perfects: number
 }
 
 export interface Progress {
@@ -20,6 +37,16 @@ export interface Progress {
   bestStreak: number
   totalAnswered: number
   bestTimed: number
+  hero: HeroProgress
+}
+
+export const EMPTY_HERO_PROGRESS: HeroProgress = {
+  bestScore: 0,
+  bestStreak: 0,
+  maxBpm: 0,
+  hits: 0,
+  misses: 0,
+  perfects: 0,
 }
 
 export const EMPTY_PROGRESS: Progress = {
@@ -27,6 +54,7 @@ export const EMPTY_PROGRESS: Progress = {
   bestStreak: 0,
   totalAnswered: 0,
   bestTimed: 0,
+  hero: EMPTY_HERO_PROGRESS,
 }
 
 const SETTINGS_KEY = 'solfege.settings.v2'
@@ -61,6 +89,26 @@ export function sanitizeSettings(raw: unknown): Settings {
     accidentals: booleanOr(stored.accidentals, DEFAULT_SETTINGS.accidentals),
     timed: booleanOr(stored.timed, DEFAULT_SETTINGS.timed),
     muted: booleanOr(stored.muted, DEFAULT_SETTINGS.muted),
+    heroTempo: sanitizeHeroTempo(stored.heroTempo),
+    metronome: booleanOr(stored.metronome, DEFAULT_SETTINGS.metronome),
+    heroMelody: typeof stored.heroMelody === 'string' ? stored.heroMelody : DEFAULT_SETTINGS.heroMelody,
+  }
+}
+
+function sanitizeHeroTempo(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_SETTINGS.heroTempo
+  return Math.min(START_BPM_MAX, Math.max(START_BPM_MIN, Math.round(value)))
+}
+
+function sanitizeHeroProgress(raw: unknown): HeroProgress {
+  const stored = asObject(raw)
+  return {
+    bestScore: nonNegativeOr(stored.bestScore, 0),
+    bestStreak: nonNegativeOr(stored.bestStreak, 0),
+    maxBpm: nonNegativeOr(stored.maxBpm, 0),
+    hits: nonNegativeOr(stored.hits, 0),
+    misses: nonNegativeOr(stored.misses, 0),
+    perfects: nonNegativeOr(stored.perfects, 0),
   }
 }
 
@@ -83,6 +131,7 @@ export function sanitizeProgress(raw: unknown): Progress {
     bestStreak: nonNegativeOr(stored.bestStreak, 0),
     totalAnswered: nonNegativeOr(stored.totalAnswered, 0),
     bestTimed: nonNegativeOr(stored.bestTimed, 0),
+    hero: sanitizeHeroProgress(stored.hero),
   }
 }
 
@@ -125,5 +174,5 @@ export function resetProgress(): Progress {
   } catch {
     // nothing persisted, nothing to clear
   }
-  return { ...EMPTY_PROGRESS, notes: {} }
+  return { ...EMPTY_PROGRESS, notes: {}, hero: { ...EMPTY_HERO_PROGRESS } }
 }

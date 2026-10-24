@@ -5,6 +5,7 @@ const background = '#12101a'
 
 export default defineConfig({
   base: './',
+  server: { allowedHosts: ['.ts.net'], hmr: { clientPort: 443 } },
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
@@ -22,7 +23,7 @@ export default defineConfig({
         start_url: './',
         scope: './',
         display: 'standalone',
-        orientation: 'portrait',
+        orientation: 'any',
         theme_color: background,
         background_color: background,
         categories: ['music', 'education'],

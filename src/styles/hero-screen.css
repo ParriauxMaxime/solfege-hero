@@ -1,0 +1,134 @@
+.mode-switch {
+  flex: 0 1 auto;
+}
+
+.mode-switch .segment {
+  min-height: 56px;
+  padding: 0 6px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.hero .icon-button {
+  width: 56px;
+}
+
+@media (orientation: landscape) {
+  .hero {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 0;
+  }
+
+  .hero .hud {
+    position: absolute;
+    inset: 4px 12px auto;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  .hero .hud > * {
+    pointer-events: auto;
+  }
+
+  .hero .hud .multiplier {
+    margin-right: auto;
+  }
+
+  .hero .hero-staff {
+    margin-top: 56px;
+  }
+
+  .hero .answers {
+    flex: none;
+    height: 128px;
+  }
+}
+
+.top-bar .spacer {
+  flex: 1;
+}
+
+.select {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.slider {
+  flex: 1;
+  accent-color: var(--accent);
+  height: 40px;
+}
+
+.tempo-label {
+  min-width: 6ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-summary {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.hero-staff {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+}
+
+.hero-staff > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.count-in {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  font-size: 5rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.bpm {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-dim);
+}
+
+.bpm small {
+  font-size: 0.65rem;
+}
+
+.bpm-value {
+  display: inline-block;
+}
+
+.bpm-value.bump {
+  animation: bump 0.3s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bpm-value.bump {
+    animation: none;
+  }
+}

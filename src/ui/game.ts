@@ -1,26 +1,17 @@
 import type { Sound } from '../audio/sound'
 import { INITIAL_SCORE, applyAnswer, multiplier, type AnswerOutcome, type ScoreState } from '../game/scoring'
 import { buildPool, pickPrompt, promptId, recordAnswer, type Prompt } from '../game/sampler'
-import {
-  PITCH_CLASS_NAMES,
-  isNatural,
-  midi,
-  noteName,
-  pitchClass,
-  spell,
-  type Note,
-} from '../music/notes'
+import { midi, noteName, pitchClass, spell, type Note } from '../music/notes'
 import { vibrate } from '../platform/haptics'
 import type { Progress, Settings } from '../storage'
 import { button, el } from './dom'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
+import { createAnswerPad } from './answerPad'
 import { renderStaff } from './staff'
 
 const TIMED_SECONDS = 60
 const NEXT_DELAY_CORRECT_MS = 200
 const NEXT_DELAY_WRONG_MS = 900
-const NATURAL_PITCH_CLASSES = [0, 2, 4, 5, 7, 9, 11]
-const KEY_LETTERS = 'cdefgab'
 
 export interface GameOptions {
   settings: Settings
@@ -37,32 +28,6 @@ export interface Game {
 interface ShownPrompt {
   prompt: Prompt
   note: Note
-}
-
-function createAnswerButton(name: string, pitchClassIndex: number, onAnswer: (pitchClass: number) => void): HTMLButtonElement {
-  const answer = button('answer', '', () => onAnswer(pitchClassIndex))
-  answer.append(...name.split('/').map((part) => el('span', '', part)))
-  const naturalIndex = NATURAL_PITCH_CLASSES.indexOf(pitchClassIndex)
-  if (naturalIndex >= 0) {
-    answer.style.gridArea = `2 / ${1 + naturalIndex * 2} / auto / span 2`
-  } else {
-    const lowerNaturalIndex = NATURAL_PITCH_CLASSES.indexOf(pitchClassIndex - 1)
-    answer.classList.add('altered')
-    answer.style.gridArea = `1 / ${2 + lowerNaturalIndex * 2} / auto / span 2`
-  }
-  return answer
-}
-
-function pitchClassForKey(event: KeyboardEvent): number | undefined {
-  const key = event.key.toLowerCase()
-  const letterIndex = KEY_LETTERS.indexOf(key)
-  if (letterIndex < 0) {
-    const digit = Number(key)
-    return digit >= 1 && digit <= 7 ? NATURAL_PITCH_CLASSES[digit - 1] : undefined
-  }
-  const natural = NATURAL_PITCH_CLASSES[letterIndex] as number
-  if (!event.shiftKey) return natural
-  return isNatural(natural + 1) ? undefined : natural + 1
 }
 
 export function createGame({ settings, progress: initialProgress, sound, onProgress }: GameOptions): Game {
@@ -87,11 +52,10 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
 
   const staffCard = el('div', 'staff-card')
   const feedback = el('div', 'feedback')
-  const answers = PITCH_CLASS_NAMES.map((name, index) => createAnswerButton(name, index, submitAnswer))
-  const answerGrid = el('div', 'answers', ...answers)
+  const pad = createAnswerPad(submitAnswer)
   const flash = el('div', 'flash')
   const effectsLayer = el('div', 'effects-layer')
-  const element = el('section', 'screen game', hud, staffCard, feedback, answerGrid, flash, effectsLayer)
+  const element = el('section', 'screen game', hud, staffCard, feedback, pad.element, flash, effectsLayer)
 
   function showNext(): void {
     const prompt = pickPrompt(pool, progress.notes, previousId)
@@ -101,7 +65,7 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
     staffCard.replaceChildren(renderStaff(prompt.clef, note))
     feedback.textContent = ''
     feedback.className = 'feedback'
-    for (const answer of answers) answer.classList.remove('correct', 'wrong', 'reveal')
+    pad.clear()
     shownAt = performance.now()
     locked = false
   }
@@ -192,7 +156,7 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
     sound.correct(score.streak)
     sound.playNote(note)
     vibrate(15)
-    answers[pitchClass(midi(note))]?.classList.add('correct')
+    pad.flash(pitchClass(midi(note)), 'correct')
     feedback.textContent = noteName(note)
     feedback.className = 'feedback ok'
     restartAnimation(flash, 'flash-ok')
@@ -214,8 +178,8 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
   function onWrong(chosen: number, note: Note, brokenStreak: number): void {
     sound.wrong()
     vibrate([40, 30, 40])
-    answers[chosen]?.classList.add('wrong')
-    answers[pitchClass(midi(note))]?.classList.add('reveal')
+    pad.flash(chosen, 'wrong')
+    pad.flash(pitchClass(midi(note)), 'reveal')
     feedback.textContent = `C'était ${noteName(note)}`
     feedback.className = 'feedback bad'
     restartAnimation(flash, 'flash-bad')
@@ -227,19 +191,12 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
     }
   }
 
-  function onKeyDown(event: KeyboardEvent): void {
-    if (event.ctrlKey || event.metaKey || event.altKey || event.repeat) return
-    const chosen = pitchClassForKey(event)
-    if (chosen !== undefined) submitAnswer(chosen)
-  }
-
-  document.addEventListener('keydown', onKeyDown)
   startRound()
 
   return {
     element,
     destroy() {
-      document.removeEventListener('keydown', onKeyDown)
+      pad.destroy()
       window.clearInterval(ticker)
       window.clearTimeout(nextTimeout)
     },

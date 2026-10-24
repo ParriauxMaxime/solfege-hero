@@ -2,6 +2,8 @@ import './styles/base.css'
 import './styles/game.css'
 import './styles/screens.css'
 import './styles/effects.css'
+import './styles/hero.css'
+import './styles/hero-screen.css'
 import './pwa'
 import { startApp } from './app'
 

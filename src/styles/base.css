@@ -55,8 +55,8 @@ button {
 .top-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px 0;
+  gap: 4px;
+  padding: 4px 8px 0;
 }
 
 .brand {
@@ -67,8 +67,9 @@ button {
 }
 
 .icon-button {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 56px;
+  flex: none;
   border-radius: 12px;
   background: var(--card);
   font-size: 1.2rem;

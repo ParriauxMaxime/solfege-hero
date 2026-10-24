@@ -18,12 +18,16 @@ describe('sanitizeSettings', () => {
   })
 
   it('defaults to the treble clef with accidentals, untimed and with sound', () => {
-    expect(DEFAULT_SETTINGS).toEqual({
+    expect(DEFAULT_SETTINGS).toMatchObject({
       clefs: ['treble'],
       accidentals: true,
       timed: false,
       muted: false,
     })
+  })
+
+  it('defaults hero mode to 60 BPM, metronome on and random notes', () => {
+    expect(DEFAULT_SETTINGS).toMatchObject({ heroTempo: 60, metronome: true, heroMelody: '' })
   })
 
   it('round-trips valid settings', () => {
@@ -32,6 +36,9 @@ describe('sanitizeSettings', () => {
       accidentals: false,
       timed: true,
       muted: true,
+      heroTempo: 120,
+      metronome: false,
+      heroMelody: 'Frère Jacques',
     }
     expect(sanitizeSettings(JSON.parse(JSON.stringify(settings)))).toEqual(settings)
   })
@@ -41,6 +48,20 @@ describe('sanitizeSettings', () => {
       'bass',
       'alto',
     ])
+  })
+
+  it('clamps and rounds the hero tempo', () => {
+    expect(sanitizeSettings({ heroTempo: 10 }).heroTempo).toBe(40)
+    expect(sanitizeSettings({ heroTempo: 500 }).heroTempo).toBe(160)
+    expect(sanitizeSettings({ heroTempo: 87.6 }).heroTempo).toBe(88)
+    expect(sanitizeSettings({ heroTempo: 'fast' }).heroTempo).toBe(60)
+  })
+
+  it('ignores malformed hero settings', () => {
+    expect(sanitizeSettings({ metronome: 'no', heroMelody: 3 })).toMatchObject({
+      metronome: true,
+      heroMelody: '',
+    })
   })
 
   it('falls back to treble when no clef is valid', () => {
@@ -64,8 +85,20 @@ describe('sanitizeProgress', () => {
       bestStreak: 12,
       totalAnswered: 80,
       bestTimed: 340,
+      hero: { bestScore: 900, bestStreak: 30, maxBpm: 110, hits: 200, misses: 20, perfects: 90 },
     }
     expect(sanitizeProgress(JSON.parse(JSON.stringify(progress)))).toEqual(progress)
+  })
+
+  it('sanitizes hero progress field by field', () => {
+    const { hero } = sanitizeProgress({ hero: { bestScore: 50, maxBpm: -3, hits: 'x' } })
+    expect(hero).toEqual({ ...EMPTY_PROGRESS.hero, bestScore: 50 })
+  })
+
+  it('loads progress saved before hero mode existed', () => {
+    expect(sanitizeProgress({ notes: {}, bestStreak: 4, totalAnswered: 9, bestTimed: 1 }).hero).toEqual(
+      EMPTY_PROGRESS.hero,
+    )
   })
 
   it('drops malformed note records and keeps the valid ones', () => {
