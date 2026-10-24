@@ -97,7 +97,7 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
       ...CLEFS.filter((clef) => hasData(progress, clef)).map((clef) => clefSection(progress, clef)),
       el(
         'div',
-        'actions',
+        'actions sticky-actions',
         button('danger', 'Réinitialiser', () => {
           if (confirm('Effacer toute la progression ?')) render(onReset())
         }),

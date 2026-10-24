@@ -38,6 +38,8 @@ const KEY_SIZE_CHOICES: Choice<KeySize>[] = [
   { value: 'L', label: 'L' },
 ]
 const EXPORT_FILE = 'solfege-progress.json'
+const ACTION_ROW = 'settings-row action-row'
+const KEY_NAMES_HINT = 'Désactivé : touches sans nom, pour les habitués'
 
 export function createSettingsScreen({ settings: initial, getProgress, onChange, onReset, onImport, onBack }: SettingsOptions): HTMLElement {
   let settings = initial
@@ -50,10 +52,10 @@ export function createSettingsScreen({ settings: initial, getProgress, onChange,
     if (rerender) render()
   }
 
-  function row(label: string, control: HTMLElement, hint = ''): HTMLElement {
+  function row(label: string, control: HTMLElement, hint = '', className = 'settings-row'): HTMLElement {
     const text = el('span', 'settings-label', label)
     if (hint) text.append(el('small', 'settings-hint', hint))
-    return el('div', 'settings-row', text, control)
+    return el('div', className, text, control)
   }
 
   function toggle(checked: boolean, onToggle: (next: boolean) => void): HTMLElement {
@@ -61,6 +63,11 @@ export function createSettingsScreen({ settings: initial, getProgress, onChange,
     control.setAttribute('role', 'switch')
     control.setAttribute('aria-checked', String(checked))
     return control
+  }
+
+  function toggleKeyNames(next: boolean): void {
+    update({ keyNames: next })
+    if (!next) showToast('Touches sans nom : repère-toi au clavier')
   }
 
   function toggleRow(label: string, key: BooleanKey, hint = ''): HTMLElement {
@@ -152,7 +159,7 @@ export function createSettingsScreen({ settings: initial, getProgress, onChange,
         'Jeu',
         clefRow(),
         toggleRow('Armures', 'accidentals'),
-        toggleRow('Noms sur les touches', 'keyNames'),
+        row('Noms sur les touches', toggle(settings.keyNames, toggleKeyNames), KEY_NAMES_HINT),
         choiceRow('Notation', NAMINGS, settings.naming, (naming) => update({ naming })),
       ),
       section(
@@ -171,9 +178,9 @@ export function createSettingsScreen({ settings: initial, getProgress, onChange,
       ),
       section(
         'Données',
-        row('Statistiques', button('danger', 'Réinitialiser', resetProgress)),
-        row('Sauvegarde', el('div', 'settings-actions', button('segment-button', 'Exporter', exportProgress))),
-        row('Restauration', importControl()),
+        row('Statistiques', button('danger', 'Réinitialiser', resetProgress), '', ACTION_ROW),
+        row('Sauvegarde', el('div', 'settings-actions', button('segment-button', 'Exporter', exportProgress)), '', ACTION_ROW),
+        row('Restauration', importControl(), '', ACTION_ROW),
       ),
       button('primary', 'Retour', onBack),
     )

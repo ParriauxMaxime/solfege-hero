@@ -38,16 +38,20 @@ export interface ScrollingStaff {
 const CONTENT_TOP = 0
 const CONTENT_BOTTOM = stepY(-4) + 16
 const CONTENT_HEIGHT = CONTENT_BOTTOM - CONTENT_TOP
-const BEATS_AHEAD_LANDSCAPE = 6
-const BEATS_AHEAD_PORTRAIT = 3.5
+interface Density {
+  beatsAhead: number
+  minPxPerBeat: number
+  hitDistanceFromClip: number
+}
+
+const LANDSCAPE_DENSITY: Density = { beatsAhead: 6, minPxPerBeat: 80, hitDistanceFromClip: 32 }
+const PORTRAIT_DENSITY: Density = { beatsAhead: 3, minPxPerBeat: 60, hitDistanceFromClip: 26 }
 const PORTRAIT_ASPECT = 0.8
-const MIN_PX_PER_BEAT = 80
 // Tighter than the single-note staff so an accidental never reaches back into the previous eighth.
-const ACCIDENTAL_OFFSET = -24
+const ACCIDENTAL_OFFSET = -20
 const BAR_LINE_OFFSET_BEATS = -0.4
 const SIGNATURE_X = 90
 const CLIP_LEFT_WITHOUT_SIGNATURE = 92
-const HIT_DISTANCE_FROM_CLIP = 32
 const STAFF_LEFT = 8
 const OFFSCREEN_MARGIN = 40
 const HIT_BAND_HALF_WIDTH = 20
@@ -156,11 +160,11 @@ function createNoteGroup(
 export function createScrollingStaff(initialClef: Clef, initialFifths: number): ScrollingStaff {
   let clef = initialClef
   let fifths = initialFifths
+  let density = LANDSCAPE_DENSITY
   let clipLeft = CLIP_LEFT_WITHOUT_SIGNATURE
-  let hitX = clipLeft + HIT_DISTANCE_FROM_CLIP
-  let beatsAhead = BEATS_AHEAD_LANDSCAPE
-  let viewWidth = hitX + beatsAhead * MIN_PX_PER_BEAT
-  let pxPerBeat = MIN_PX_PER_BEAT
+  let hitX = clipLeft + density.hitDistanceFromClip
+  let viewWidth = hitX + density.beatsAhead * density.minPxPerBeat
+  let pxPerBeat = density.minPxPerBeat
   let size: { width: number; height: number } | null = null
   const svg = svgElement('svg', {
     class: 'hero-staff-svg',
@@ -192,9 +196,18 @@ export function createScrollingStaff(initialClef: Clef, initialFifths: number): 
   const bars = createKeyedLayer(barGroup)
   const notes = createKeyedLayer(noteGroup)
 
+  function placeHitZone(): void {
+    clipLeft = CLIP_LEFT_WITHOUT_SIGNATURE + keySignatureWidth(fifths)
+    hitX = clipLeft + density.hitDistanceFromClip
+    clipRect.setAttribute('x', String(clipLeft))
+    hitZone.setAttribute('x', String(hitX - HIT_BAND_HALF_WIDTH))
+    missLabel.setAttribute('x', String(hitX))
+  }
+
   function layout(width: number, height: number): void {
-    beatsAhead = height > width * PORTRAIT_ASPECT ? BEATS_AHEAD_PORTRAIT : BEATS_AHEAD_LANDSCAPE
-    const scale = Math.min(height / CONTENT_HEIGHT, width / (hitX + beatsAhead * MIN_PX_PER_BEAT))
+    density = height > width * PORTRAIT_ASPECT ? PORTRAIT_DENSITY : LANDSCAPE_DENSITY
+    placeHitZone()
+    const scale = Math.min(height / CONTENT_HEIGHT, width / (hitX + density.beatsAhead * density.minPxPerBeat))
     viewWidth = width / scale
     const viewHeight = height / scale
     const top = CONTENT_TOP + (CONTENT_HEIGHT - viewHeight) / 2
@@ -205,7 +218,7 @@ export function createScrollingStaff(initialClef: Clef, initialFifths: number): 
     const nextLines = staffLines(STAFF_LEFT, viewWidth)
     lines.replaceWith(nextLines)
     lines = nextLines
-    pxPerBeat = (viewWidth - hitX) / beatsAhead
+    pxPerBeat = (viewWidth - hitX) / density.beatsAhead
     notes.clear()
   }
 
@@ -222,11 +235,7 @@ export function createScrollingStaff(initialClef: Clef, initialFifths: number): 
     clef = value
     fifths = signature
     clefHolder.replaceChildren(clefGlyph(clef), keySignatureGlyph(clef, fifths, SIGNATURE_X))
-    clipLeft = CLIP_LEFT_WITHOUT_SIGNATURE + keySignatureWidth(fifths)
-    hitX = clipLeft + HIT_DISTANCE_FROM_CLIP
-    clipRect.setAttribute('x', String(clipLeft))
-    hitZone.setAttribute('x', String(hitX - HIT_BAND_HALF_WIDTH))
-    missLabel.setAttribute('x', String(hitX))
+    placeHitZone()
     notes.clear()
     if (size && size.width > 0 && size.height > 0) layout(size.width, size.height)
   }

@@ -7,6 +7,10 @@
   margin-right: auto;
 }
 
+.hero .hud .bpm {
+  font-size: 0.95rem;
+}
+
 @media (orientation: landscape) {
   .hero {
     display: flex;
@@ -16,23 +20,21 @@
   }
 
   .hero .hud {
-    position: absolute;
-    inset: 4px 12px auto;
-    z-index: 5;
-    pointer-events: none;
-  }
-
-  .hero .hud > * {
-    pointer-events: auto;
+    flex: none;
+    min-height: 60px;
   }
 
   .hero .hud .hud-score {
-    margin-right: auto;
+    margin-right: 0;
+  }
+
+  .hero .hud .bpm {
+    margin-left: auto;
   }
 
   .hero .answers {
     flex: none;
-    height: min(calc(var(--key-h) * 2 + 6px), 44dvh);
+    height: min(calc(var(--key-h) * 2 + 6px), 118px);
   }
 }
 
@@ -113,6 +115,7 @@
 .hero-staff {
   flex: 1;
   min-height: 0;
+  margin: 0 -12px;
   position: relative;
   display: flex;
 }

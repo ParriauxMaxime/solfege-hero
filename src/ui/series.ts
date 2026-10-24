@@ -43,6 +43,8 @@ export interface SeriesOptions {
 
 export interface Series {
   element: HTMLElement
+  /** Freezes the clock until the returned release function is called. */
+  hold: () => () => void
   destroy: () => void
 }
 
@@ -89,8 +91,21 @@ export function createSeries({
   const effectsLayer = el('div', 'effects-layer')
   const element = el('section', 'screen game series', hud, staffCard, pad.element, flash, effectsLayer)
 
+  let heldAt: number | null = null
+
   function elapsedMs(): number {
-    return performance.now() - startedAt
+    return (heldAt ?? performance.now()) - startedAt
+  }
+
+  function hold(): () => void {
+    heldAt = performance.now()
+    return () => {
+      if (heldAt === null) return
+      const heldMs = performance.now() - heldAt
+      startedAt += heldMs
+      shownAt += heldMs
+      heldAt = null
+    }
   }
 
   function renderTimer(): void {
@@ -222,13 +237,13 @@ export function createSeries({
 
   function countUp(target: HTMLElement, totalMs: number): void {
     if (motionReduced()) {
-      target.textContent = formatTime(totalMs)
+      target.textContent = formatTenths(totalMs)
       return
     }
     const start = performance.now()
     const step = (now: number) => {
       const progressRatio = Math.min(1, (now - start) / COUNT_UP_MS)
-      target.textContent = formatTime(totalMs * progressRatio)
+      target.textContent = formatTenths(totalMs * progressRatio)
       if (progressRatio < 1) countUpFrame = requestAnimationFrame(step)
     }
     countUpFrame = requestAnimationFrame(step)
@@ -260,8 +275,9 @@ export function createSeries({
   }
 
   function endOverlay(outcome: Outcome, beaten: boolean | null): HTMLElement {
-    const total = el('p', 'result-score series-total', formatTime(0))
-    countUp(total, outcome.totalMs)
+    const comparing = challenge?.timeS != null
+    const total = el('p', 'result-score series-total', formatTenths(0))
+    if (!comparing) countUp(total, outcome.totalMs)
     const hits = outcome.results.filter(Boolean).length
     const strip = el(
       'div',
@@ -287,8 +303,7 @@ export function createSeries({
       'div',
       'result series-end',
       verdict(outcome, beaten) ?? el('h2', '', 'Série terminée'),
-      total,
-      versus(outcome),
+      comparing ? versus(outcome) : total,
       outcome.penalty > 0 ? el('p', 'result-best', `(+${outcome.penalty / 1000} s)`) : '',
       el('p', '', `${hits}/${outcome.results.length} du premier coup`),
       strip,
@@ -310,6 +325,7 @@ export function createSeries({
 
   return {
     element,
+    hold,
     destroy() {
       stopTrackingHiddenTime()
       cancelAnimationFrame(frame)

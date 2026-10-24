@@ -12,7 +12,7 @@ import { createGame } from './ui/game'
 import { createHero, type Hero } from './ui/hero'
 import { createHeroStart } from './ui/heroStart'
 import { createHome, type HomeChoice } from './ui/home'
-import { createSeries } from './ui/series'
+import { createSeries, type Series } from './ui/series'
 import { createSettingsScreen } from './ui/settings'
 import { createStatsScreen } from './ui/stats'
 
@@ -28,6 +28,7 @@ export function startApp(root: HTMLElement): void {
   let running: Destroyable | null = null
   let pushed = false
   let activeHero: Hero | null = null
+  let activeSeries: Series | null = null
   let leaving: Element[] = []
   let leaveTimeout = 0
   const sound = createSound()
@@ -78,8 +79,10 @@ export function startApp(root: HTMLElement): void {
       return true
     }
     activeHero?.pause()
+    const releaseClock = activeSeries?.hold()
     void confirmOverlay(root, 'Abandonner la partie en cours ?', 'Abandonner', 'Continuer').then((abandon) => {
       if (abandon) showChallengeIntro(received)
+      else releaseClock?.()
     })
     return true
   }
@@ -131,6 +134,7 @@ export function startApp(root: HTMLElement): void {
     running?.destroy()
     running = next
     activeHero = null
+    activeSeries = null
     topBar.hidden = !withTopBar
     swapScreen(content)
   }
@@ -191,6 +195,7 @@ export function startApp(root: HTMLElement): void {
       onHome: goHome,
     })
     show(series.element, true, series)
+    activeSeries = series
   }
 
   function showChallengeIntro(challenge: Challenge): void {

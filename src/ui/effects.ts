@@ -6,8 +6,9 @@ export interface Point {
   y: number
 }
 
-const PARTICLE_COLORS = ['#2ee6a6', '#7c5cff', '#f2eefc', '#ffd166']
-const CONFETTI_COLORS = ['#2ee6a6', '#7c5cff', '#ff4d6d', '#ffd166', '#f2eefc']
+// Theme variables resolve at paint time, so pieces follow the theme and the colourblind palette.
+const PARTICLE_COLORS = ['var(--success)', 'var(--accent)', 'var(--ink)', 'var(--warning, #ffd166)']
+const CONFETTI_COLORS = ['var(--success)', 'var(--accent)', 'var(--error)', 'var(--warning, #ffd166)', 'var(--ink)']
 const PARTICLE_COUNT = 14
 const CONFETTI_COUNT = 48
 

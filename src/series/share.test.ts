@@ -38,7 +38,7 @@ describe('shareText', () => {
       [
         'Solfège hero · Série #4821',
         '🟩🟩🟩🟥🟩🟩🟩🟩🟩🟩🟩🟥🟩🟩🟩🟩🟩🟩🟩🟩',
-        '⏱ 0:47 (+10 s) · 18/20',
+        '⏱ 0:47.3 (+10 s) · 18/20',
         'Bats-moi : https://example.com/#s=4821&c=sol&k=1&t=47',
       ].join('\n'),
     )
@@ -46,7 +46,7 @@ describe('shareText', () => {
 
   it('omits the penalty when there is none', () => {
     const text = shareText({ ...base, results: results.map(() => true), penaltyMs: 0 })
-    expect(text.split('\n')[2]).toBe('⏱ 0:47 · 20/20')
+    expect(text.split('\n')[2]).toBe('⏱ 0:47.3 · 20/20')
   })
 
   it('offers colour-blind friendly squares', () => {

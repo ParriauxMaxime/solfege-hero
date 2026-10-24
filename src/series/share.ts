@@ -37,7 +37,7 @@ export function shareText(input: {
   return [
     `Solfège hero · Série #${input.seed}`,
     input.results.map((result) => (result ? ok : bad)).join(''),
-    `⏱ ${formatTime(input.totalMs)}${penalty} · ${firstTry}/${input.results.length}`,
+    `⏱ ${formatTenths(input.totalMs)}${penalty} · ${firstTry}/${input.results.length}`,
     `Bats-moi : ${input.url}`,
   ].join('\n')
 }

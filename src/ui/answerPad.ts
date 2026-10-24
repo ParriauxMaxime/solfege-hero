@@ -20,6 +20,8 @@ function createAnswerButton(name: string, pitchClassIndex: number, onAnswer: (pi
   answer.type = 'button'
   trackPressed(answer)
   answer.addEventListener('pointerdown', () => onAnswer(pitchClassIndex))
+  // The answer may open an overlay under the finger; cancelling the touch's synthetic click keeps it off that overlay's buttons.
+  answer.addEventListener('touchend', (event) => event.preventDefault())
   // A pointer press already answered; only keyboard activation (no pointer detail) reaches here.
   answer.addEventListener('click', (event) => {
     if (event.detail === 0) onAnswer(pitchClassIndex)
