@@ -1,6 +1,7 @@
 import { buildPool, type Prompt } from '../game/sampler'
 import { hashText } from '../hash'
-import { chooseKey } from '../music/keySignature'
+import type { Score } from '../hero/types'
+import { chooseKey, spellInKey } from '../music/keySignature'
 import { pitchClass, spell, type Clef, type Note } from '../music/notes'
 import { seededRandom } from '../random'
 
@@ -10,11 +11,11 @@ export const PENALTY_MS = 5000
 const MIN_SEED = 1000
 const SEED_COUNT = 9000
 
-export interface SeriesConfig {
-  seed: number
-  clefs: Clef[]
-  armures: boolean
-}
+export type SeriesConfig =
+  | { kind: 'random'; seed: number; clefs: Clef[]; armures: boolean }
+  | { kind: 'score'; scoreId: string }
+
+export type RandomSeriesConfig = Extract<SeriesConfig, { kind: 'random' }>
 
 export interface SeriesItem {
   clef: Clef
@@ -32,7 +33,23 @@ function writeItem({ clef, pitch }: Prompt, armures: boolean, random: () => numb
   return { clef, pitch, fifths: 0, note: spell(pitch, false) }
 }
 
-export function generateSeries({ seed, clefs, armures }: SeriesConfig): SeriesItem[] {
+/** Every pitched note of the score in order, written in the score's own key. */
+export function scoreSeries(score: Score): SeriesItem[] {
+  return score.notes.flatMap(({ pitch }) =>
+    pitch === null
+      ? []
+      : [
+          {
+            clef: score.clef,
+            pitch,
+            fifths: score.key,
+            note: spellInKey(pitch, score.key) ?? spell(pitch, score.key < 0),
+          },
+        ],
+  )
+}
+
+export function generateSeries({ seed, clefs, armures }: RandomSeriesConfig): SeriesItem[] {
   const pool = buildPool(clefs, armures)
   if (pool.length === 0) throw new Error('Cannot generate a series without a clef')
 

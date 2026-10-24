@@ -66,6 +66,8 @@ export interface SeriesProgress {
   played: number
   won: number
   lost: number
+  /** Fastest time in ms per imported or built-in score id. */
+  bestByScore: Record<string, number>
 }
 
 export interface Progress {
@@ -77,7 +79,13 @@ export interface Progress {
   series: SeriesProgress
 }
 
-export const EMPTY_SERIES_PROGRESS: SeriesProgress = { bestMs: 0, played: 0, won: 0, lost: 0 }
+export const EMPTY_SERIES_PROGRESS: SeriesProgress = {
+  bestMs: 0,
+  played: 0,
+  won: 0,
+  lost: 0,
+  bestByScore: {},
+}
 
 export const EMPTY_HERO_PROGRESS: HeroProgress = {
   bestScore: 0,
@@ -185,6 +193,29 @@ function sanitizeSeriesProgress(raw: unknown): SeriesProgress {
     played: nonNegativeOr(stored.played, 0),
     won: nonNegativeOr(stored.won, 0),
     lost: nonNegativeOr(stored.lost, 0),
+    bestByScore: sanitizeBestByScore(stored.bestByScore),
+  }
+}
+
+function sanitizeBestByScore(raw: unknown): Record<string, number> {
+  const best: Record<string, number> = {}
+  const entries = Array.isArray(raw) ? [] : Object.entries(asObject(raw))
+  for (const [id, ms] of entries) {
+    if (isNonNegative(ms) && ms > 0) best[id] = ms
+  }
+  return best
+}
+
+/** Keeps the faster of the stored and new time for a score. */
+export function recordScoreBest(progress: Progress, scoreId: string, totalMs: number): Progress {
+  const previous = progress.series.bestByScore[scoreId]
+  if (previous !== undefined && previous <= totalMs) return progress
+  return {
+    ...progress,
+    series: {
+      ...progress.series,
+      bestByScore: { ...progress.series.bestByScore, [scoreId]: totalMs },
+    },
   }
 }
 

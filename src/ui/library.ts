@@ -11,6 +11,7 @@ type ScoreLibrary = ReturnType<typeof createScoreLibrary>
 export interface LibraryOptions {
   library: ScoreLibrary
   onPlayHero: (score: Score) => void
+  onPlaySeries: (score: Score) => void
 }
 
 const CLEF_LABELS: Record<Clef, string> = { treble: 'Sol', bass: 'Fa', alto: 'Ut 3' }
@@ -25,7 +26,7 @@ function noteCount(score: Score): number {
   return score.notes.filter((note) => note.pitch !== null).length
 }
 
-export function createLibrary({ library, onPlayHero }: LibraryOptions): HTMLElement {
+export function createLibrary({ library, onPlayHero, onPlaySeries }: LibraryOptions): HTMLElement {
   const input = el('input')
   input.type = 'file'
   input.accept = '.musicxml,.xml,.mxl'
@@ -80,7 +81,12 @@ export function createLibrary({ library, onPlayHero }: LibraryOptions): HTMLElem
   function scoreCard(score: Score): HTMLElement {
     const builtin = score.source === 'builtin'
     const meta = [CLEF_LABELS[score.clef], keyLabel(score.key), `${score.timeSignature.beats}/${score.timeSignature.beatType}`, `${noteCount(score)} notes`]
-    const actions = el('div', 'score-actions', button('primary', 'Hero', () => onPlayHero(score)))
+    const actions = el(
+      'div',
+      'score-actions',
+      button('primary', 'Hero', () => onPlayHero(score)),
+      button('primary', 'Série', () => onPlaySeries(score)),
+    )
     if (!builtin) {
       const deleteButton = button('icon-button', '🗑', () => void remove(score))
       deleteButton.setAttribute('aria-label', `Supprimer ${score.name}`)

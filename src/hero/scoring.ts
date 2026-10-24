@@ -29,6 +29,19 @@ export interface HeroOutcome {
   brokenStreak: number
 }
 
+export interface HeroSummary {
+  score: number
+  hits: number
+  misses: number
+  perfects: number
+  /** Share of hits that were perfect, 0 when nothing was hit. */
+  parfaitRatio: number
+}
+
+export function heroSummary({ score, hits, misses, perfects }: HeroScore): HeroSummary {
+  return { score, hits, misses, perfects, parfaitRatio: hits > 0 ? perfects / hits : 0 }
+}
+
 export function applyJudgement(state: HeroScore, judgement: Judgement): HeroOutcome {
   if (judgement === 'rate') {
     return {

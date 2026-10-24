@@ -1,8 +1,8 @@
 import { CLEFS, type Clef } from '../music/notes'
-import type { SeriesConfig } from './series'
+import type { RandomSeriesConfig } from './series'
 
 export interface Challenge {
-  config: SeriesConfig
+  config: RandomSeriesConfig
   timeS: number | null
 }
 
@@ -51,7 +51,7 @@ export function parseChallenge(hash: string): Challenge | null {
   if (clefs.length === 0) return null
 
   return {
-    config: { seed: Number(seed), clefs, armures: params.get('k') === '1' },
+    config: { kind: 'random', seed: Number(seed), clefs, armures: params.get('k') === '1' },
     timeS: parseTimeS(params.get('t') ?? ''),
   }
 }

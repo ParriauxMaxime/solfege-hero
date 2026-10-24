@@ -6,7 +6,8 @@ import { barLength, specBeats } from './meter'
 import { COMMON_TIME, type HeroNote, type Melody, type NoteSpec } from './types'
 
 export interface NoteSource {
-  nextBar(): NoteSpec[]
+  /** Null once the source is exhausted. */
+  nextBar(): NoteSpec[] | null
 }
 
 export function randomSource(
@@ -47,11 +48,12 @@ function splitIntoBars(specs: NoteSpec[], length: number): NoteSpec[][] {
   return bars
 }
 
-export function melodySource(melody: Melody): NoteSource {
+export function melodySource(melody: Melody, { loop = false } = {}): NoteSource {
   const bars = splitIntoBars(melody.notes, barLength(melody.timeSignature ?? COMMON_TIME))
   let index = 0
   return {
     nextBar() {
+      if (!loop && index >= bars.length) return null
       const bar = bars[index % bars.length] ?? []
       index++
       return bar.map((spec) => ({ ...spec }))

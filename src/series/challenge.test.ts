@@ -9,7 +9,7 @@ import {
 } from './challenge'
 
 const challenge: Challenge = {
-  config: { seed: 4821, clefs: ['treble', 'bass'], armures: true },
+  config: { kind: 'random', seed: 4821, clefs: ['treble', 'bass'], armures: true },
   timeS: 47,
 }
 
@@ -24,7 +24,7 @@ describe('encodeChallenge', () => {
 
   it('writes clefs in clef order with ut for alto and k=0 without armures', () => {
     const encoded = encodeChallenge({
-      config: { seed: 1234, clefs: ['alto', 'treble'], armures: false },
+      config: { kind: 'random', seed: 1234, clefs: ['alto', 'treble'], armures: false },
       timeS: null,
     })
     expect(encoded).toBe('s=1234&c=sol-ut&k=0')
@@ -59,7 +59,7 @@ describe('parseChallenge', () => {
 
   it('ignores a malformed time and treats unknown armures as off', () => {
     expect(parseChallenge('s=1234&c=sol&k=yes&t=fast')).toEqual({
-      config: { seed: 1234, clefs: ['treble'], armures: false },
+      config: { kind: 'random', seed: 1234, clefs: ['treble'], armures: false },
       timeS: null,
     })
   })
@@ -88,7 +88,7 @@ describe('challenge time', () => {
   it('drops out-of-range or malformed times but keeps the challenge', () => {
     for (const t of ['0', '0.0', '6000', '99999999999', '1.25', '-3', '1e3', 'NaN', '']) {
       expect(parseChallenge(`s=1234&c=sol&t=${t}`)).toEqual({
-        config: { seed: 1234, clefs: ['treble'], armures: false },
+        config: { kind: 'random', seed: 1234, clefs: ['treble'], armures: false },
         timeS: null,
       })
     }

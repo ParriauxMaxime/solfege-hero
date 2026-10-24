@@ -9,16 +9,16 @@ import { challengeTimeS, challengeUrl, challengeWon, type Challenge } from '../s
 import {
   INITIAL_RUN,
   PENALTY_MS,
-  SERIES_LENGTH,
   answerItem,
   firstTryResults,
-  generateSeries,
   penaltyMs,
+  type RandomSeriesConfig,
   type SeriesConfig,
+  type SeriesItem,
   type SeriesRun,
 } from '../series/series'
 import { COLORBLIND_SQUARES, formatTenths, formatTime, shareText } from '../series/share'
-import type { Progress, Settings } from '../storage'
+import { recordScoreBest, type Progress, type Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
 import { button, el } from './dom'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
@@ -32,6 +32,9 @@ const COUNT_UP_MS = 600
 export interface SeriesOptions {
   settings: Settings
   config: SeriesConfig
+  items: SeriesItem[]
+  /** Name of the score being played; null for random series. */
+  title: string | null
   challenge: Challenge | null
   progress: Progress
   sound: Sound
@@ -53,11 +56,14 @@ interface Outcome {
   penalty: number
   results: boolean[]
   record: boolean
+  best: number
 }
 
 export function createSeries({
   settings,
   config,
+  items,
+  title,
   challenge,
   progress: initialProgress,
   sound,
@@ -66,7 +72,6 @@ export function createSeries({
   onRetry,
   onHome,
 }: SeriesOptions): Series {
-  const items = generateSeries(config)
   let progress = initialProgress
   let run: SeriesRun = INITIAL_RUN
   let index = 0
@@ -82,9 +87,17 @@ export function createSeries({
   let sharing = false
 
   const timerValue = el('span', 'series-timer', '0:00.0')
-  const counter = el('span', 'series-count', `1/${SERIES_LENGTH}`)
+  const counter = el('span', 'series-count', `1/${items.length}`)
   const bar = el('div', 'progress-fill')
-  const hud = el('div', 'hud series-hud', counter, timerValue, el('span', 'series-count-balance'), el('div', 'progress', bar))
+  const hud = el(
+    'div',
+    'hud series-hud',
+    counter,
+    timerValue,
+    el('span', 'series-count-balance'),
+    ...(title ? [el('div', 'series-title', title)] : []),
+    el('div', 'progress', bar),
+  )
   const staffCard = el('div', 'staff-card')
   const pad = createAnswerPad(submitAnswer, settings.naming, settings.keyboardSpan)
   const flash = el('div', 'flash')
@@ -122,8 +135,8 @@ export function createSeries({
     const item = items[index]
     if (!item) return
     staffCard.replaceChildren(renderStaff(item.clef, item.note, item.fifths))
-    counter.textContent = `${index + 1}/${SERIES_LENGTH}`
-    bar.style.width = `${(index / SERIES_LENGTH) * 100}%`
+    counter.textContent = `${index + 1}/${items.length}`
+    bar.style.width = `${(index / items.length) * 100}%`
     pad.clear()
     missedCurrent = false
     shownAt = performance.now()
@@ -185,27 +198,31 @@ export function createSeries({
     const totalMs = elapsedMs() + penalty
     renderTimer()
     bar.style.width = '100%'
-    const record = progress.series.bestMs === 0 || totalMs < progress.series.bestMs
+    const scoreId = config.kind === 'score' ? config.scoreId : null
+    const previousBest = scoreId ? (progress.series.bestByScore[scoreId] ?? 0) : progress.series.bestMs
+    const record = previousBest === 0 || totalMs < previousBest
+    const best = record ? Math.round(totalMs) : previousBest
     const beaten = challenge?.timeS != null ? challengeWon(totalMs, challenge.timeS) : null
     progress = {
       ...progress,
       series: {
         ...progress.series,
         played: progress.series.played + 1,
-        bestMs: record ? Math.round(totalMs) : progress.series.bestMs,
+        bestMs: scoreId === null ? best : progress.series.bestMs,
         won: progress.series.won + (beaten === true ? 1 : 0),
         lost: progress.series.lost + (beaten === false ? 1 : 0),
       },
     }
+    if (scoreId !== null && record) progress = recordScoreBest(progress, scoreId, best)
     onProgress(progress)
-    element.append(endOverlay({ totalMs, penalty, results: firstTryResults(run), record }, beaten))
+    element.append(endOverlay({ totalMs, penalty, results: firstTryResults(run, items.length), record, best }, beaten))
   }
 
   async function share(outcome: Outcome): Promise<void> {
-    if (sharing) return
+    if (sharing || config.kind !== 'random') return
     sharing = true
     try {
-      await shareOrCopy(shareMessage(outcome))
+      await shareOrCopy(shareMessage(outcome, config))
     } finally {
       sharing = false
     }
@@ -223,7 +240,7 @@ export function createSeries({
     showToast((await copyText(text)) ? 'Copié !' : 'Copie impossible')
   }
 
-  function shareMessage(outcome: Outcome): string {
+  function shareMessage(outcome: Outcome, config: RandomSeriesConfig): string {
     const url = challengeUrl(location.origin + location.pathname, { config, timeS: challengeTimeS(outcome.totalMs) })
     return shareText({
       seed: config.seed,
@@ -270,8 +287,9 @@ export function createSeries({
   }
 
   function recordLine(outcome: Outcome, beaten: boolean | null): HTMLElement {
-    if (outcome.record && beaten !== false) return el('p', 'result-record', 'Nouveau record !')
-    return el('p', 'result-best', `Record : ${formatTime(progress.series.bestMs)}`)
+    const subject = config.kind === 'score' ? ' pour cette partition' : ''
+    if (outcome.record && beaten !== false) return el('p', 'result-record', `Nouveau record${subject} !`)
+    return el('p', 'result-best', `Record${subject} : ${formatTime(outcome.best)}`)
   }
 
   function endOverlay(outcome: Outcome, beaten: boolean | null): HTMLElement {
@@ -295,8 +313,8 @@ export function createSeries({
           button('segment-button', 'Accueil', onHome),
         ]
       : [
-          button('primary', 'Défier un ami', () => void share(outcome)),
-          button('segment-button', 'Rejouer', onReplay),
+          ...(config.kind === 'random' ? [button('primary', 'Défier un ami', () => void share(outcome))] : []),
+          button(config.kind === 'random' ? 'segment-button' : 'primary', 'Rejouer', onReplay),
           button('segment-button', 'Accueil', onHome),
         ]
     const card = el(

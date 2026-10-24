@@ -3,7 +3,14 @@ import type { Melody, Score } from './hero/types'
 import { createAppearance, motionReduced } from './platform/appearance'
 import { setVibrationEnabled } from './platform/haptics'
 import { parseChallenge, type Challenge } from './series/challenge'
-import { newSeed, type SeriesConfig } from './series/series'
+import {
+  generateSeries,
+  newSeed,
+  scoreSeries,
+  type RandomSeriesConfig,
+  type SeriesConfig,
+  type SeriesItem,
+} from './series/series'
 import { loadProgress, loadSettings, resetProgress, saveProgress, saveSettings, type Progress, type Settings } from './storage'
 import { BUILTIN_SCORES, createScoreLibrary, indexedDbBackend } from './storage/scores'
 import { createChallengeIntro } from './ui/challengeIntro'
@@ -166,8 +173,8 @@ export function startApp(root: HTMLElement): void {
     swapScreen(content)
   }
 
-  function freshSeriesConfig(): SeriesConfig {
-    return { seed: newSeed(), clefs: settings.clefs, armures: settings.accidentals }
+  function freshSeriesConfig(): RandomSeriesConfig {
+    return { kind: 'random', seed: newSeed(), clefs: settings.clefs, armures: settings.accidentals }
   }
 
   function renderHome(): void {
@@ -181,13 +188,20 @@ export function startApp(root: HTMLElement): void {
 
   function choose(choice: HomeChoice): void {
     if (choice === 'apprendre') showLearn()
-    else if (choice === 'series') showSeries(freshSeriesConfig(), null)
+    else if (choice === 'series') void showSeries(freshSeriesConfig(), null)
     else if (choice === 'partitions') showLibrary()
     else showHeroStart()
   }
 
   function showLibrary(): void {
-    show(createLibrary({ library: scoreLibrary, onPlayHero: playScore }), true)
+    show(
+      createLibrary({
+        library: scoreLibrary,
+        onPlayHero: playScore,
+        onPlaySeries: (score) => void showSeries({ kind: 'score', scoreId: score.id }, null),
+      }),
+      true,
+    )
   }
 
   function playScore(score: Score): void {
@@ -214,21 +228,38 @@ export function startApp(root: HTMLElement): void {
       onToggleMute: toggleMute,
       onProgress: changeProgress,
       onQuit: showHeroStart,
+      onReplay: () => playHero(melody),
+      onHome: goHome,
     })
     show(hero.element, false, hero)
     activeHero = hero
   }
 
-  function showSeries(config: SeriesConfig, against: Challenge | null): void {
+  async function showSeries(config: SeriesConfig, against: Challenge | null): Promise<void> {
+    let items: SeriesItem[]
+    let title: string | null = null
+    if (config.kind === 'score') {
+      const score = await scoreLibrary.get(config.scoreId)
+      if (!score) {
+        showToast('Partition introuvable')
+        return
+      }
+      items = scoreSeries(score)
+      title = score.name
+    } else {
+      items = generateSeries(config)
+    }
     const series = createSeries({
       settings,
       config,
+      items,
+      title,
       challenge: against,
       progress,
       sound,
       onProgress: changeProgress,
-      onReplay: () => showSeries(freshSeriesConfig(), null),
-      onRetry: () => showSeries(config, against),
+      onReplay: () => void showSeries(config.kind === 'score' ? config : freshSeriesConfig(), null),
+      onRetry: () => void showSeries(config, against),
       onHome: goHome,
     })
     show(series.element, true, series)
@@ -236,7 +267,7 @@ export function startApp(root: HTMLElement): void {
   }
 
   function showChallengeIntro(challenge: Challenge): void {
-    show(createChallengeIntro({ challenge, onStart: () => showSeries(challenge.config, challenge) }), true)
+    show(createChallengeIntro({ challenge, onStart: () => void showSeries(challenge.config, challenge) }), true)
   }
 
   function showSettings(): void {

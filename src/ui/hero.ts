@@ -4,7 +4,8 @@ import { expiredNotes, noteInWindow, timingJudgement } from '../hero/judgement'
 import { INITIAL_HERO_SCORE, applyJudgement, type HeroScore } from '../hero/scoring'
 import { melodySource, placeNotes, randomSource, type NoteSource } from '../hero/sources'
 import { adaptTempo, type TempoState } from '../hero/tempo'
-import { BEATS_PER_BAR, type HeroNote, type Judgement, type Melody } from '../hero/types'
+import { barClicks, barLength, type Click } from '../hero/meter'
+import { COMMON_TIME, type HeroNote, type Judgement, type Melody } from '../hero/types'
 import { buildPool, promptId, recordAnswer } from '../game/sampler'
 import { multiplier } from '../game/scoring'
 import { randomKey, spellInKey } from '../music/keySignature'
@@ -16,7 +17,6 @@ import { button, el, iconButton, setIcon } from './dom'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
 import { createScrollingStaff } from './heroStaff'
 
-const COUNT_IN_BEATS = 4
 const BARS_AHEAD = 3
 const CLICK_LOOKAHEAD_S = 0.15
 const RESUME_LEAD_S = 0.3
@@ -36,6 +36,8 @@ export interface HeroOptions {
   onToggleMute: () => void
   onProgress: (progress: Progress) => void
   onQuit: () => void
+  onReplay: () => void
+  onHome: () => void
 }
 
 export interface Hero {
@@ -53,9 +55,14 @@ export function createHero({
   onToggleMute,
   onProgress,
   onQuit,
+  onReplay,
+  onHome,
 }: HeroOptions): Hero {
   const clef: Clef = melody?.clef ?? (settings.clefs[Math.floor(Math.random() * settings.clefs.length)] as Clef)
   const fifths = melody ? melody.key : settings.accidentals ? randomKey() : 0
+  const time = melody?.timeSignature ?? COMMON_TIME
+  const bar = barLength(time)
+  const clicks = barClicks(time)
   const source: NoteSource = melody
     ? melodySource(melody)
     : randomSource(
@@ -65,17 +72,21 @@ export function createHero({
   let progress = initialProgress
   let score: HeroScore = INITIAL_HERO_SCORE
   let tempo: TempoState = { bpm: settings.heroTempo, hitsInRow: 0 }
-  let clock: BeatClock = createBeatClock(sound.now() + START_LEAD_S, -COUNT_IN_BEATS, tempo.bpm)
+  let clock: BeatClock = createBeatClock(sound.now() + START_LEAD_S, -bar, tempo.bpm)
   let notes: HeroNote[] = []
   const judged = new Set<number>()
   let nextId = 0
   let nextBarBeat = 0
-  let nextClickBeat = -COUNT_IN_BEATS
+  let nextClickIndex = 0
+  let exhausted = false
+  let sessionHits = 0
+  let sessionMisses = 0
+  let sessionPerfects = 0
   let frozenBeat: number | null = null
   let introDone = false
   let frame = 0
 
-  const staff = createScrollingStaff(clef, fifths)
+  const staff = createScrollingStaff(clef, fifths, time)
   const scoreValue = el('span', 'hud-value', '0')
   const streakValue = el('span', 'streak-value', '0')
   const streak = el('div', 'hud-streak', el('span', 'flame', '🔥'), streakValue)
@@ -109,27 +120,48 @@ export function createHero({
   }
 
   function fillBars(nowBeat: number): void {
-    while (nextBarBeat < nowBeat + BARS_AHEAD * BEATS_PER_BAR) {
-      const placed = placeNotes(source.nextBar(), nextBarBeat, nextId, fifths, melody ? 0 : INLINE_ACCIDENTAL_CHANCE)
+    while (!exhausted && nextBarBeat < nowBeat + BARS_AHEAD * bar) {
+      const specs = source.nextBar()
+      if (specs === null) {
+        exhausted = true
+        break
+      }
+      const placed = placeNotes(specs, nextBarBeat, nextId, fifths, melody ? 0 : INLINE_ACCIDENTAL_CHANCE)
       notes.push(...placed)
       nextId += placed.length
-      nextBarBeat += BEATS_PER_BAR
+      nextBarBeat += bar
     }
-    notes = notes.filter((note) => note.beat >= nowBeat - BEATS_PER_BAR)
+    notes = notes.filter((note) => note.beat >= nowBeat - bar)
+  }
+
+  function clickBeat(index: number): number {
+    const click = clicks[index % clicks.length] as Click
+    return -bar + Math.floor(index / clicks.length) * bar + click.offset
+  }
+
+  function firstClickAtOrAfter(beat: number): number {
+    let index = Math.max(0, (Math.floor((beat + bar) / bar) - 1) * clicks.length)
+    while (clickBeat(index) < beat) index++
+    return index
   }
 
   function scheduleClicks(): void {
     const horizon = sound.now() + CLICK_LOOKAHEAD_S
-    while (clock.timeAt(nextClickBeat) < horizon) {
-      const time = clock.timeAt(nextClickBeat)
-      if (settings.metronome && time >= sound.now()) sound.click(time, nextClickBeat % BEATS_PER_BAR === 0)
-      nextClickBeat++
+    while (clock.timeAt(clickBeat(nextClickIndex)) < horizon) {
+      const time = clock.timeAt(clickBeat(nextClickIndex))
+      if (settings.metronome && time >= sound.now()) sound.click(time, (clicks[nextClickIndex % clicks.length] as Click).accent)
+      nextClickIndex++
     }
   }
 
   function renderCountIn(nowBeat: number): void {
     introDone ||= nowBeat >= 0
-    countIn.textContent = introDone ? '' : String(Math.max(1, Math.floor(nowBeat) + COUNT_IN_BEATS + 1))
+    const passed = clicks.filter((click) => click.offset <= nowBeat + bar).length
+    countIn.textContent = introDone ? '' : String(Math.max(1, passed))
+  }
+
+  function isFinished(): boolean {
+    return exhausted && notes.every((note) => note.pitch === null || judged.has(note.id))
   }
 
   function tick(): void {
@@ -139,6 +171,7 @@ export function createHero({
       fillBars(nowBeat)
       scheduleClicks()
       for (const note of expiredNotes(notes, judged, nowBeat, clock)) judge(note, 'rate')
+      if (isFinished()) finish(nowBeat)
     }
     renderCountIn(nowBeat)
     staff.render(notes, nowBeat, 0)
@@ -204,6 +237,9 @@ export function createHero({
         perfects: hero.perfects + (judgement === 'parfait' ? 1 : 0),
       },
     }
+    sessionHits += hit ? 1 : 0
+    sessionMisses += hit ? 0 : 1
+    sessionPerfects += judgement === 'parfait' ? 1 : 0
     onProgress(progress)
   }
 
@@ -255,6 +291,30 @@ export function createHero({
     }
   }
 
+  function finish(nowBeat: number): void {
+    frozenBeat = nowBeat
+    const judgedCount = sessionHits + sessionMisses
+    const perfectRatio = judgedCount > 0 ? `${Math.round((sessionPerfects / judgedCount) * 100)} %` : '–'
+    const stat = (label: string, value: string | number) => el('p', 'result-best', `${label} : ${value}`)
+    element.append(
+      el(
+        'div',
+        'overlay',
+        el(
+          'div',
+          'result',
+          el('h2', '', melody?.name ?? 'Terminé'),
+          el('p', 'result-score', String(score.score)),
+          stat('Meilleure série', score.bestStreak),
+          stat('Parfaits', perfectRatio),
+          stat('Réussies', sessionHits),
+          stat('Ratées', sessionMisses),
+          el('div', 'result-actions', button('primary', 'Rejouer', onReplay), button('segment-button', 'Accueil', onHome)),
+        ),
+      ),
+    )
+  }
+
   function pause(): void {
     if (frozenBeat !== null) return
     frozenBeat = currentBeat()
@@ -292,7 +352,7 @@ export function createHero({
     if (frozenBeat === null) return
     const resumeBeat = frozenBeat - 1
     clock = createBeatClock(sound.now() + RESUME_LEAD_S, resumeBeat, tempo.bpm)
-    nextClickBeat = Math.ceil(resumeBeat)
+    nextClickIndex = firstClickAtOrAfter(resumeBeat)
     frozenBeat = null
   }
 
@@ -304,8 +364,8 @@ export function createHero({
   frame = requestAnimationFrame(tick)
   if (!sound.isRunning()) {
     void sound.whenRunning().then(() => {
-      clock = createBeatClock(sound.now() + START_LEAD_S, -COUNT_IN_BEATS, tempo.bpm)
-      nextClickBeat = -COUNT_IN_BEATS
+      clock = createBeatClock(sound.now() + START_LEAD_S, -bar, tempo.bpm)
+      nextClickIndex = 0
     })
   }
 

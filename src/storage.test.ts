@@ -4,6 +4,7 @@ import {
   EMPTY_PROGRESS,
   exportData,
   importData,
+  recordScoreBest,
   sanitizeProgress,
   sanitizeSettings,
   type Progress,
@@ -128,7 +129,7 @@ describe('sanitizeProgress', () => {
       totalAnswered: 80,
       bestTimed: 340,
       hero: { bestScore: 900, bestStreak: 30, maxBpm: 110, hits: 200, misses: 20, perfects: 90 },
-      series: { bestMs: 47000, played: 6, won: 4, lost: 2 },
+      series: { bestMs: 47000, played: 6, won: 4, lost: 2, bestByScore: { abc: 31500 } },
     }
     expect(sanitizeProgress(JSON.parse(JSON.stringify(progress)))).toEqual(progress)
   })
@@ -140,11 +141,36 @@ describe('sanitizeProgress', () => {
 
   it('sanitizes series progress field by field', () => {
     const { series } = sanitizeProgress({ series: { bestMs: 52000, played: 'x', won: -1, lost: 2 } })
-    expect(series).toEqual({ bestMs: 52000, played: 0, won: 0, lost: 2 })
+    expect(series).toEqual({ bestMs: 52000, played: 0, won: 0, lost: 2, bestByScore: {} })
   })
 
   it('defaults series progress to zeros', () => {
-    expect(sanitizeProgress({}).series).toEqual({ bestMs: 0, played: 0, won: 0, lost: 0 })
+    expect(sanitizeProgress({}).series).toEqual({
+      bestMs: 0,
+      played: 0,
+      won: 0,
+      lost: 0,
+      bestByScore: {},
+    })
+  })
+
+  it('keeps only valid per-score best times', () => {
+    const { series } = sanitizeProgress({
+      series: { bestByScore: { good: 20000, zero: 0, negative: -5, text: '9', nested: {} } },
+    })
+    expect(series.bestByScore).toEqual({ good: 20000 })
+    expect(sanitizeProgress({ series: { bestByScore: [1, 2] } }).series.bestByScore).toEqual({})
+  })
+
+  it('records the fastest time per score', () => {
+    const first = recordScoreBest(EMPTY_PROGRESS, 'abc', 30000)
+    expect(first.series.bestByScore).toEqual({ abc: 30000 })
+    expect(recordScoreBest(first, 'abc', 35000)).toBe(first)
+    expect(recordScoreBest(first, 'abc', 30000)).toBe(first)
+    const faster = recordScoreBest(first, 'abc', 28000)
+    expect(faster.series.bestByScore.abc).toBe(28000)
+    expect(recordScoreBest(faster, 'def', 50000).series.bestByScore).toEqual({ abc: 28000, def: 50000 })
+    expect(EMPTY_PROGRESS.series.bestByScore).toEqual({})
   })
 
   it('loads progress saved before hero mode existed', () => {

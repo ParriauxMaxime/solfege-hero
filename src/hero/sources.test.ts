@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { buildPool, promptId, type NoteStats, type Prompt } from '../game/sampler'
 import { seededRandom } from '../random'
-import { melodySource, placeNotes, randomSource } from './sources'
+import { melodySource, placeNotes, randomSource, type NoteSource } from './sources'
 import { BEATS_PER_BAR, DURATION_BEATS, type Melody, type NoteSpec } from './types'
 
 const barBeats = (bar: NoteSpec[]) => bar.reduce((sum, spec) => sum + DURATION_BEATS[spec.duration], 0)
+const nextBar = (source: NoteSource) => source.nextBar() as NoteSpec[]
+const nextPitches = (source: NoteSource) => nextBar(source).map((spec) => spec.pitch)
 
 describe('randomSource', () => {
   const pool = buildPool(['treble'], true)
@@ -13,7 +15,7 @@ describe('randomSource', () => {
     const source = randomSource(pool, () => ({}), seededRandom(3))
     const pitches = new Set(pool.map((prompt) => prompt.pitch))
     for (let i = 0; i < 50; i++) {
-      const bar = source.nextBar()
+      const bar = nextBar(source)
       expect(barBeats(bar)).toBe(BEATS_PER_BAR)
       for (const spec of bar) if (spec.pitch !== null) expect(pitches.has(spec.pitch)).toBe(true)
     }
@@ -21,7 +23,7 @@ describe('randomSource', () => {
 
   it('never repeats a pitch back to back, across bars too', () => {
     const source = randomSource(pool, () => ({}), seededRandom(9))
-    const pitches = Array.from({ length: 100 }, () => source.nextBar())
+    const pitches = Array.from({ length: 100 }, () => nextBar(source))
       .flat()
       .filter((spec) => spec.pitch !== null)
       .map((spec) => spec.pitch)
@@ -34,7 +36,7 @@ describe('randomSource', () => {
     let stats: NoteStats = {}
     const source = randomSource(small, () => stats, seededRandom(4))
     stats = { [promptId(missed)]: { attempts: 9, correct: 1, misses: 8, avgMs: 3000 } }
-    const pitches = Array.from({ length: 300 }, () => source.nextBar())
+    const pitches = Array.from({ length: 300 }, () => nextBar(source))
       .flat()
       .map((spec) => spec.pitch)
     const share = (pitch: number) => pitches.filter((p) => p === pitch).length
@@ -56,12 +58,25 @@ describe('melodySource', () => {
     ],
   }
 
-  it('yields the melody bar by bar and loops', () => {
-    const source = melodySource(melody)
-    const first = source.nextBar()
+  it('loops the melody bar by bar on request', () => {
+    const source = melodySource(melody, { loop: true })
+    const first = nextBar(source)
     expect(first.map((spec) => spec.pitch)).toEqual([60, 62, 64])
-    expect(source.nextBar().map((spec) => spec.pitch)).toEqual([65])
+    expect(nextPitches(source)).toEqual([65])
     expect(source.nextBar()).toEqual(first)
+  })
+
+  it('ends after the last bar by default', () => {
+    const source = melodySource(melody)
+    expect(nextPitches(source)).toEqual([60, 62, 64])
+    expect(nextPitches(source)).toEqual([65])
+    expect(source.nextBar()).toBeNull()
+    expect(source.nextBar()).toBeNull()
+  })
+
+  it('never ends for a random source', () => {
+    const source = randomSource(buildPool(['treble'], false), () => ({}), seededRandom(2))
+    for (let i = 0; i < 200; i++) expect(source.nextBar()).not.toBeNull()
   })
 })
 
@@ -84,15 +99,15 @@ describe('melodySource with other meters', () => {
   }
 
   it('splits bars by the time signature and the exact note lengths', () => {
-    const source = melodySource(waltz)
-    expect(source.nextBar().map((spec) => spec.pitch)).toEqual([60])
-    expect(source.nextBar().map((spec) => spec.pitch)).toEqual([62, 64, 65, 67, 69])
-    expect(source.nextBar().map((spec) => spec.pitch)).toEqual([null])
-    expect(source.nextBar().map((spec) => spec.pitch)).toEqual([60])
+    const source = melodySource(waltz, { loop: true })
+    expect(nextPitches(source)).toEqual([60])
+    expect(nextPitches(source)).toEqual([62, 64, 65, 67, 69])
+    expect(nextPitches(source)).toEqual([null])
+    expect(nextPitches(source)).toEqual([60])
   })
 
   it('keeps dots and tuplet lengths on the yielded specs', () => {
-    const [first] = melodySource(waltz).nextBar()
+    const [first] = nextBar(melodySource(waltz))
     expect(first).toEqual({ pitch: 60, duration: 'half', dots: 1 })
   })
 })
@@ -115,9 +130,10 @@ describe('melodySource with a note across a bar line', () => {
         quarter(65),
       ],
     })
-    expect(source.nextBar().map((spec) => spec.pitch)).toEqual([60])
-    expect(source.nextBar().map((spec) => spec.pitch)).toEqual([61, 62, 63])
-    expect(source.nextBar().map((spec) => spec.pitch)).toEqual([64, 65])
+    expect(nextPitches(source)).toEqual([60])
+    expect(nextPitches(source)).toEqual([61, 62, 63])
+    expect(nextPitches(source)).toEqual([64, 65])
+    expect(source.nextBar()).toBeNull()
   })
 })
 

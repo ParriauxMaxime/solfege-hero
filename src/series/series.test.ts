@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildPool } from '../game/sampler'
-import { midi, pitchClass } from '../music/notes'
+import type { Score } from '../hero/types'
+import { midi, pitchClass, type Note } from '../music/notes'
 import { seededRandom } from '../random'
 import {
   INITIAL_RUN,
@@ -11,11 +12,12 @@ import {
   generateSeries,
   newSeed,
   penaltyMs,
-  type SeriesConfig,
+  scoreSeries,
+  type RandomSeriesConfig,
   type SeriesRun,
 } from './series'
 
-const config: SeriesConfig = { seed: 4821, clefs: ['treble', 'bass'], armures: true }
+const config: RandomSeriesConfig = { kind: 'random', seed: 4821, clefs: ['treble', 'bass'], armures: true }
 
 describe('newSeed', () => {
   it('draws an integer from 1000 to 9999', () => {
@@ -47,7 +49,7 @@ describe('generateSeries', () => {
   it('only uses pitches of the chosen clefs', () => {
     for (const seed of [1000, 2345, 9999]) {
       for (const armures of [true, false]) {
-        const settings: SeriesConfig = { seed, clefs: ['treble', 'alto'], armures }
+        const settings: RandomSeriesConfig = { kind: 'random', seed, clefs: ['treble', 'alto'], armures }
         const pool = new Set(buildPool(settings.clefs, armures).map((p) => `${p.clef}:${p.pitch}`))
         for (const item of generateSeries(settings)) {
           expect(pool.has(`${item.clef}:${item.pitch}`)).toBe(true)
@@ -161,5 +163,50 @@ describe('penaltyMs and firstTryResults', () => {
 
   it('treats unanswered items as clean and honours a custom length', () => {
     expect(firstTryResults(INITIAL_RUN, 5)).toEqual([true, true, true, true, true])
+  })
+})
+
+describe('scoreSeries', () => {
+  const score: Score = {
+    id: 'abc',
+    name: 'Test',
+    clef: 'bass',
+    key: -1,
+    tempo: 80,
+    timeSignature: { beats: 4, beatType: 4 },
+    source: 'file',
+    importedAt: 0,
+    notes: [
+      { pitch: 46, duration: 'quarter' },
+      { pitch: null, duration: 'quarter' },
+      { pitch: 48, duration: 'half' },
+      { pitch: 49, duration: 'whole' },
+    ],
+  }
+
+  it('lists the pitched notes in order and skips rests', () => {
+    expect(scoreSeries(score).map((item) => item.pitch)).toEqual([46, 48, 49])
+  })
+
+  it('uses the score clef and key, writing notes in that key', () => {
+    const [flat, natural, outside] = scoreSeries(score)
+    expect(flat).toMatchObject({ clef: 'bass', fifths: -1, note: { letter: 'B', octave: 2, alter: -1 } })
+    expect(natural?.note).toEqual({ letter: 'C', octave: 3, alter: 0 })
+    expect(midi(outside?.note as Note)).toBe(49)
+    expect(outside?.note.alter).toBe(-1)
+  })
+
+  it('plays through answerItem whatever the length, with exact penalties', () => {
+    const items = scoreSeries(score)
+    let run: SeriesRun = INITIAL_RUN
+    run = answerItem(run, items, (pitchClass(46) + 1) % 12).run
+    for (const item of items) {
+      const result = answerItem(run, items, pitchClass(item.pitch))
+      run = result.run
+      expect(result.finished).toBe(item === items[items.length - 1])
+    }
+    expect(run.index).toBe(3)
+    expect(penaltyMs(run)).toBe(PENALTY_MS)
+    expect(firstTryResults(run, items.length)).toEqual([false, true, true])
   })
 })

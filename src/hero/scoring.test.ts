@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { INITIAL_HERO_SCORE, applyJudgement, type HeroScore } from './scoring'
+import { INITIAL_HERO_SCORE, applyJudgement, heroSummary, type HeroScore } from './scoring'
 import type { Judgement } from './types'
+
+describe('heroSummary', () => {
+  it('reports the totals and the share of perfect hits', () => {
+    const state: HeroScore = { score: 340, streak: 0, bestStreak: 9, hits: 8, misses: 2, perfects: 6 }
+    expect(heroSummary(state)).toEqual({ score: 340, hits: 8, misses: 2, perfects: 6, parfaitRatio: 0.75 })
+  })
+
+  it('has a zero ratio when nothing was hit', () => {
+    expect(heroSummary({ ...INITIAL_HERO_SCORE, misses: 3 }).parfaitRatio).toBe(0)
+  })
+})
 
 function judgeAll(judgement: Judgement, count: number, state: HeroScore = INITIAL_HERO_SCORE) {
   let outcome = applyJudgement(state, judgement)
