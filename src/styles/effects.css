@@ -71,13 +71,13 @@
   font-size: 1.4rem;
   white-space: nowrap;
   color: var(--success);
-  text-shadow: 0 2px 8px rgb(0 0 0 / 0.5);
+  text-shadow: var(--text-halo);
   animation: float-up 0.8s ease-out forwards;
 }
 
 @keyframes flash-ok {
   from {
-    background: rgb(46 230 166 / 0.18);
+    background: rgb(var(--success-rgb) / 0.18);
   }
   to {
     background: transparent;
@@ -86,7 +86,7 @@
 
 @keyframes flash-bad {
   from {
-    background: rgb(255 77 109 / 0.22);
+    background: rgb(var(--error-rgb) / 0.22);
   }
   to {
     background: transparent;
@@ -152,23 +152,75 @@
   }
 }
 
+/* Reduced motion keeps colour and opacity changes only. The OS preference applies unless the app forces full motion. */
+:root[data-motion='reduced'] :is(.particle, .confetti, .float-text, .streak-drop) {
+  display: none;
+}
+
+:root[data-motion='reduced'] :is(
+    .staff-card.shake,
+    .answer.wrong,
+    .staff-note.pop,
+    .streak-value.bump,
+    .bpm-value.bump,
+    .cell,
+    .verdict.win,
+    .series-end.lose,
+    .series-timer.shake,
+    .home-logo,
+    .home-logo-halo,
+    .home-title,
+    .home-card
+  ) {
+  animation: none;
+}
+
+:root[data-motion='reduced'] :is(.flash-ok, .flash-bad) {
+  animation-duration: 0.15s;
+}
+
+:root[data-motion='reduced'] .screen-enter {
+  animation: screen-fade-in 120ms ease-out both;
+}
+
+:root[data-motion='reduced'] button.pressed {
+  transform: none;
+  opacity: 0.8;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .particle,
-  .confetti,
-  .float-text,
-  .streak-drop {
+  :root:not([data-motion='full']) :is(.particle, .confetti, .float-text, .streak-drop) {
     display: none;
   }
 
-  .staff-card.shake,
-  .answer.wrong,
-  .staff-note.pop,
-  .streak-value.bump {
+  :root:not([data-motion='full']) :is(
+      .staff-card.shake,
+      .answer.wrong,
+      .staff-note.pop,
+      .streak-value.bump,
+      .bpm-value.bump,
+      .cell,
+      .verdict.win,
+      .series-end.lose,
+      .series-timer.shake,
+      .home-logo,
+      .home-logo-halo,
+      .home-title,
+      .home-card
+    ) {
     animation: none;
   }
 
-  .flash-ok,
-  .flash-bad {
+  :root:not([data-motion='full']) :is(.flash-ok, .flash-bad) {
     animation-duration: 0.15s;
+  }
+
+  :root:not([data-motion='full']) .screen-enter {
+    animation: screen-fade-in 120ms ease-out both;
+  }
+
+  :root:not([data-motion='full']) button.pressed {
+    transform: none;
+    opacity: 0.8;
   }
 }

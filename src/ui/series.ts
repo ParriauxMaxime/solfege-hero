@@ -1,5 +1,6 @@
 import type { Sound } from '../audio/sound'
 import { promptId, recordAnswer } from '../game/sampler'
+import { motionReduced } from '../platform/appearance'
 import { pitchClass, spell } from '../music/notes'
 import { vibrate } from '../platform/haptics'
 import { challengeUrl, type Challenge } from '../series/challenge'
@@ -14,8 +15,8 @@ import {
   type SeriesConfig,
   type SeriesRun,
 } from '../series/series'
-import { formatTime, shareText } from '../series/share'
-import type { Progress } from '../storage'
+import { COLORBLIND_SQUARES, formatTime, shareText } from '../series/share'
+import type { Progress, Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
 import { button, el } from './dom'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
@@ -27,6 +28,7 @@ const WRONG_FLASH_MS = 350
 const COUNT_UP_MS = 600
 
 export interface SeriesOptions {
+  settings: Settings
   config: SeriesConfig
   challenge: Challenge | null
   progress: Progress
@@ -48,7 +50,16 @@ interface Outcome {
   record: boolean
 }
 
-export function createSeries({ config, challenge, progress: initialProgress, sound, onProgress, onReplay, onHome }: SeriesOptions): Series {
+export function createSeries({
+  settings,
+  config,
+  challenge,
+  progress: initialProgress,
+  sound,
+  onProgress,
+  onReplay,
+  onHome,
+}: SeriesOptions): Series {
   const items = generateSeries(config)
   let progress = initialProgress
   let run: SeriesRun = INITIAL_RUN
@@ -68,7 +79,7 @@ export function createSeries({ config, challenge, progress: initialProgress, sou
   const bar = el('div', 'progress-fill')
   const hud = el('div', 'hud series-hud', counter, timerValue, el('span', 'series-count-balance'), el('div', 'progress', bar))
   const staffCard = el('div', 'staff-card')
-  const pad = createAnswerPad(submitAnswer)
+  const pad = createAnswerPad(submitAnswer, settings.naming)
   const flash = el('div', 'flash')
   const effectsLayer = el('div', 'effects-layer')
   const element = el('section', 'screen game series', hud, staffCard, pad.element, flash, effectsLayer)
@@ -172,7 +183,14 @@ export function createSeries({ config, challenge, progress: initialProgress, sou
 
   async function share(outcome: Outcome): Promise<void> {
     const url = challengeUrl(location.origin + location.pathname, { config, timeS: Math.floor(outcome.totalMs / 1000) })
-    const text = shareText({ seed: config.seed, results: outcome.results, totalMs: outcome.totalMs, penaltyMs: outcome.penalty, url })
+    const text = shareText({
+      seed: config.seed,
+      results: outcome.results,
+      totalMs: outcome.totalMs,
+      penaltyMs: outcome.penalty,
+      url,
+      squares: settings.colorblind ? COLORBLIND_SQUARES : undefined,
+    })
     if (navigator.share) {
       try {
         await navigator.share({ text })
@@ -186,6 +204,10 @@ export function createSeries({ config, challenge, progress: initialProgress, sou
   }
 
   function countUp(target: HTMLElement, totalMs: number): void {
+    if (motionReduced()) {
+      target.textContent = formatTime(totalMs)
+      return
+    }
     const start = performance.now()
     const step = (now: number) => {
       const progressRatio = Math.min(1, (now - start) / COUNT_UP_MS)
@@ -204,6 +226,16 @@ export function createSeries({ config, challenge, progress: initialProgress, sou
     }
     const lateMs = (Math.floor(outcome.totalMs / 1000) - challenge.timeS) * 1000
     return el('p', 'verdict lose', `Perdu… à ${formatTime(lateMs)} près`)
+  }
+
+  function versus(outcome: Outcome): HTMLElement | string {
+    if (challenge?.timeS == null) return ''
+    return el(
+      'div',
+      'versus',
+      el('span', 'versus-you', `Toi ${formatTime(outcome.totalMs)}`),
+      el('span', 'versus-friend', `Ami ${formatTime(challenge.timeS * 1000)}`),
+    )
   }
 
   function endOverlay(outcome: Outcome, beaten: boolean | null): HTMLElement {
@@ -231,6 +263,7 @@ export function createSeries({ config, challenge, progress: initialProgress, sou
       'result series-end',
       verdict(outcome, beaten) ?? el('h2', '', 'Série terminée'),
       total,
+      versus(outcome),
       outcome.penalty > 0 ? el('p', 'result-best', `(+${outcome.penalty / 1000} s)`) : '',
       el('p', '', `${hits}/${outcome.results.length} du premier coup`),
       strip,

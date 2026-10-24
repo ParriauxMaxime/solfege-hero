@@ -6,7 +6,7 @@
 }
 
 .hero-hit-zone {
-  fill: rgba(124, 92, 255, 0.16);
+  fill: color-mix(in srgb, var(--accent) 16%, transparent);
   stroke: var(--accent);
   stroke-opacity: 0.55;
   stroke-width: 1.5;

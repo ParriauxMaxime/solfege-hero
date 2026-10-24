@@ -1,6 +1,12 @@
 import type { NoteRecord, NoteStats } from './game/sampler'
 import { START_BPM_MAX, START_BPM_MIN } from './hero/tempo'
-import { CLEFS, type Clef } from './music/notes'
+import { CLEFS, type Clef, type Naming } from './music/notes'
+
+export const NAMINGS: readonly Naming[] = ['latin', 'english']
+export const THEMES = ['dark', 'light', 'system'] as const
+export type Theme = (typeof THEMES)[number]
+export const KEY_SIZES = ['S', 'M', 'L'] as const
+export type KeySize = (typeof KEY_SIZES)[number]
 
 export interface Settings {
   clefs: Clef[]
@@ -11,6 +17,14 @@ export interface Settings {
   metronome: boolean
   /** Melody name; empty means random notes. */
   heroMelody: string
+  keyNames: boolean
+  naming: Naming
+  theme: Theme
+  colorblind: boolean
+  reducedMotion: boolean
+  keySize: KeySize
+  vibration: boolean
+  volume: number
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -21,6 +35,14 @@ export const DEFAULT_SETTINGS: Settings = {
   heroTempo: 60,
   metronome: true,
   heroMelody: '',
+  keyNames: true,
+  naming: 'latin',
+  theme: 'dark',
+  colorblind: false,
+  reducedMotion: false,
+  keySize: 'M',
+  vibration: true,
+  volume: 0.8,
 }
 
 export interface HeroProgress {
@@ -104,7 +126,24 @@ export function sanitizeSettings(raw: unknown): Settings {
     heroTempo: sanitizeHeroTempo(stored.heroTempo),
     metronome: booleanOr(stored.metronome, DEFAULT_SETTINGS.metronome),
     heroMelody: typeof stored.heroMelody === 'string' ? stored.heroMelody : DEFAULT_SETTINGS.heroMelody,
+    keyNames: booleanOr(stored.keyNames, DEFAULT_SETTINGS.keyNames),
+    naming: oneOf(NAMINGS, stored.naming, DEFAULT_SETTINGS.naming),
+    theme: oneOf(THEMES, stored.theme, DEFAULT_SETTINGS.theme),
+    colorblind: booleanOr(stored.colorblind, DEFAULT_SETTINGS.colorblind),
+    reducedMotion: booleanOr(stored.reducedMotion, DEFAULT_SETTINGS.reducedMotion),
+    keySize: oneOf(KEY_SIZES, stored.keySize, DEFAULT_SETTINGS.keySize),
+    vibration: booleanOr(stored.vibration, DEFAULT_SETTINGS.vibration),
+    volume: sanitizeVolume(stored.volume),
   }
+}
+
+function oneOf<T extends string>(options: readonly T[], value: unknown, fallback: T): T {
+  return options.find((option) => option === value) ?? fallback
+}
+
+function sanitizeVolume(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_SETTINGS.volume
+  return Math.min(1, Math.max(0, value))
 }
 
 function sanitizeHeroTempo(value: unknown): number {
@@ -198,4 +237,33 @@ export function resetProgress(): Progress {
     // nothing persisted, nothing to clear
   }
   return { ...EMPTY_PROGRESS, notes: {}, hero: { ...EMPTY_HERO_PROGRESS }, series: { ...EMPTY_SERIES_PROGRESS } }
+}
+
+const EXPORT_APP = 'solfege'
+const EXPORT_VERSION = 1
+
+export function exportData(settings: Settings, progress: Progress): string {
+  return JSON.stringify(
+    {
+      app: EXPORT_APP,
+      version: EXPORT_VERSION,
+      exportedAt: new Date().toISOString(),
+      settings,
+      progress,
+    },
+    null,
+    2,
+  )
+}
+
+export function importData(text: string): { settings: Settings; progress: Progress } | null {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    return null
+  }
+  const data = asObject(parsed)
+  if (data.app !== EXPORT_APP) return null
+  return { settings: sanitizeSettings(data.settings), progress: sanitizeProgress(data.progress) }
 }

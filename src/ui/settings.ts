@@ -1,27 +1,81 @@
 import { CLEFS, type Clef } from '../music/notes'
-import type { Settings } from '../storage'
+import { exportData, importData, type KeySize, type Progress, type Settings, type Theme } from '../storage'
 import { button, el } from './dom'
+import { showToast } from './toast'
 
 export interface SettingsOptions {
   settings: Settings
+  getProgress: () => Progress
   onChange: (patch: Partial<Settings>) => void
+  onReset: () => void
+  onImport: (data: { settings: Settings; progress: Progress }) => void
   onBack: () => void
 }
 
+interface Choice<T> {
+  value: T
+  label: string
+}
+
+type BooleanKey = {
+  [K in keyof Settings]: Settings[K] extends boolean ? K : never
+}[keyof Settings]
+
 const CLEF_LABELS: Record<Clef, string> = { treble: 'Sol', bass: 'Fa', alto: 'Ut 3' }
-const ON_OFF = [
-  { value: false, label: 'Non' },
-  { value: true, label: 'Oui' },
+const NAMINGS: Choice<Settings['naming']>[] = [
+  { value: 'latin', label: 'Do Ré Mi' },
+  { value: 'english', label: 'C D E' },
 ]
+const THEME_CHOICES: Choice<Theme>[] = [
+  { value: 'dark', label: 'Sombre' },
+  { value: 'light', label: 'Clair' },
+  { value: 'system', label: 'Système' },
+]
+const KEY_SIZE_CHOICES: Choice<KeySize>[] = [
+  { value: 'S', label: 'S' },
+  { value: 'M', label: 'M' },
+  { value: 'L', label: 'L' },
+]
+const EXPORT_FILE = 'solfege-progress.json'
 
-export function createSettingsScreen({ settings: initial, onChange, onBack }: SettingsOptions): HTMLElement {
+export function createSettingsScreen({ settings: initial, getProgress, onChange, onReset, onImport, onBack }: SettingsOptions): HTMLElement {
   let settings = initial
-  const element = el('section', 'screen panel')
+  const element = el('section', 'screen settings-list')
 
-  function update(patch: Partial<Settings>): void {
+  function update(patch: Partial<Settings>, rerender = true): void {
     settings = { ...settings, ...patch }
     onChange(patch)
-    render()
+    if (rerender) render()
+  }
+
+  function row(label: string, control: HTMLElement, hint = ''): HTMLElement {
+    const text = el('span', 'settings-label', label)
+    if (hint) text.append(el('small', 'settings-hint', hint))
+    return el('div', 'settings-row', text, control)
+  }
+
+  function toggle(checked: boolean, onToggle: (next: boolean) => void): HTMLElement {
+    const control = button('toggle', '', () => onToggle(!checked))
+    control.setAttribute('role', 'switch')
+    control.setAttribute('aria-checked', String(checked))
+    return control
+  }
+
+  function toggleRow(label: string, key: BooleanKey, hint = ''): HTMLElement {
+    return row(label, toggle(settings[key], (next) => update({ [key]: next })), hint)
+  }
+
+  function choiceControl<T>(choices: Choice<T>[], isActive: (value: T) => boolean, onPick: (value: T) => void): HTMLElement {
+    const options = choices.map((choice) => {
+      const option = button('segment', choice.label, () => onPick(choice.value))
+      option.classList.toggle('active', isActive(choice.value))
+      return option
+    })
+    return el('div', 'segmented', ...options)
+  }
+
+  function choiceRow<T>(label: string, choices: Choice<T>[], current: T, onPick: (value: T) => void): HTMLElement {
+    return row(label, choiceControl(choices, (value) => value === current, onPick))
   }
 
   function toggleClef(clef: Clef): void {
@@ -30,30 +84,90 @@ export function createSettingsScreen({ settings: initial, onChange, onBack }: Se
     update({ clefs: CLEFS.filter((candidate) => (candidate === clef ? !selected : settings.clefs.includes(candidate))) })
   }
 
-  function clefSetting(): HTMLElement {
-    const options = CLEFS.map((clef) => {
-      const option = button('segment', CLEF_LABELS[clef], () => toggleClef(clef))
-      option.classList.toggle('active', settings.clefs.includes(clef))
-      return option
-    })
-    return el('div', 'setting', el('h2', '', 'Clés'), el('div', 'segmented', ...options))
+  function clefRow(): HTMLElement {
+    const choices = CLEFS.map((clef) => ({ value: clef, label: CLEF_LABELS[clef] }))
+    return row('Clés', choiceControl(choices, (clef) => settings.clefs.includes(clef), toggleClef))
   }
 
-  function onOffSetting(title: string, key: 'accidentals' | 'timed'): HTMLElement {
-    const options = ON_OFF.map((choice) => {
-      const option = button('segment', choice.label, () => update({ [key]: choice.value }))
-      option.classList.toggle('active', choice.value === settings[key])
-      return option
+  function volumeRow(): HTMLElement {
+    const slider = el('input', 'slider')
+    slider.type = 'range'
+    slider.min = '0'
+    slider.max = '1'
+    slider.step = '0.05'
+    slider.value = String(settings.volume)
+    slider.setAttribute('aria-label', 'Volume')
+    slider.addEventListener('input', () => update({ volume: Number(slider.value) }, false))
+    return row('Volume', slider)
+  }
+
+  function exportProgress(): void {
+    const blob = new Blob([exportData(settings, getProgress())], { type: 'application/json' })
+    const link = el('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = EXPORT_FILE
+    link.click()
+    URL.revokeObjectURL(link.href)
+  }
+
+  function importControl(): HTMLElement {
+    const input = el('input')
+    input.type = 'file'
+    input.accept = 'application/json,.json'
+    input.hidden = true
+    input.addEventListener('change', async () => {
+      const file = input.files?.[0]
+      const imported = file ? importData(await file.text()) : null
+      if (imported) {
+        settings = imported.settings
+        onImport(imported)
+        render()
+      }
+      showToast(imported ? 'Importé !' : 'Fichier invalide')
     })
-    return el('div', 'setting', el('h2', '', title), el('div', 'segmented', ...options))
+    return el('div', 'settings-actions', button('segment-button', 'Importer', () => input.click()), input)
+  }
+
+  function resetProgress(): void {
+    if (!confirm('Effacer toute la progression ?')) return
+    onReset()
+    showToast('Statistiques réinitialisées')
+  }
+
+  function section(title: string, ...rows: HTMLElement[]): HTMLElement {
+    return el('div', 'settings-section', el('h2', '', title), ...rows)
   }
 
   function render(): void {
     element.replaceChildren(
       el('h1', '', 'Réglages'),
-      clefSetting(),
-      onOffSetting('Armures', 'accidentals'),
-      onOffSetting('Mode chrono 60 s', 'timed'),
+      section(
+        'Jeu',
+        clefRow(),
+        toggleRow('Armures', 'accidentals'),
+        toggleRow('Noms sur les touches', 'keyNames'),
+        choiceRow('Notation', NAMINGS, settings.naming, (naming) => update({ naming })),
+      ),
+      section(
+        'Affichage',
+        choiceRow('Thème', THEME_CHOICES, settings.theme, (theme) => update({ theme })),
+        toggleRow('Mode daltonien', 'colorblind', 'bleu/orange au lieu de vert/rouge'),
+        toggleRow('Animations réduites', 'reducedMotion'),
+        choiceRow('Taille des touches', KEY_SIZE_CHOICES, settings.keySize, (keySize) => update({ keySize })),
+      ),
+      section(
+        'Son',
+        row('Sons', toggle(!settings.muted, (next) => update({ muted: !next }))),
+        toggleRow('Métronome', 'metronome'),
+        toggleRow('Vibration', 'vibration'),
+        volumeRow(),
+      ),
+      section(
+        'Données',
+        row('Statistiques', button('danger', 'Réinitialiser', resetProgress)),
+        row('Sauvegarde', el('div', 'settings-actions', button('segment-button', 'Exporter', exportProgress))),
+        row('Restauration', importControl()),
+      ),
       button('primary', 'Retour', onBack),
     )
   }

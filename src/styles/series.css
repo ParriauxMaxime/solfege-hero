@@ -157,6 +157,7 @@
   padding: 12px 22px;
   border-radius: 999px;
   background: var(--card-raised);
+  box-shadow: var(--toast-shadow);
   font-weight: 700;
   animation: toast 1.6s ease-in-out forwards;
 }
@@ -209,14 +210,5 @@
 
   .result-actions {
     margin-top: 6px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cell,
-  .verdict.win,
-  .series-end.lose,
-  .series-timer.shake {
-    animation: none;
   }
 }

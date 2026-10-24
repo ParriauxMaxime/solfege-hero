@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatTime, shareText } from './share'
+import { COLORBLIND_SQUARES, formatTime, shareText } from './share'
 
 describe('formatTime', () => {
   it('shows minutes and zero-padded seconds', () => {
@@ -38,6 +38,12 @@ describe('shareText', () => {
   it('omits the penalty when there is none', () => {
     const text = shareText({ ...base, results: results.map(() => true), penaltyMs: 0 })
     expect(text.split('\n')[2]).toBe('⏱ 0:47 · 20/20')
+  })
+
+  it('offers colour-blind friendly squares', () => {
+    expect(COLORBLIND_SQUARES).toEqual({ ok: '🟦', bad: '🟧' })
+    const text = shareText({ ...base, results: [true, false], squares: COLORBLIND_SQUARES })
+    expect(text.split('\n')[1]).toBe('🟦🟧')
   })
 
   it('accepts custom squares', () => {

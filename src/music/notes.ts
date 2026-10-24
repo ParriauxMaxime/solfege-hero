@@ -27,6 +27,29 @@ export const PITCH_CLASS_NAMES = [
   'Si',
 ] as const
 
+const ENGLISH_PITCH_CLASS_NAMES = [
+  'C',
+  'C#/Db',
+  'D',
+  'D#/Eb',
+  'E',
+  'F',
+  'F#/Gb',
+  'G',
+  'G#/Ab',
+  'A',
+  'A#/Bb',
+  'B',
+] as const
+
+/** 'latin' is Do Ré Mi, 'english' is C D E. */
+export type Naming = 'latin' | 'english'
+
+export function pitchClassLabel(pc: number, naming: Naming): string {
+  const names = naming === 'latin' ? PITCH_CLASS_NAMES : ENGLISH_PITCH_CLASS_NAMES
+  return names[((pc % 12) + 12) % 12] as string
+}
+
 export const CLEFS = ['treble', 'bass', 'alto'] as const
 export type Clef = (typeof CLEFS)[number]
 
@@ -86,9 +109,9 @@ export function spell(midiNumber: number, preferFlat: boolean): Note {
   return { letter: letterAt(semitone - 1) as Letter, octave, alter: 1 }
 }
 
-export function noteName(note: Note): string {
+export function noteName(note: Note, naming: Naming = 'latin'): string {
   const sign = note.alter === 1 ? '#' : note.alter === -1 ? 'b' : ''
-  return `${FRENCH_NAMES[note.letter]}${sign}`
+  return `${naming === 'latin' ? FRENCH_NAMES[note.letter] : note.letter}${sign}`
 }
 
 /** Steps above the bottom staff line: lines are even steps 0..8, spaces are odd. */

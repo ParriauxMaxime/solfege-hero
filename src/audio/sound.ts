@@ -11,6 +11,7 @@ export interface Sound {
   /** Schedules a metronome click at audio time `at`. */
   click(at: number, accent: boolean): void
   setMuted(muted: boolean): void
+  setVolume(volume: number): void
 }
 
 const CORRECT_BASE_HZ = 523.25
@@ -25,12 +26,24 @@ function transpose(hz: number, semitones: number): number {
 
 export function createSound(): Sound {
   let context: AudioContext | null = null
+  let master: GainNode | null = null
   let muted = false
+  let volume = 1
 
   function ensureContext(): AudioContext {
-    context ??= new AudioContext()
+    if (!context) {
+      context = new AudioContext()
+      master = context.createGain()
+      master.gain.value = volume
+      master.connect(context.destination)
+    }
     if (context.state === 'suspended') void context.resume()
     return context
+  }
+
+  function output(): AudioNode {
+    ensureContext()
+    return master as GainNode
   }
 
   function audio(): AudioContext | null {
@@ -53,7 +66,7 @@ export function createSound(): Sound {
     gain.gain.setValueAtTime(0.0001, start)
     gain.gain.exponentialRampToValueAtTime(volume, start + attack)
     gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
-    oscillator.connect(gain).connect(ctx.destination)
+    oscillator.connect(gain).connect(output())
     oscillator.start(start)
     oscillator.stop(start + duration + 0.02)
   }
@@ -71,7 +84,7 @@ export function createSound(): Sound {
     filter.frequency.value = 400
     gain.gain.setValueAtTime(volume, start)
     gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
-    source.connect(filter).connect(gain).connect(ctx.destination)
+    source.connect(filter).connect(gain).connect(output())
     source.start(start)
   }
 
@@ -96,7 +109,7 @@ export function createSound(): Sound {
       gain.gain.setValueAtTime(0.0001, now)
       gain.gain.exponentialRampToValueAtTime(0.35, now + 0.01)
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22)
-      oscillator.connect(gain).connect(ctx.destination)
+      oscillator.connect(gain).connect(output())
       oscillator.start(now)
       oscillator.stop(now + 0.25)
       noiseBurst(ctx, now, 0.08, 0.08)
@@ -122,6 +135,10 @@ export function createSound(): Sound {
     },
     setMuted(value) {
       muted = value
+    },
+    setVolume(value) {
+      volume = value
+      if (master) master.gain.value = value
     },
   }
 }

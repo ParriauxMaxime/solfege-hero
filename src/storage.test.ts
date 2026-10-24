@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_SETTINGS,
   EMPTY_PROGRESS,
+  exportData,
+  importData,
   sanitizeProgress,
   sanitizeSettings,
   type Progress,
@@ -39,8 +41,38 @@ describe('sanitizeSettings', () => {
       heroTempo: 120,
       metronome: false,
       heroMelody: 'Frère Jacques',
+      keyNames: false,
+      naming: 'english',
+      theme: 'system',
+      colorblind: true,
+      reducedMotion: true,
+      keySize: 'L',
+      vibration: false,
+      volume: 0.35,
     }
     expect(sanitizeSettings(JSON.parse(JSON.stringify(settings)))).toEqual(settings)
+  })
+
+  it('defaults to the dark theme, medium keys, latin names and 80% volume', () => {
+    expect(DEFAULT_SETTINGS).toMatchObject({
+      keyNames: true,
+      naming: 'latin',
+      theme: 'dark',
+      colorblind: false,
+      reducedMotion: false,
+      keySize: 'M',
+      vibration: true,
+      volume: 0.8,
+    })
+  })
+
+  it('rejects unknown choices and clamps the volume', () => {
+    expect(
+      sanitizeSettings({ naming: 'german', theme: 'sepia', keySize: 'XL', vibration: 'on' }),
+    ).toMatchObject({ naming: 'latin', theme: 'dark', keySize: 'M', vibration: true })
+    expect(sanitizeSettings({ volume: 4 }).volume).toBe(1)
+    expect(sanitizeSettings({ volume: -1 }).volume).toBe(0)
+    expect(sanitizeSettings({ volume: 'loud' }).volume).toBe(0.8)
   })
 
   it('keeps valid clefs once each, in clef order', () => {
@@ -124,5 +156,47 @@ describe('sanitizeProgress', () => {
       },
     })
     expect(Object.keys(result.notes)).toEqual(['good'])
+  })
+})
+
+describe('exportData and importData', () => {
+  const settings: Settings = { ...DEFAULT_SETTINGS, clefs: ['bass'], theme: 'light', volume: 0.5 }
+  const progress: Progress = {
+    ...EMPTY_PROGRESS,
+    notes: { 'bass:48': { attempts: 3, correct: 2, misses: 1, avgMs: 900 } },
+    bestStreak: 7,
+  }
+
+  it('writes pretty JSON tagged with app, version and date', () => {
+    const text = exportData(settings, progress)
+    expect(text).toContain('\n  "app": "solfege"')
+    const parsed = JSON.parse(text)
+    expect(parsed).toMatchObject({ app: 'solfege', version: 1, settings, progress })
+    expect(Number.isNaN(Date.parse(parsed.exportedAt))).toBe(false)
+  })
+
+  it('round-trips through importData', () => {
+    expect(importData(exportData(settings, progress))).toEqual({ settings, progress })
+  })
+
+  it('rejects invalid JSON and other apps', () => {
+    expect(importData('not json')).toBeNull()
+    expect(importData('null')).toBeNull()
+    expect(importData(JSON.stringify({ app: 'guitar', settings, progress }))).toBeNull()
+  })
+
+  it('sanitizes what it imports', () => {
+    const result = importData(
+      JSON.stringify({ app: 'solfege', settings: { theme: 'sepia', volume: 9 }, progress: { bestStreak: -3 } }),
+    )
+    expect(result?.settings).toMatchObject({ theme: 'dark', volume: 1 })
+    expect(result?.progress).toEqual(EMPTY_PROGRESS)
+  })
+
+  it('falls back to defaults when sections are missing', () => {
+    expect(importData(JSON.stringify({ app: 'solfege' }))).toEqual({
+      settings: DEFAULT_SETTINGS,
+      progress: EMPTY_PROGRESS,
+    })
   })
 })

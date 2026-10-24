@@ -29,6 +29,8 @@ export interface HeroOptions {
   progress: Progress
   sound: Sound
   melody: Melody | null
+  isMuted: () => boolean
+  onToggleMute: () => void
   onProgress: (progress: Progress) => void
   onQuit: () => void
 }
@@ -38,7 +40,16 @@ export interface Hero {
   destroy: () => void
 }
 
-export function createHero({ settings, progress: initialProgress, sound, melody, onProgress, onQuit }: HeroOptions): Hero {
+export function createHero({
+  settings,
+  progress: initialProgress,
+  sound,
+  melody,
+  isMuted,
+  onToggleMute,
+  onProgress,
+  onQuit,
+}: HeroOptions): Hero {
   const clef: Clef = melody?.clef ?? (settings.clefs[Math.floor(Math.random() * settings.clefs.length)] as Clef)
   const fifths = melody ? melody.key : settings.accidentals ? randomKey() : 0
   const source: NoteSource = melody
@@ -69,13 +80,23 @@ export function createHero({ settings, progress: initialProgress, sound, melody,
   const bpm = el('div', 'bpm', bpmValue, el('small', '', 'BPM'))
   const pauseButton = button('icon-button', '⏸', pause)
   pauseButton.setAttribute('aria-label', 'Pause')
-  const hud = el('div', 'hud', el('div', 'hud-score', scoreValue), streak, multiplierValue, bpm, pauseButton)
+  const muteButton = button('icon-button', '', () => {
+    onToggleMute()
+    renderMute()
+  })
+  muteButton.setAttribute('aria-label', 'Son')
+  renderMute()
+  const hud = el('div', 'hud', el('div', 'hud-score', scoreValue), streak, multiplierValue, bpm, muteButton, pauseButton)
   const countIn = el('div', 'count-in')
   const staffArea = el('div', 'hero-staff', staff.element, countIn)
-  const pad = createAnswerPad(tap)
+  const pad = createAnswerPad(tap, settings.naming)
   const flash = el('div', 'flash')
   const effectsLayer = el('div', 'effects-layer')
   const element = el('section', 'screen game hero', hud, staffArea, pad.element, flash, effectsLayer)
+
+  function renderMute(): void {
+    muteButton.textContent = isMuted() ? '🔇' : '🔊'
+  }
 
   function currentBeat(): number {
     return frozenBeat ?? clock.beatAt(sound.now())
@@ -143,7 +164,7 @@ export function createHero({ settings, progress: initialProgress, sound, melody,
     updateProgress(note.pitch, hit, ms, judgement)
     renderScore()
     if (hit) onHit(note.id, note.note, judgement, result.gained, result.milestone)
-    else onMiss(note.id, noteName(note.note), result.brokenStreak)
+    else onMiss(note.id, noteName(note.note, settings.naming), result.brokenStreak)
   }
 
   function updateProgress(pitch: number, hit: boolean, ms: number, judgement: Judgement): void {

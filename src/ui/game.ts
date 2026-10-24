@@ -53,7 +53,7 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
 
   const staffCard = el('div', 'staff-card')
   const feedback = el('div', 'feedback')
-  const pad = createAnswerPad(submitAnswer)
+  const pad = createAnswerPad(submitAnswer, settings.naming)
   const flash = el('div', 'flash')
   const effectsLayer = el('div', 'effects-layer')
   const element = el('section', 'screen game', hud, staffCard, feedback, pad.element, flash, effectsLayer)
@@ -160,7 +160,7 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
     sound.playNote(note)
     vibrate(15)
     pad.flash(pitchClass(midi(note)), 'correct')
-    feedback.textContent = noteName(note)
+    feedback.textContent = noteName(note, settings.naming)
     feedback.className = 'feedback ok'
     restartAnimation(flash, 'flash-ok')
     restartAnimation(streakValue, 'bump')
@@ -183,7 +183,7 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
     vibrate([40, 30, 40])
     pad.flash(chosen, 'wrong')
     pad.flash(pitchClass(midi(note)), 'reveal')
-    feedback.textContent = `C'était ${noteName(note)}`
+    feedback.textContent = `C'était ${noteName(note, settings.naming)}`
     feedback.className = 'feedback bad'
     restartAnimation(flash, 'flash-bad')
     restartAnimation(staffCard, 'shake')

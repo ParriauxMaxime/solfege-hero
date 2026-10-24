@@ -75,8 +75,8 @@
 }
 
 .home-card {
-  --from: var(--accent);
-  --to: #4a34c9;
+  --from: var(--violet-from);
+  --to: var(--violet-to);
   flex: 1;
   min-height: 0;
   display: flex;
@@ -85,25 +85,20 @@
   padding: 0 20px;
   border-radius: 24px;
   background: linear-gradient(135deg, var(--from), var(--to));
-  color: #fff;
+  color: var(--on-gradient);
   text-align: left;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--home-shadow);
   animation: home-rise 0.5s calc(var(--i) * 60ms + 150ms) ease-out both;
-  transition: transform 0.12s ease-out;
 }
 
 .home-card[data-accent='mint'] {
-  --from: #17c595;
-  --to: #0a7266;
+  --from: var(--mint-from);
+  --to: var(--mint-to);
 }
 
 .home-card[data-accent='sunset'] {
-  --from: #ff8a3d;
-  --to: #e83f7c;
-}
-
-.home-card:active {
-  transform: scale(0.96);
+  --from: var(--sunset-from);
+  --to: var(--sunset-to);
 }
 
 .home-card-icon {
@@ -194,14 +189,5 @@
 @keyframes home-glow {
   to {
     opacity: 0.6;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .home-logo,
-  .home-logo-halo,
-  .home-title,
-  .home-card {
-    animation: none;
   }
 }

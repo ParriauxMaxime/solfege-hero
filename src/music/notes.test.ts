@@ -4,7 +4,9 @@ import {
   ledgerSteps,
   midi,
   noteName,
+  PITCH_CLASS_NAMES,
   pitchClass,
+  pitchClassLabel,
   pitchesInRange,
   spell,
   staffStep,
@@ -99,6 +101,42 @@ describe('noteName', () => {
     expect(noteName(note('C', 4))).toBe('Do')
     expect(noteName(note('F', 4, 1))).toBe('Fa#')
     expect(noteName(note('B', 3, -1))).toBe('Sib')
+  })
+
+  it('names notes in English on request', () => {
+    expect(noteName(note('C', 4), 'english')).toBe('C')
+    expect(noteName(note('F', 4, 1), 'english')).toBe('F#')
+    expect(noteName(note('B', 3, -1), 'english')).toBe('Bb')
+  })
+})
+
+describe('pitchClassLabel', () => {
+  it('keeps the latin names', () => {
+    expect([...PITCH_CLASS_NAMES].map((_, pc) => pitchClassLabel(pc, 'latin'))).toEqual([
+      ...PITCH_CLASS_NAMES,
+    ])
+  })
+
+  it('spells the twelve English names with enharmonic pairs', () => {
+    expect(Array.from({ length: 12 }, (_, pc) => pitchClassLabel(pc, 'english'))).toEqual([
+      'C',
+      'C#/Db',
+      'D',
+      'D#/Eb',
+      'E',
+      'F',
+      'F#/Gb',
+      'G',
+      'G#/Ab',
+      'A',
+      'A#/Bb',
+      'B',
+    ])
+  })
+
+  it('wraps out-of-range pitch classes', () => {
+    expect(pitchClassLabel(12, 'english')).toBe('C')
+    expect(pitchClassLabel(-1, 'english')).toBe('B')
   })
 })
 

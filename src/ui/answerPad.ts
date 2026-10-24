@@ -1,5 +1,6 @@
-import { PITCH_CLASS_NAMES, isNatural } from '../music/notes'
-import { button, el } from './dom'
+import { isNatural, pitchClassLabel } from '../music/notes'
+import type { Settings } from '../storage'
+import { el, trackPressed } from './dom'
 
 const NATURAL_PITCH_CLASSES = [0, 2, 4, 5, 7, 9, 11]
 const KEY_LETTERS = 'cdefgab'
@@ -15,7 +16,14 @@ export interface AnswerPad {
 }
 
 function createAnswerButton(name: string, pitchClassIndex: number, onAnswer: (pitchClass: number) => void): HTMLButtonElement {
-  const answer = button('answer', '', () => onAnswer(pitchClassIndex))
+  const answer = el('button', 'answer')
+  answer.type = 'button'
+  trackPressed(answer)
+  answer.addEventListener('pointerdown', () => onAnswer(pitchClassIndex))
+  // A pointer press already answered; only keyboard activation (no pointer detail) reaches here.
+  answer.addEventListener('click', (event) => {
+    if (event.detail === 0) onAnswer(pitchClassIndex)
+  })
   answer.append(...name.split('/').map((part) => el('span', '', part)))
   const naturalIndex = NATURAL_PITCH_CLASSES.indexOf(pitchClassIndex)
   if (naturalIndex >= 0) {
@@ -42,8 +50,10 @@ function pitchClassForKey(event: KeyboardEvent): number | undefined {
   return isNatural(natural + 1) ? undefined : natural + 1
 }
 
-export function createAnswerPad(onAnswer: (pitchClass: number) => void): AnswerPad {
-  const answers = PITCH_CLASS_NAMES.map((name, index) => createAnswerButton(name, index, onAnswer))
+export function createAnswerPad(onAnswer: (pitchClass: number) => void, naming: Settings['naming']): AnswerPad {
+  const answers = Array.from({ length: 12 }, (_, index) =>
+    createAnswerButton(pitchClassLabel(index, naming), index, onAnswer),
+  )
   const element = el('div', 'answers', ...answers)
 
   function onKeyDown(event: KeyboardEvent): void {

@@ -14,6 +14,8 @@ export interface ShareSquares {
 
 const DEFAULT_SQUARES: ShareSquares = { ok: '🟩', bad: '🟥' }
 
+export const COLORBLIND_SQUARES: ShareSquares = { ok: '🟦', bad: '🟧' }
+
 export function shareText(input: {
   seed: number
   results: boolean[]

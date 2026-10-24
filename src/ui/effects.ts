@@ -1,3 +1,4 @@
+import { motionReduced } from '../platform/appearance'
 import { el } from './dom'
 
 export interface Point {
@@ -34,6 +35,7 @@ function pick<T>(items: readonly T[]): T {
 }
 
 export function burstParticles(layer: HTMLElement, origin: Point): void {
+  if (motionReduced()) return
   for (let i = 0; i < PARTICLE_COUNT; i++) {
     const angle = (i / PARTICLE_COUNT) * Math.PI * 2 + Math.random() * 0.4
     const distance = 50 + Math.random() * 60
@@ -48,6 +50,7 @@ export function burstParticles(layer: HTMLElement, origin: Point): void {
 }
 
 export function burstConfetti(layer: HTMLElement): void {
+  if (motionReduced()) return
   for (let i = 0; i < CONFETTI_COUNT; i++) {
     spawn(layer, 'confetti', {
       left: `${Math.random() * 100}%`,
