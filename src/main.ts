@@ -4,6 +4,8 @@ import './styles/screens.css'
 import './styles/effects.css'
 import './styles/hero.css'
 import './styles/hero-screen.css'
+import './styles/home.css'
+import './styles/series.css'
 import './pwa'
 import { startApp } from './app'
 

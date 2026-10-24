@@ -1,48 +1,45 @@
 import { createSound } from './audio/sound'
 import type { Melody } from './hero/types'
+import { parseChallenge, type Challenge } from './series/challenge'
+import { newSeed, type SeriesConfig } from './series/series'
 import { loadProgress, loadSettings, resetProgress, saveProgress, saveSettings, type Progress, type Settings } from './storage'
+import { createChallengeIntro } from './ui/challengeIntro'
 import { button, el } from './ui/dom'
 import { createGame } from './ui/game'
 import { createHero } from './ui/hero'
 import { createHeroStart } from './ui/heroStart'
+import { createHome, type HomeChoice } from './ui/home'
+import { createSeries } from './ui/series'
 import { createSettingsScreen } from './ui/settings'
 import { createStatsScreen } from './ui/stats'
 
-type Mode = 'single' | 'hero'
-
-const MODE_LABELS: Record<Mode, string> = { single: 'Une note', hero: 'Solfège hero' }
+interface Destroyable {
+  destroy: () => void
+}
 
 export function startApp(root: HTMLElement): void {
   let settings = loadSettings()
   let progress = loadProgress()
-  let mode: Mode = 'single'
-  let running: { destroy: () => void } | null = null
+  let running: Destroyable | null = null
   const sound = createSound()
   sound.setMuted(settings.muted)
 
-  const modeButtons = (Object.keys(MODE_LABELS) as Mode[]).map((candidate) => {
-    const modeButton = button('segment', MODE_LABELS[candidate], () => {
-      mode = candidate
-      showMode()
-    })
-    modeButton.dataset['mode'] = candidate
-    return modeButton
-  })
+  const backButton = button('icon-button', '←', showHome)
+  backButton.setAttribute('aria-label', 'Accueil')
   const muteButton = button('icon-button', '', toggleMute)
-  const topBar = el(
-    'header',
-    'top-bar',
-    el('div', 'segmented mode-switch', ...modeButtons),
-    el('span', 'spacer'),
-    muteButton,
-    button('icon-button', '📊', showStats),
-    button('icon-button', '⚙️', showSettings),
-  )
   muteButton.setAttribute('aria-label', 'Son')
+  const topBar = el('header', 'top-bar', backButton, el('span', 'spacer'), muteButton)
   const screen = el('main', 'screen-host')
   root.replaceChildren(el('div', 'app', topBar, screen))
   renderMute()
-  showMode()
+
+  const received = parseChallenge(location.hash)
+  if (received) {
+    history.replaceState(null, '', location.pathname + location.search)
+    showChallengeIntro(received)
+  } else {
+    showHome()
+  }
 
   function renderMute(): void {
     muteButton.textContent = settings.muted ? '🔇' : '🔊'
@@ -65,22 +62,30 @@ export function startApp(root: HTMLElement): void {
     saveProgress(progress)
   }
 
-  function show(content: HTMLElement, withTopBar: boolean, next: { destroy: () => void } | null = null): void {
+  function show(content: HTMLElement, withTopBar: boolean, next: Destroyable | null = null): void {
     running?.destroy()
     running = next
     topBar.hidden = !withTopBar
-    for (const modeButton of modeButtons) modeButton.classList.toggle('active', modeButton.dataset['mode'] === mode)
     screen.replaceChildren(content)
   }
 
-  function showMode(): void {
-    if (mode === 'single') showGame()
+  function freshSeriesConfig(): SeriesConfig {
+    return { seed: newSeed(), clefs: settings.clefs, armures: settings.accidentals }
+  }
+
+  function showHome(): void {
+    show(createHome({ onChoose: choose, onSettings: showSettings, onStats: showStats }), false)
+  }
+
+  function choose(choice: HomeChoice): void {
+    if (choice === 'apprendre') showLearn()
+    else if (choice === 'series') showSeries(freshSeriesConfig(), null)
     else showHeroStart()
   }
 
-  function showGame(): void {
-    const created = createGame({ settings, progress, sound, onProgress: changeProgress })
-    show(created.element, true, created)
+  function showLearn(): void {
+    const game = createGame({ settings, progress, sound, onProgress: changeProgress })
+    show(game.element, true, game)
   }
 
   function showHeroStart(): void {
@@ -88,12 +93,29 @@ export function startApp(root: HTMLElement): void {
   }
 
   function playHero(melody: Melody | null): void {
-    const created = createHero({ settings, progress, sound, melody, onProgress: changeProgress, onQuit: showHeroStart })
-    show(created.element, false, created)
+    const hero = createHero({ settings, progress, sound, melody, onProgress: changeProgress, onQuit: showHeroStart })
+    show(hero.element, false, hero)
+  }
+
+  function showSeries(config: SeriesConfig, against: Challenge | null): void {
+    const series = createSeries({
+      config,
+      challenge: against,
+      progress,
+      sound,
+      onProgress: changeProgress,
+      onReplay: () => showSeries(freshSeriesConfig(), null),
+      onHome: showHome,
+    })
+    show(series.element, true, series)
+  }
+
+  function showChallengeIntro(challenge: Challenge): void {
+    show(createChallengeIntro({ challenge, onStart: () => showSeries(challenge.config, challenge) }), true)
   }
 
   function showSettings(): void {
-    show(createSettingsScreen({ settings, onChange: changeSettings, onBack: showMode }), false)
+    show(createSettingsScreen({ settings, onChange: changeSettings, onBack: showHome }), false)
   }
 
   function showStats(): void {
@@ -101,6 +123,6 @@ export function startApp(root: HTMLElement): void {
       changeProgress(resetProgress())
       return progress
     }
-    show(createStatsScreen({ progress, onReset, onBack: showMode }), false)
+    show(createStatsScreen({ progress, onReset, onBack: showHome }), false)
   }
 }

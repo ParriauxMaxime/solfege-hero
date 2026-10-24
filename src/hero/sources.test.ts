@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildPool, promptId, type NoteStats, type Prompt } from '../game/sampler'
-import { seededRandom } from '../testing/seededRandom'
+import { seededRandom } from '../random'
 import { melodySource, placeNotes, randomSource } from './sources'
 import { BEATS_PER_BAR, DURATION_BEATS, type Melody, type NoteSpec } from './types'
 

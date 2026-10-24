@@ -1,0 +1,207 @@
+.home {
+  height: 100%;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-areas:
+    'actions'
+    'brand'
+    'cards';
+  gap: 8px;
+  padding: 4px 16px 16px;
+}
+
+.home-actions {
+  grid-area: actions;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.home .icon-button {
+  width: 56px;
+}
+
+.home-brand {
+  grid-area: brand;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.home-logo {
+  width: clamp(72px, 14dvh, 120px);
+  height: auto;
+  color: var(--ink);
+  overflow: visible;
+  animation: home-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.home-logo-halo {
+  fill: var(--success);
+  opacity: 0.35;
+  filter: blur(8px);
+  animation: home-glow 2.4s ease-in-out infinite alternate;
+}
+
+.home-logo-note {
+  color: var(--success);
+}
+
+.home-title {
+  margin: 0;
+  font-size: clamp(2rem, 9vw, 2.8rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  animation: home-rise 0.5s 0.1s ease-out both;
+}
+
+.home-title span {
+  background: linear-gradient(90deg, var(--accent), var(--success));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.home-cards {
+  grid-area: cards;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.home-card {
+  --from: var(--accent);
+  --to: #4a34c9;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, var(--from), var(--to));
+  color: #fff;
+  text-align: left;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  animation: home-rise 0.5s calc(var(--i) * 60ms + 150ms) ease-out both;
+  transition: transform 0.12s ease-out;
+}
+
+.home-card[data-accent='mint'] {
+  --from: #17c595;
+  --to: #0a7266;
+}
+
+.home-card[data-accent='sunset'] {
+  --from: #ff8a3d;
+  --to: #e83f7c;
+}
+
+.home-card:active {
+  transform: scale(0.96);
+}
+
+.home-card-icon {
+  flex: none;
+  width: clamp(48px, 9dvh, 72px);
+  height: auto;
+}
+
+.home-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.home-card-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.home-card-subtitle {
+  font-size: 0.9rem;
+  opacity: 0.88;
+}
+
+@media (orientation: landscape) {
+  .home {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      'brand actions'
+      'cards cards';
+    padding: 4px 16px 12px;
+  }
+
+  .home-brand {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+  }
+
+  .home-logo {
+    width: 64px;
+  }
+
+  .home-title {
+    font-size: 1.8rem;
+  }
+
+  .home-cards {
+    flex-direction: row;
+  }
+
+  .home-card {
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 12px;
+    text-align: center;
+  }
+
+  .home-card-icon {
+    width: clamp(56px, 24dvh, 96px);
+  }
+
+  .home-card-title {
+    font-size: 1.2rem;
+  }
+
+  .home-card-subtitle {
+    font-size: 0.8rem;
+  }
+}
+
+@keyframes home-rise {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+}
+
+@keyframes home-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+@keyframes home-glow {
+  to {
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-logo,
+  .home-logo-halo,
+  .home-title,
+  .home-card {
+    animation: none;
+  }
+}

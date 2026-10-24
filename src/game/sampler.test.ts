@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isNatural, pitchClass } from '../music/notes'
-import { seededRandom } from '../testing/seededRandom'
+import { seededRandom } from '../random'
 import {
   accuracy,
   buildPool,

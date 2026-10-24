@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { seededRandom } from '../testing/seededRandom'
+import { seededRandom } from '../random'
 import { randomBarRhythm } from './rhythm'
 import { BEATS_PER_BAR, DURATION_BEATS } from './types'
 

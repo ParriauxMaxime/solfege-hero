@@ -32,13 +32,24 @@ export interface HeroProgress {
   perfects: number
 }
 
+export interface SeriesProgress {
+  /** Fastest winning series including penalties; 0 means none yet. */
+  bestMs: number
+  played: number
+  won: number
+  lost: number
+}
+
 export interface Progress {
   notes: NoteStats
   bestStreak: number
   totalAnswered: number
   bestTimed: number
   hero: HeroProgress
+  series: SeriesProgress
 }
+
+export const EMPTY_SERIES_PROGRESS: SeriesProgress = { bestMs: 0, played: 0, won: 0, lost: 0 }
 
 export const EMPTY_HERO_PROGRESS: HeroProgress = {
   bestScore: 0,
@@ -55,6 +66,7 @@ export const EMPTY_PROGRESS: Progress = {
   totalAnswered: 0,
   bestTimed: 0,
   hero: EMPTY_HERO_PROGRESS,
+  series: EMPTY_SERIES_PROGRESS,
 }
 
 const SETTINGS_KEY = 'solfege.settings.v2'
@@ -119,6 +131,16 @@ function sanitizeNoteRecord(raw: unknown): NoteRecord | null {
   return { attempts, correct, misses, avgMs }
 }
 
+function sanitizeSeriesProgress(raw: unknown): SeriesProgress {
+  const stored = asObject(raw)
+  return {
+    bestMs: nonNegativeOr(stored.bestMs, 0),
+    played: nonNegativeOr(stored.played, 0),
+    won: nonNegativeOr(stored.won, 0),
+    lost: nonNegativeOr(stored.lost, 0),
+  }
+}
+
 export function sanitizeProgress(raw: unknown): Progress {
   const stored = asObject(raw)
   const notes: NoteStats = {}
@@ -132,6 +154,7 @@ export function sanitizeProgress(raw: unknown): Progress {
     totalAnswered: nonNegativeOr(stored.totalAnswered, 0),
     bestTimed: nonNegativeOr(stored.bestTimed, 0),
     hero: sanitizeHeroProgress(stored.hero),
+    series: sanitizeSeriesProgress(stored.series),
   }
 }
 
@@ -174,5 +197,5 @@ export function resetProgress(): Progress {
   } catch {
     // nothing persisted, nothing to clear
   }
-  return { ...EMPTY_PROGRESS, notes: {}, hero: { ...EMPTY_HERO_PROGRESS } }
+  return { ...EMPTY_PROGRESS, notes: {}, hero: { ...EMPTY_HERO_PROGRESS }, series: { ...EMPTY_SERIES_PROGRESS } }
 }

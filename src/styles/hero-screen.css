@@ -1,14 +1,3 @@
-.mode-switch {
-  flex: 0 1 auto;
-}
-
-.mode-switch .segment {
-  min-height: 56px;
-  padding: 0 6px;
-  font-size: 0.8rem;
-  white-space: nowrap;
-}
-
 .hero .icon-button {
   width: 56px;
 }

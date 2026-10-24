@@ -86,6 +86,7 @@ describe('sanitizeProgress', () => {
       totalAnswered: 80,
       bestTimed: 340,
       hero: { bestScore: 900, bestStreak: 30, maxBpm: 110, hits: 200, misses: 20, perfects: 90 },
+      series: { bestMs: 47000, played: 6, won: 4, lost: 2 },
     }
     expect(sanitizeProgress(JSON.parse(JSON.stringify(progress)))).toEqual(progress)
   })
@@ -93,6 +94,15 @@ describe('sanitizeProgress', () => {
   it('sanitizes hero progress field by field', () => {
     const { hero } = sanitizeProgress({ hero: { bestScore: 50, maxBpm: -3, hits: 'x' } })
     expect(hero).toEqual({ ...EMPTY_PROGRESS.hero, bestScore: 50 })
+  })
+
+  it('sanitizes series progress field by field', () => {
+    const { series } = sanitizeProgress({ series: { bestMs: 52000, played: 'x', won: -1, lost: 2 } })
+    expect(series).toEqual({ bestMs: 52000, played: 0, won: 0, lost: 2 })
+  })
+
+  it('defaults series progress to zeros', () => {
+    expect(sanitizeProgress({}).series).toEqual({ bestMs: 0, played: 0, won: 0, lost: 0 })
   })
 
   it('loads progress saved before hero mode existed', () => {

@@ -59,6 +59,6 @@ export function burstConfetti(layer: HTMLElement): void {
   }
 }
 
-export function floatText(layer: HTMLElement, origin: Point, text: string): void {
-  spawn(layer, 'float-text', { left: `${origin.x}px`, top: `${origin.y}px` }, text)
+export function floatText(layer: HTMLElement, origin: Point, text: string, tone: 'good' | 'bad' = 'good'): void {
+  spawn(layer, tone === 'bad' ? 'float-text bad' : 'float-text', { left: `${origin.x}px`, top: `${origin.y}px` }, text)
 }

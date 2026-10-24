@@ -1,0 +1,222 @@
+.series-hud {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.series-timer {
+  display: inline-block;
+  font-size: 2rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.series-count {
+  min-width: 5ch;
+  color: var(--ink-dim);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.series-count,
+.series-count-balance {
+  min-width: 5ch;
+}
+
+.progress {
+  flex-basis: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--card-raised);
+  overflow: hidden;
+}
+
+.progress-fill {
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.15s;
+}
+
+.float-text.bad {
+  color: var(--error);
+}
+
+.overlay {
+  overflow-y: auto;
+}
+
+.series-end {
+  box-sizing: border-box;
+  width: min(92%, 440px);
+}
+
+.series-total {
+  font-size: 3.2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.result-strip {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+  margin: 10px 0 6px;
+}
+
+.cell {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  animation: cell-pop 0.25s ease-out backwards;
+  animation-delay: calc(var(--i) * 30ms + 200ms);
+}
+
+.cell.ok {
+  background: var(--success);
+}
+
+.cell.ko {
+  background: var(--error);
+}
+
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.result-actions .primary,
+.segment-button {
+  min-height: 56px;
+  padding: 0 20px;
+  border-radius: 14px;
+  font-weight: 700;
+}
+
+.segment-button {
+  background: var(--card-raised);
+}
+
+.verdict {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.verdict.win {
+  color: var(--success);
+  text-shadow: 0 0 18px var(--success);
+  animation: glow 1.2s ease-in-out infinite alternate;
+}
+
+.verdict.lose {
+  color: var(--error);
+}
+
+.series-end.lose {
+  animation: shake 0.4s;
+}
+
+.challenge-intro {
+  justify-content: center;
+  text-align: center;
+}
+
+.challenge-headline {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.chip {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--card-raised);
+  color: var(--ink-dim);
+}
+
+.big {
+  min-height: 72px;
+  font-size: 1.3rem;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 96px);
+  transform: translateX(-50%);
+  z-index: 30;
+  padding: 12px 22px;
+  border-radius: 999px;
+  background: var(--card-raised);
+  font-weight: 700;
+  animation: toast 1.6s ease-in-out forwards;
+}
+
+@keyframes cell-pop {
+  from {
+    transform: scale(0);
+  }
+  70% {
+    transform: scale(1.3);
+  }
+}
+
+@keyframes glow {
+  from {
+    text-shadow: 0 0 6px var(--success);
+  }
+  to {
+    text-shadow: 0 0 26px var(--success);
+  }
+}
+
+@keyframes toast {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  15%,
+  80% {
+    opacity: 1;
+  }
+}
+
+.series-timer.shake {
+  animation: shake 0.4s;
+}
+
+@media (max-height: 500px) {
+  .series-end {
+    padding: 12px 24px;
+  }
+
+  .series-total {
+    font-size: 2.2rem;
+  }
+
+  .result-strip {
+    margin: 4px 0;
+  }
+
+  .result-actions {
+    margin-top: 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell,
+  .verdict.win,
+  .series-end.lose,
+  .series-timer.shake {
+    animation: none;
+  }
+}

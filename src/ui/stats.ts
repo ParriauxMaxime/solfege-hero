@@ -1,5 +1,6 @@
 import { accuracy, promptId } from '../game/sampler'
 import { CLEFS, PITCH_CLASS_NAMES, pitchClass, pitchesInRange, type Clef } from '../music/notes'
+import { formatTime } from '../series/share'
 import type { Progress } from '../storage'
 import { button, el } from './dom'
 
@@ -42,6 +43,22 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
     )
   }
 
+  function seriesSection(series: Progress['series']): HTMLElement {
+    return el(
+      'div',
+      'clef-section',
+      el('h2', '', 'Séries'),
+      el(
+        'div',
+        'summary',
+        summary('meilleur temps', series.bestMs > 0 ? formatTime(series.bestMs) : '–'),
+        summary('séries jouées', series.played),
+        summary('défis gagnés', series.won),
+        summary('défis perdus', series.lost),
+      ),
+    )
+  }
+
   function pitchRow(progress: Progress, clef: Clef, pitch: number): HTMLElement {
     const record = progress.notes[promptId({ clef, pitch })]
     const ratio = accuracy(record)
@@ -75,6 +92,7 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
         summary('meilleur 60 s', progress.bestTimed),
       ),
       heroSection(progress.hero),
+      seriesSection(progress.series),
       ...CLEFS.filter((clef) => hasData(progress, clef)).map((clef) => clefSection(progress, clef)),
       el(
         'div',
