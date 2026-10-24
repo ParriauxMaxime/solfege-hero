@@ -1,7 +1,7 @@
 import type { Score } from '../hero/types'
 import { toMusicXml } from '../music/musicxmlExport'
 import { copyText } from '../platform/clipboard'
-import { MAX_LINK_BLOB, encodeScoreBlob, scoreLinkHash } from '../scores/link'
+import { encodeScoreBlob, scoreLinkHash } from '../scores/link'
 import { showToast } from './toast'
 
 const MUSICXML_TYPE = 'application/vnd.recordare.musicxml+xml'
@@ -26,7 +26,7 @@ export async function shareOrCopy(text: string): Promise<void> {
       if (isAbort(error)) return
     }
   }
-  showToast((await copyText(text)) ? 'Copié !' : 'Copie impossible')
+  showToast((await copyText(text)) ? 'Copié !' : 'Copie impossible')
 }
 
 export function downloadScoreFile(score: ShareableScore): void {
@@ -41,7 +41,7 @@ export function downloadScoreFile(score: ShareableScore): void {
 /** Link to open the score in the app, or null when it is too long to fit in a URL. */
 export async function scoreLink(score: ShareableScore, timeS: number | null = null): Promise<string | null> {
   const blob = await encodeScoreBlob(score)
-  if (blob.length > MAX_LINK_BLOB) return null
+  if (blob === null) return null
   const challenge = timeS === null ? '' : `&t=${timeS}`
   return `${location.origin}${location.pathname}#${scoreLinkHash(blob)}${challenge}`
 }

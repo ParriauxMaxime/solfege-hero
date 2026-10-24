@@ -104,7 +104,7 @@ export function startApp(root: HTMLElement): void {
     }
     activeHero?.pause()
     const releaseClock = activeSeries?.hold()
-    void confirmOverlay(root, 'Abandonner la partie en cours ?', 'Abandonner', 'Continuer').then((abandon) => {
+    void confirmOverlay(root, 'Abandonner la partie en cours ?', 'Abandonner', 'Continuer').then((abandon) => {
       if (abandon) open()
       else releaseClock?.()
     })
@@ -205,15 +205,15 @@ export function startApp(root: HTMLElement): void {
       createLibrary({
         library: scoreLibrary,
         onPlayHero: playScore,
-        onPlaySeries: (score) => void showSeries({ kind: 'score', scoreId: score.id }, null),
+        onPlaySeries: (score) => void showSeries({ kind: 'score', scoreId: score.id }, null, true),
       }),
       true,
     )
   }
 
-  function playScore(score: Score): void {
+  function playScore(score: Score, fromLibrary = true): void {
     changeSettings({ heroMelody: score.name, heroTempo: score.tempo })
-    playHero(score)
+    playHero(score, fromLibrary)
   }
 
   function showLearn(): void {
@@ -222,10 +222,10 @@ export function startApp(root: HTMLElement): void {
   }
 
   function showHeroStart(): void {
-    show(createHeroStart({ settings, library: scoreLibrary, onChange: changeSettings, onPlay: playHero }), true)
+    show(createHeroStart({ settings, library: scoreLibrary, onChange: changeSettings, onPlay: (melody) => playHero(melody) }), true)
   }
 
-  function playHero(melody: Melody | null): void {
+  function playHero(melody: Melody | null, fromLibrary = false): void {
     const hero = createHero({
       settings,
       progress,
@@ -234,15 +234,16 @@ export function startApp(root: HTMLElement): void {
       isMuted: () => settings.muted,
       onToggleMute: toggleMute,
       onProgress: changeProgress,
-      onQuit: showHeroStart,
-      onReplay: () => playHero(melody),
-      onHome: goHome,
+      onQuit: fromLibrary ? showLibrary : showHeroStart,
+      onReplay: () => playHero(melody, fromLibrary),
+      onHome: fromLibrary ? showLibrary : goHome,
+      homeLabel: fromLibrary ? 'Partitions' : 'Accueil',
     })
     show(hero.element, false, hero)
     activeHero = hero
   }
 
-  async function showSeries(config: SeriesConfig, against: ChallengeTarget | null): Promise<void> {
+  async function showSeries(config: SeriesConfig, against: ChallengeTarget | null, fromLibrary = false): Promise<void> {
     let items: SeriesItem[]
     let score: Score | null = null
     if (config.kind === 'score') {
@@ -264,9 +265,10 @@ export function startApp(root: HTMLElement): void {
       progress,
       sound,
       onProgress: changeProgress,
-      onReplay: () => void showSeries(config.kind === 'score' ? config : freshSeriesConfig(), null),
-      onRetry: () => void showSeries(config, against),
-      onHome: goHome,
+      onReplay: () => void showSeries(config.kind === 'score' ? config : freshSeriesConfig(), null, fromLibrary),
+      onRetry: () => void showSeries(config, against, fromLibrary),
+      onHome: fromLibrary ? showLibrary : goHome,
+      homeLabel: fromLibrary ? 'Partitions' : 'Accueil',
     })
     show(series.element, true, series)
     activeSeries = series
@@ -292,7 +294,7 @@ export function startApp(root: HTMLElement): void {
     }
     const { timeS } = link
     if (timeS === null) {
-      const play = async () => playScore((await addScoreIfNew(score)).stored)
+      const play = async () => playScore((await addScoreIfNew(score)).stored, false)
       const add = async () => showToast((await addScoreIfNew(score)).added ? 'Ajoutée à ta bibliothèque' : 'Déjà dans ta bibliothèque')
       show(createScoreReceived({ score, onAdd: () => void add(), onPlay: () => void play() }), true)
       return

@@ -45,7 +45,7 @@ export function createScoreChallengeIntro({ score, timeS, onStart }: ScoreChalle
     'section',
     'screen panel challenge-intro',
     el('h1', '', 'Défi'),
-    el('p', 'challenge-headline', `Ton ami a fait ${formatTenths(timeS * 1000)} sur « ${score.name} », à toi !`),
+    el('p', 'challenge-headline', `Ton ami a fait ${formatTenths(timeS * 1000)} sur « ${score.name} », à toi !`),
     el('div', 'chips', ...describeScore(score).map((chip) => el('span', 'chip', chip))),
     button('primary big', 'Commencer', onStart),
   )

@@ -1,9 +1,22 @@
 import { describe, expect, it } from 'vitest'
 import type { Duration, NoteSpec } from '../hero/types'
 import { scoreId } from '../music/musicxml'
-import { decodeScoreBlob, encodeScoreBlob, MAX_LINK_BLOB, parseScoreHash, scoreLinkHash } from './link'
+import {
+  decodeScoreBlob,
+  encodeScoreBlob,
+  MAX_LINK_BLOB,
+  MAX_LINK_NOTES,
+  parseScoreHash,
+  scoreLinkHash,
+} from './link'
 
 const TRIPLET = 2 / 3
+
+async function encode(score: Parameters<typeof encodeScoreBlob>[0]): Promise<string> {
+  const blob = await encodeScoreBlob(score)
+  if (blob === null) throw new Error('score too long for a link')
+  return blob
+}
 
 const fixture = {
   name: 'Valse de test',
@@ -39,7 +52,7 @@ function randomScore(count: number) {
 
 describe('score blob', () => {
   it('round-trips a score with dots, tuplets and rests', async () => {
-    const decoded = await decodeScoreBlob(await encodeScoreBlob(fixture))
+    const decoded = await decodeScoreBlob(await encode(fixture))
     expect(decoded).not.toBeNull()
     expect(decoded).toMatchObject({
       name: fixture.name,
@@ -61,7 +74,7 @@ describe('score blob', () => {
   })
 
   it('uses only url-safe characters', async () => {
-    expect(await encodeScoreBlob(fixture)).toMatch(/^[A-Za-z0-9_-]+$/)
+    expect(await encode(fixture)).toMatch(/^[A-Za-z0-9_-]+$/)
   })
 
   it('returns null on junk', async () => {
@@ -71,19 +84,36 @@ describe('score blob', () => {
   })
 
   it('rejects a well-formed blob holding an invalid score', async () => {
-    const blob = await encodeScoreBlob({ ...fixture, notes: [{ pitch: null, duration: 'quarter' }] })
+    const blob = await encode({ ...fixture, notes: [{ pitch: null, duration: 'quarter' }] })
     expect(await decodeScoreBlob(blob)).toBeNull()
   })
 
   it('clamps the tempo and falls back to a default name', async () => {
-    const decoded = await decodeScoreBlob(await encodeScoreBlob({ ...fixture, name: '  ', tempo: 400 }))
+    const decoded = await decodeScoreBlob(await encode({ ...fixture, name: '  ', tempo: 400 }))
     expect(decoded).toMatchObject({ name: 'Sans titre', tempo: 200 })
   })
 
   it('keeps a 200-note score under the link limit', async () => {
-    const blob = await encodeScoreBlob(randomScore(200))
+    const blob = await encode(randomScore(200))
     expect(blob.length).toBeLessThan(MAX_LINK_BLOB)
     expect((await decodeScoreBlob(blob))?.notes).toHaveLength(200)
+  })
+
+  it('refuses to encode more notes than the receiver accepts', async () => {
+    expect(await encodeScoreBlob(randomScore(MAX_LINK_NOTES + 1))).toBeNull()
+    expect(await encodeScoreBlob(randomScore(3600))).toBeNull()
+  })
+
+  it('refuses to encode a blob longer than the link limit', async () => {
+    const messy = randomScore(1500)
+    const notes = messy.notes.map((spec, index) => ({ ...spec, beats: 0.1 + ((index * 7919) % 9973) / 1000 }))
+    expect(await encodeScoreBlob({ ...messy, notes })).toBeNull()
+  })
+
+  it('accepts at the receiver what the sender can produce', async () => {
+    const blob = await encode(randomScore(600))
+    expect(blob.length).toBeLessThanOrEqual(MAX_LINK_BLOB)
+    expect((await decodeScoreBlob(blob))?.notes).toHaveLength(600)
   })
 })
 
@@ -94,9 +124,14 @@ describe('score hash', () => {
     expect(parseScoreHash('#score=abc&t=12.3')).toEqual({ blob: 'abc', timeS: 12.3 })
   })
 
-  it('rejects other hashes', () => {
+  it('ignores hashes without a score key', () => {
     expect(parseScoreHash('')).toBeNull()
     expect(parseScoreHash('#s=1234&c=sol')).toBeNull()
-    expect(parseScoreHash('#score=a b')).toBeNull()
+  })
+
+  it('returns an empty blob for an empty or garbage score value', () => {
+    expect(parseScoreHash('#score=')).toEqual({ blob: '', timeS: null })
+    expect(parseScoreHash('#score=a b')).toEqual({ blob: '', timeS: null })
+    expect(parseScoreHash('#score=%E2%9C%93&t=9')).toEqual({ blob: '', timeS: 9 })
   })
 })

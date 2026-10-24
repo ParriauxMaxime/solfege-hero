@@ -49,6 +49,8 @@ export interface SeriesOptions {
   onReplay: () => void
   onRetry: () => void
   onHome: () => void
+  /** "Accueil", or "Partitions" when the run started from the library. */
+  homeLabel: string
 }
 
 export interface Series {
@@ -78,6 +80,7 @@ export function createSeries({
   onReplay,
   onRetry,
   onHome,
+  homeLabel,
 }: SeriesOptions): Series {
   let progress = initialProgress
   let run: SeriesRun = INITIAL_RUN
@@ -243,7 +246,7 @@ export function createSeries({
   async function shareScoreChallenge(outcome: Outcome, shared: Score): Promise<void> {
     const url = await scoreLink(shared, challengeTimeS(outcome.totalMs))
     if (!url) {
-      showToast("Partition trop longue : partage d'abord le fichier")
+      showToast("Partition trop longue : partage d'abord le fichier")
       downloadScoreFile(shared)
       return
     }
@@ -280,7 +283,7 @@ export function createSeries({
     if (beaten) {
       sound.milestone()
       burstConfetti(effectsLayer)
-      return el('p', 'verdict win', 'Gagné !')
+      return el('p', 'verdict win', 'Gagné !')
     }
     return el('p', 'verdict lose', `Perdu… à ${formatTenths(outcome.totalMs - challenge.timeS * 1000)} près`)
   }
@@ -297,8 +300,8 @@ export function createSeries({
 
   function recordLine(outcome: Outcome, beaten: boolean | null): HTMLElement {
     const subject = config.kind === 'score' ? ' pour cette partition' : ''
-    if (outcome.record && beaten !== false) return el('p', 'result-record', `Nouveau record${subject} !`)
-    return el('p', 'result-best', `Record${subject} : ${formatTime(outcome.best)}`)
+    if (outcome.record && beaten !== false) return el('p', 'result-record', `Nouveau record${subject} !`)
+    return el('p', 'result-best', `Record${subject} : ${formatTenths(outcome.best)}`)
   }
 
   function endOverlay(outcome: Outcome, beaten: boolean | null): HTMLElement {
@@ -319,12 +322,12 @@ export function createSeries({
       ? [
           button('primary', 'Partager mon résultat', () => void share(outcome)),
           button('segment-button', 'Réessayer ce défi', onRetry),
-          button('segment-button', 'Accueil', onHome),
+          button('segment-button', homeLabel, onHome),
         ]
       : [
           button('primary', 'Défier un ami', () => void share(outcome)),
           button('segment-button', 'Rejouer', onReplay),
-          button('segment-button', 'Accueil', onHome),
+          button('segment-button', homeLabel, onHome),
         ]
     const card = el(
       'div',

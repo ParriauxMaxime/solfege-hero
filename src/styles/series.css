@@ -80,15 +80,18 @@
 
 .result-actions {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: stretch;
+  flex-direction: column;
+  align-self: stretch;
   gap: 8px;
   margin-top: 12px;
 }
 
 .result-actions > * {
   padding: 0 20px;
+}
+
+.result p {
+  text-wrap: balance;
 }
 
 .segment-button,

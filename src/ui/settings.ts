@@ -49,7 +49,7 @@ const KEYBOARD_SPAN_CHOICES: Choice<KeyboardSpan>[] = [
 ]
 const EXPORT_FILE = 'solfege-progress.json'
 const ACTION_ROW = 'settings-row action-row'
-const KEY_NAMES_HINT = 'Désactivé : touches sans nom, pour les habitués'
+const KEY_NAMES_HINT = 'Désactivé : touches sans nom, pour les habitués'
 
 export function createSettingsScreen({ settings: initial, sound, getProgress, onChange, onReset, onImport, onBack }: SettingsOptions): HTMLElement {
   let settings = initial
@@ -77,7 +77,7 @@ export function createSettingsScreen({ settings: initial, sound, getProgress, on
 
   function toggleKeyNames(next: boolean): void {
     update({ keyNames: next })
-    if (!next) showToast('Touches sans nom : repère-toi au clavier')
+    if (!next) showToast('Touches sans nom : repère-toi au clavier')
   }
 
   function toggleRow(label: string, key: BooleanKey, hint = ''): HTMLElement {
@@ -167,13 +167,13 @@ export function createSettingsScreen({ settings: initial, sound, getProgress, on
         onImport(imported)
         render()
       }
-      showToast(imported ? 'Importé !' : 'Fichier invalide')
+      showToast(imported ? 'Importé !' : 'Fichier invalide')
     })
     return el('div', 'settings-actions', button('segment-button', 'Importer', () => input.click()), input)
   }
 
   function resetProgress(): void {
-    if (!confirm('Effacer toute la progression ?')) return
+    if (!confirm('Effacer toute la progression ?')) return
     onReset()
     showToast('Statistiques réinitialisées')
   }

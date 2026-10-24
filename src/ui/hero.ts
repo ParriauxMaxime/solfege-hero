@@ -38,6 +38,8 @@ export interface HeroOptions {
   onQuit: () => void
   onReplay: () => void
   onHome: () => void
+  /** "Accueil", or "Partitions" when the run started from the library. */
+  homeLabel: string
 }
 
 export interface Hero {
@@ -57,6 +59,7 @@ export function createHero({
   onQuit,
   onReplay,
   onHome,
+  homeLabel,
 }: HeroOptions): Hero {
   const clef: Clef = melody?.clef ?? (settings.clefs[Math.floor(Math.random() * settings.clefs.length)] as Clef)
   const fifths = melody ? melody.key : settings.accidentals ? randomKey() : 0
@@ -295,7 +298,7 @@ export function createHero({
     frozenBeat = nowBeat
     const judgedCount = sessionHits + sessionMisses
     const perfectRatio = judgedCount > 0 ? `${Math.round((sessionPerfects / judgedCount) * 100)} %` : '–'
-    const stat = (label: string, value: string | number) => el('p', 'result-best', `${label} : ${value}`)
+    const stat = (label: string, value: string | number) => el('p', 'result-best', `${label} : ${value}`)
     element.append(
       el(
         'div',
@@ -309,7 +312,7 @@ export function createHero({
           stat('Parfaits', perfectRatio),
           stat('Réussies', sessionHits),
           stat('Ratées', sessionMisses),
-          el('div', 'result-actions', button('primary', 'Rejouer', onReplay), button('segment-button', 'Accueil', onHome)),
+          el('div', 'result-actions', button('primary', 'Rejouer', onReplay), button('segment-button', homeLabel, onHome)),
         ),
       ),
     )
@@ -325,7 +328,7 @@ export function createHero({
         return
       }
       quitArmed = true
-      quit.textContent = 'Vraiment quitter ?'
+      quit.textContent = 'Vraiment quitter ?'
       window.setTimeout(() => {
         quitArmed = false
         quit.textContent = 'Quitter'

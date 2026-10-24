@@ -3,6 +3,7 @@ import { CLEFS, type Clef } from '../music/notes'
 import type { Duration, NoteSpec, Score } from '../hero/types'
 
 export const MAX_LINK_BLOB = 6000
+export const MAX_LINK_NOTES = 2000
 
 type EncodableScore = Pick<Score, 'name' | 'clef' | 'key' | 'tempo' | 'timeSignature' | 'notes'>
 type DecodedScore = Omit<Score, 'source' | 'importedAt'>
@@ -10,7 +11,6 @@ type DecodedScore = Omit<Score, 'source' | 'importedAt'>
 const DURATION_CODES: readonly Duration[] = ['whole', 'half', 'quarter', 'eighth', 'sixteenth']
 const REST_CODE = -1
 const MAX_NAME_LENGTH = 80
-const MAX_NOTES = 2000
 const MAX_FIFTHS = 7
 const MIN_TEMPO = 40
 const MAX_TEMPO = 200
@@ -57,7 +57,9 @@ function fromBase64Url(blob: string): Uint8Array {
   return Uint8Array.from(binary, (char) => char.charCodeAt(0))
 }
 
-export async function encodeScoreBlob(score: EncodableScore): Promise<string> {
+/** Null when the score is too long to travel in a link. */
+export async function encodeScoreBlob(score: EncodableScore): Promise<string | null> {
+  if (score.notes.length > MAX_LINK_NOTES) return null
   const compact: Compact = {
     n: score.name,
     c: CLEFS.indexOf(score.clef),
@@ -67,7 +69,8 @@ export async function encodeScoreBlob(score: EncodableScore): Promise<string> {
     p: score.notes.map(compactNote),
   }
   const json = new TextEncoder().encode(JSON.stringify(compact))
-  return toBase64Url(await transform(json, new CompressionStream('deflate-raw')))
+  const blob = toBase64Url(await transform(json, new CompressionStream('deflate-raw')))
+  return blob.length > MAX_LINK_BLOB ? null : blob
 }
 
 function integerIn(value: unknown, min: number, max: number): number | null {
@@ -95,7 +98,7 @@ function sanitize(value: unknown): DecodedScore | null {
   const timeBeats = integerIn(beats, 1, MAX_TIME_BEATS)
   const timeBeatType = typeof beatType === 'number' && BEAT_TYPES.includes(beatType) ? beatType : null
   if (!clef || key === null || tempo === null || timeBeats === null || timeBeatType === null) return null
-  if (!Array.isArray(compact.p) || compact.p.length === 0 || compact.p.length > MAX_NOTES) return null
+  if (!Array.isArray(compact.p) || compact.p.length === 0 || compact.p.length > MAX_LINK_NOTES) return null
 
   const notes = compact.p.map(readNote)
   if (notes.some((note) => note === null)) return null
@@ -128,8 +131,9 @@ export function scoreLinkHash(blob: string): string {
 
 export function parseScoreHash(hash: string): { blob: string; timeS: number | null } | null {
   const params = new URLSearchParams(hash.replace(/^#/, ''))
-  const blob = params.get('score')
-  if (!blob || !/^[A-Za-z0-9_-]+$/.test(blob)) return null
+  const value = params.get('score')
+  if (value === null) return null
+  const blob = /^[A-Za-z0-9_-]+$/.test(value) ? value : ''
   const timeS = Number.parseFloat(params.get('t') ?? '')
   return { blob, timeS: timeS > 0 ? timeS : null }
 }

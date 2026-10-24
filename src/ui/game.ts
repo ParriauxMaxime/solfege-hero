@@ -121,7 +121,7 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
         el('h2', '', 'Temps écoulé'),
         el('p', 'result-score', String(score.correct)),
         el('p', '', score.correct > 1 ? 'bonnes réponses' : 'bonne réponse'),
-        el('p', record ? 'result-record' : 'result-best', record ? 'Nouveau record !' : `Record : ${progress.bestTimed}`),
+        el('p', record ? 'result-record' : 'result-best', record ? 'Nouveau record !' : `Record : ${progress.bestTimed}`),
         button('primary', 'Rejouer', () => {
           overlay.remove()
           startRound()
@@ -170,7 +170,7 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
       noteHead.classList.add('pop')
       const origin = centerOf(noteHead)
       burstParticles(effectsLayer, origin)
-      floatText(effectsLayer, origin, speedFactor > 1 ? `+${gained} ×${speedFactor} rapide !` : `+${gained}`)
+      floatText(effectsLayer, origin, speedFactor > 1 ? `+${gained} ×${speedFactor} rapide !` : `+${gained}`)
     }
     if (milestone !== null) {
       sound.milestone()

@@ -1,6 +1,6 @@
 import { accuracy, promptId } from '../game/sampler'
 import { CLEFS, PITCH_CLASS_NAMES, pitchClass, pitchesInRange, type Clef } from '../music/notes'
-import { formatTime } from '../series/share'
+import { formatTenths } from '../series/share'
 import type { Progress } from '../storage'
 import { button, el } from './dom'
 
@@ -52,7 +52,7 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
       el(
         'div',
         'summary',
-        summary('meilleur temps', series.bestMs > 0 ? formatTime(series.bestMs) : '–'),
+        summary('meilleur temps', series.bestMs > 0 ? formatTenths(series.bestMs) : '–'),
         summary('séries jouées', series.played),
         summary('défis gagnés', series.won),
         summary('défis perdus', series.lost),
@@ -99,7 +99,7 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
         'div',
         'actions sticky-actions',
         button('danger', 'Réinitialiser', () => {
-          if (confirm('Effacer toute la progression ?')) render(onReset())
+          if (confirm('Effacer toute la progression ?')) render(onReset())
         }),
         button('primary', 'Retour', onBack),
       ),

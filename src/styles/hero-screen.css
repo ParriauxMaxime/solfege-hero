@@ -12,7 +12,8 @@
 }
 
 @media (orientation: landscape) {
-  .hero {
+  .hero,
+  .game.hero:has(.answers.wide) {
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -34,7 +35,11 @@
 
   .hero .answers {
     flex: none;
-    height: min(calc(var(--key-h) * 2 + 6px), 118px);
+    height: calc(56px * 2 + 6px);
+  }
+
+  .hero .answers .answer {
+    min-height: 56px;
   }
 }
 

@@ -78,7 +78,8 @@ const DOT_GAP = 6
 const DIGIT_WIDTH = 20
 const DIGIT_FONT_SIZE = 34
 const DIGIT_BASELINE_LIFT = 4
-const TIME_SIGNATURE_GAP = 8
+const TIME_SIGNATURE_LEAD = 10
+const TIME_SIGNATURE_GAP = 12
 const QUARTER_REST_PATH ='M-4 -16 L3 -9 L-3 -1 L4 7 C-4 8 -5 14 2 18'
 
 export function stepY(step: number): number {
@@ -254,13 +255,17 @@ export function dotsStartX(fill: HeadFill): number {
   return STEM_OFFSET[fill] + DOT_GAP
 }
 
-export function timeSignatureWidth(time: TimeSignature): number {
-  return Math.max(String(time.beats).length, String(time.beatType).length) * DIGIT_WIDTH + TIME_SIGNATURE_GAP
+function digitsWidth(time: TimeSignature): number {
+  return Math.max(String(time.beats).length, String(time.beatType).length) * DIGIT_WIDTH
 }
 
-/** Two stacked bold digits, `x` being the left edge. */
+export function timeSignatureWidth(time: TimeSignature): number {
+  return TIME_SIGNATURE_LEAD + digitsWidth(time) + TIME_SIGNATURE_GAP
+}
+
+/** Two stacked bold digits, `x` being the left edge of the space reserved before them. */
 export function timeSignatureGlyph(time: TimeSignature, x: number): SVGGElement {
-  const centre = x + (timeSignatureWidth(time) - TIME_SIGNATURE_GAP) / 2
+  const centre = x + TIME_SIGNATURE_LEAD + digitsWidth(time) / 2
   const group = svgElement('g', {
     fill: 'currentColor',
     stroke: 'none',

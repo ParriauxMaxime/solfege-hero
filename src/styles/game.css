@@ -167,10 +167,14 @@
 
 @media (orientation: portrait) {
   .answers {
-    gap: 6px 3px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: none;
+    gap: 6px;
   }
 
   .answer {
+    grid-row: auto;
+    grid-column: auto;
     min-height: max(var(--key-h), 64px);
     font-size: min(var(--key-font), 0.9rem);
   }

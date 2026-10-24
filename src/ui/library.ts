@@ -66,7 +66,7 @@ export function createLibrary({ library, onPlayHero, onPlaySeries }: LibraryOpti
         return
       }
       await library.add(score, 'file')
-      showToast(`Partition ajoutée : ${score.name}`)
+      showToast(`Partition ajoutée : ${score.name}`)
       showWarnings(warnings)
       await renderList()
     } catch (error) {
@@ -85,7 +85,7 @@ export function createLibrary({ library, onPlayHero, onPlaySeries }: LibraryOpti
   }
 
   async function remove(score: Score): Promise<void> {
-    if (!(await confirmOverlay(element, `Supprimer « ${score.name} » ?`, 'Supprimer', 'Annuler'))) return
+    if (!(await confirmOverlay(element, `Supprimer « ${score.name} » ?`, 'Supprimer', 'Annuler'))) return
     await library.remove(score.id)
     await renderList()
   }
