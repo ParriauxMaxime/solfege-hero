@@ -32,12 +32,8 @@
     pointer-events: auto;
   }
 
-  .hero .hud .multiplier {
+  .hero .hud .hud-score {
     margin-right: auto;
-  }
-
-  .hero .hero-staff {
-    margin-top: 56px;
   }
 
   .hero .answers {

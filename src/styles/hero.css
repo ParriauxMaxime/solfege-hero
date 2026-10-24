@@ -1,5 +1,7 @@
-.hero-staff {
+.hero-staff-svg {
   display: block;
+  width: 100%;
+  height: 100%;
   color: var(--ink);
 }
 
@@ -20,15 +22,24 @@
 }
 
 .hero-miss-label {
-  display: none;
+  opacity: 0;
   fill: var(--error);
-  stroke: none;
-  font: 700 14px system-ui, sans-serif;
+  font: 700 18px system-ui, sans-serif;
   text-anchor: middle;
 }
 
-.hero-note.miss .hero-miss-label {
-  display: block;
+.hero-miss-label.shown {
+  animation: hero-miss-label 1.2s ease-out forwards;
+}
+
+@keyframes hero-miss-label {
+  0%,
+  60% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 @keyframes hero-hit-fade {

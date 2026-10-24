@@ -12,7 +12,7 @@ const CONFETTI_COUNT = 48
 
 export function restartAnimation(element: Element, className: string): void {
   element.classList.remove(className)
-  void (element as HTMLElement).offsetWidth
+  void element.getBoundingClientRect()
   element.classList.add(className)
 }
 

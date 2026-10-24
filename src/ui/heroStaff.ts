@@ -21,6 +21,7 @@ import {
   svgElement,
 } from './glyphs'
 import type { HeadFill } from './glyphs'
+import { restartAnimation } from './effects'
 
 export interface ScrollingStaff {
   element: SVGSVGElement
@@ -31,18 +32,22 @@ export interface ScrollingStaff {
   notePoint(id: number): DOMPoint | null
 }
 
-const VIEW_WIDTH = 570
-const VIEW_HEIGHT = 200
+const CONTENT_TOP = 0
+const CONTENT_BOTTOM = stepY(-4) + 16
+const CONTENT_HEIGHT = CONTENT_BOTTOM - CONTENT_TOP
 const HIT_X = 110
-const PX_PER_BEAT = 80
+const BEATS_AHEAD = 6
+const MIN_PX_PER_BEAT = 80
+const MIN_VIEW_WIDTH = HIT_X + BEATS_AHEAD * MIN_PX_PER_BEAT
 // Tighter than the single-note staff so an accidental never reaches back into the previous eighth.
 const ACCIDENTAL_OFFSET = -24
-const BAR_LINE_OFFSET = -PX_PER_BEAT * 0.4
+const BAR_LINE_OFFSET_BEATS = -0.4
 const CLIP_LEFT = 92
+const STAFF_LEFT = 8
 const OFFSCREEN_MARGIN = 40
 const HIT_BAND_HALF_WIDTH = 20
-const MISS_LABEL_RISE = 40
-const MISS_LABEL_MIN_Y = 14
+const HIT_BAND_INSET = 4
+const MISS_LABEL_Y = CONTENT_TOP + 22
 const CLIP_ID = 'hero-notes-clip'
 
 interface Entry {
@@ -90,10 +95,6 @@ function createKeyedLayer(parent: SVGElement): KeyedLayer {
   }
 }
 
-function beatToX(beat: number, nowBeat: number): number {
-  return HIT_X + (beat - nowBeat) * PX_PER_BEAT
-}
-
 function isBeamStart(first: HeroNote | undefined, second: HeroNote | undefined): boolean {
   return (
     first !== undefined &&
@@ -112,10 +113,9 @@ function createNoteGroup(
   previous: HeroNote | undefined,
   next: HeroNote | undefined,
   clef: Clef,
+  pxPerBeat: number,
 ): SVGGElement {
   const group = inkGroup({ class: 'hero-note' })
-  const label = svgElement('text', { class: 'hero-miss-label', y: MISS_LABEL_MIN_Y })
-  group.append(label)
   if (!hero.note) {
     group.append(quarterRest(0))
     return group
@@ -123,7 +123,6 @@ function createNoteGroup(
 
   const step = staffStep(hero.note, clef)
   const fill: HeadFill = hero.duration === 'whole' || hero.duration === 'half' ? 'hollow' : 'filled'
-  label.setAttribute('y', String(Math.max(MISS_LABEL_MIN_Y, stepY(Math.max(step, 8)) - MISS_LABEL_RISE)))
   group.append(...ledgerLines(step, 0))
   if (hero.note.alter !== 0) group.append(accidentalGlyph(hero.note.alter, ACCIDENTAL_OFFSET, step))
   group.append(noteHead(fill, 0, step))
@@ -143,39 +142,68 @@ function createNoteGroup(
   const tips = [stemTipY(step, up), stemTipY(staffStep(partner.note, clef), up)]
   const tipY = up ? Math.min(...tips) : Math.max(...tips)
   group.append(stem(fill, 0, step, up, tipY))
-  if (startsBeam) group.append(beam(stemX(fill, 0, up), stemX(fill, PX_PER_BEAT / 2, up), tipY, up))
+  if (startsBeam) group.append(beam(stemX(fill, 0, up), stemX(fill, pxPerBeat / 2, up), tipY, up))
   return group
 }
 
 export function createScrollingStaff(initialClef: Clef): ScrollingStaff {
   let clef = initialClef
+  let viewWidth = MIN_VIEW_WIDTH
+  let pxPerBeat = MIN_PX_PER_BEAT
   const svg = svgElement('svg', {
-    class: 'hero-staff',
-    viewBox: `0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`,
-    width: '100%',
-    preserveAspectRatio: 'xMidYMid meet',
+    class: 'hero-staff-svg',
+    viewBox: `0 ${CONTENT_TOP} ${viewWidth} ${CONTENT_HEIGHT}`,
+    preserveAspectRatio: 'xMinYMid meet',
     role: 'img',
     'aria-label': 'Portée défilante',
   })
+  const clipRect = svgElement('rect', { x: CLIP_LEFT })
   const clip = svgElement('clipPath', { id: CLIP_ID })
-  clip.append(svgElement('rect', { x: CLIP_LEFT, y: 0, width: VIEW_WIDTH - CLIP_LEFT, height: VIEW_HEIGHT }))
+  clip.append(clipRect)
   const hitZone = svgElement('rect', {
     class: 'hero-hit-zone',
     x: HIT_X - HIT_BAND_HALF_WIDTH,
-    y: 12,
+    y: CONTENT_TOP + HIT_BAND_INSET,
     width: HIT_BAND_HALF_WIDTH * 2,
-    height: VIEW_HEIGHT - 24,
+    height: CONTENT_HEIGHT - HIT_BAND_INSET * 2,
     rx: 10,
   })
+  let lines = staffLines(STAFF_LEFT, viewWidth)
   const clefHolder = svgElement('g', {})
   const scrolling = svgElement('g', { 'clip-path': `url(#${CLIP_ID})` })
   const barGroup = svgElement('g', { stroke: 'currentColor' })
   const noteGroup = svgElement('g', {})
   scrolling.append(barGroup, noteGroup)
-  svg.append(clip, hitZone, staffLines(8, VIEW_WIDTH), clefHolder, scrolling)
+  // Outside the clip: a note judged late has already slid under the clef.
+  const missLabel = svgElement('text', { class: 'hero-miss-label', x: HIT_X, y: MISS_LABEL_Y })
+  svg.append(clip, hitZone, lines, clefHolder, scrolling, missLabel)
 
   const bars = createKeyedLayer(barGroup)
   const notes = createKeyedLayer(noteGroup)
+
+  function layout(width: number, height: number): void {
+    const scale = Math.min(height / CONTENT_HEIGHT, width / MIN_VIEW_WIDTH)
+    viewWidth = width / scale
+    const viewHeight = height / scale
+    const top = CONTENT_TOP + (CONTENT_HEIGHT - viewHeight) / 2
+    svg.setAttribute('viewBox', `0 ${top} ${viewWidth} ${viewHeight}`)
+    clipRect.setAttribute('y', String(top))
+    clipRect.setAttribute('width', String(viewWidth - CLIP_LEFT))
+    clipRect.setAttribute('height', String(viewHeight))
+    const nextLines = staffLines(STAFF_LEFT, viewWidth)
+    lines.replaceWith(nextLines)
+    lines = nextLines
+    pxPerBeat = (viewWidth - HIT_X) / BEATS_AHEAD
+    notes.clear()
+  }
+
+  function beatToX(beat: number, nowBeat: number): number {
+    return HIT_X + (beat - nowBeat) * pxPerBeat
+  }
+
+  new ResizeObserver(() => {
+    if (svg.clientWidth > 0 && svg.clientHeight > 0) layout(svg.clientWidth, svg.clientHeight)
+  }).observe(svg)
 
   function setClef(value: Clef): void {
     clef = value
@@ -184,11 +212,11 @@ export function createScrollingStaff(initialClef: Clef): ScrollingStaff {
   }
 
   function renderBars(nowBeat: number, firstBarBeat: number): void {
-    const first = Math.max(0, Math.ceil((nowBeat - (HIT_X + OFFSCREEN_MARGIN) / PX_PER_BEAT - firstBarBeat) / BEATS_PER_BAR))
+    const first = Math.max(0, Math.ceil((nowBeat - (HIT_X + OFFSCREEN_MARGIN) / pxPerBeat - firstBarBeat) / BEATS_PER_BAR))
     bars.begin()
     for (let bar = first; ; bar++) {
-      const x = beatToX(firstBarBeat + bar * BEATS_PER_BAR, nowBeat) + BAR_LINE_OFFSET
-      if (x > VIEW_WIDTH + OFFSCREEN_MARGIN) break
+      const x = beatToX(firstBarBeat + bar * BEATS_PER_BAR, nowBeat) + BAR_LINE_OFFSET_BEATS * pxPerBeat
+      if (x > viewWidth + OFFSCREEN_MARGIN) break
       bars.place(bar, x, () => {
         const group = svgElement('g', {})
         group.append(barLine(0))
@@ -210,8 +238,8 @@ export function createScrollingStaff(initialClef: Clef): ScrollingStaff {
         const hero = heroNotes[i] as HeroNote
         const x = beatToX(hero.beat, nowBeat)
         if (x < -OFFSCREEN_MARGIN) continue
-        if (x > VIEW_WIDTH + OFFSCREEN_MARGIN) break
-        notes.place(hero.id, x, () => createNoteGroup(hero, heroNotes[i - 1], heroNotes[i + 1], clef))
+        if (x > viewWidth + OFFSCREEN_MARGIN) break
+        notes.place(hero.id, x, () => createNoteGroup(hero, heroNotes[i - 1], heroNotes[i + 1], clef, pxPerBeat))
       }
       notes.end()
     },
@@ -219,11 +247,9 @@ export function createScrollingStaff(initialClef: Clef): ScrollingStaff {
       notes.find(id)?.classList.add('hit')
     },
     markMiss(id, text) {
-      const group = notes.find(id)
-      if (!group) return
-      group.classList.add('miss')
-      const labelElement = group.querySelector('.hero-miss-label')
-      if (labelElement) labelElement.textContent = text
+      notes.find(id)?.classList.add('miss')
+      missLabel.textContent = text
+      restartAnimation(missLabel, 'shown')
     },
     notePoint(id) {
       const target = notes.find(id)?.querySelector('.staff-note-head') ?? notes.find(id)
