@@ -62,6 +62,7 @@ The Tailscale node needs `.env` with `TS_AUTHKEY` (copied from the `maisons` rep
 5. **Séries difficulty setting** 1–5, carried in the challenge link.
 6. **Score catalogue in the repo**: `public/scores/` with community PRs, index generated at build, shown in the library as built-in.
 7. **Octave-strict mode**: answer must be in the right octave, forces the 2-octave keyboard, stats per exact pitch.
-8. **Known small fixes**: Apprendre 60 s chrono keeps running during the "Abandonner ?" prompt; challenge links leave an extra history entry; Volume and Données rows stack oddly in portrait settings; hero portrait staff still small (3 beats ahead).
+8. **Demo video in the README**: `scripts/demo.mjs` records a ~20 s hero session at 844x390 with playwright (correct answers driven from the seed), ffmpeg makes `docs/demo.gif` (< 8 MB) and `docs/demo.mp4`, GIF at the top of the README with a home screenshot `docs/home.png`.
+9. **Known small fixes**: Apprendre 60 s chrono keeps running during the "Abandonner ?" prompt; challenge links leave an extra history entry; Volume and Données rows stack oddly in portrait settings; hero portrait staff still small (3 beats ahead).
 
 Agents never test on a real device: sound, vibration, install and PWA update are verified only by the owner on Android.
