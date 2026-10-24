@@ -1,6 +1,7 @@
 import { CLEFS, type Clef } from '../music/notes'
 import { exportData, importData, type KeySize, type Progress, type Settings, type Theme } from '../storage'
 import { button, el } from './dom'
+import type { KeyboardSpan } from './keyboardLayout'
 import { restartAnimation } from './effects'
 import { showToast } from './toast'
 
@@ -36,6 +37,11 @@ const KEY_SIZE_CHOICES: Choice<KeySize>[] = [
   { value: 'S', label: 'S' },
   { value: 'M', label: 'M' },
   { value: 'L', label: 'L' },
+]
+const KEYBOARD_SPAN_CHOICES: Choice<KeyboardSpan>[] = [
+  { value: 1, label: '1 octave' },
+  { value: 1.5, label: '1,5' },
+  { value: 2, label: '2 octaves' },
 ]
 const EXPORT_FILE = 'solfege-progress.json'
 const ACTION_ROW = 'settings-row action-row'
@@ -168,6 +174,11 @@ export function createSettingsScreen({ settings: initial, getProgress, onChange,
         toggleRow('Armures', 'accidentals'),
         row('Noms sur les touches', toggle(settings.keyNames, toggleKeyNames), KEY_NAMES_HINT),
         choiceRow('Notation', NAMINGS, settings.naming, (naming) => update({ naming })),
+        row(
+          'Clavier',
+          choiceControl(KEYBOARD_SPAN_CHOICES, (span) => span === settings.keyboardSpan, (keyboardSpan) => update({ keyboardSpan })),
+          'En paysage seulement',
+        ),
       ),
       section(
         'Affichage',

@@ -47,6 +47,7 @@ describe('sanitizeSettings', () => {
       colorblind: true,
       reducedMotion: true,
       keySize: 'L',
+      keyboardSpan: 1.5,
       vibration: false,
       volume: 0.35,
     }
@@ -70,6 +71,7 @@ describe('sanitizeSettings', () => {
     expect(
       sanitizeSettings({ naming: 'german', theme: 'sepia', keySize: 'XL', vibration: 'on' }),
     ).toMatchObject({ naming: 'latin', theme: 'dark', keySize: 'M', vibration: true })
+    expect(sanitizeSettings({ keyboardSpan: 3 }).keyboardSpan).toBe(1)
     expect(sanitizeSettings({ volume: 4 }).volume).toBe(1)
     expect(sanitizeSettings({ volume: -1 }).volume).toBe(0)
     expect(sanitizeSettings({ volume: 'loud' }).volume).toBe(0.8)

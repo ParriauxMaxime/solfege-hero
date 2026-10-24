@@ -54,7 +54,7 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
 
   const staffCard = el('div', 'staff-card')
   const feedback = el('div', 'feedback')
-  const pad = createAnswerPad(submitAnswer, settings.naming)
+  const pad = createAnswerPad(submitAnswer, settings.naming, settings.keyboardSpan)
   const flash = el('div', 'flash')
   const effectsLayer = el('div', 'effects-layer')
   const element = el('section', 'screen game', hud, staffCard, feedback, pad.element, flash, effectsLayer)

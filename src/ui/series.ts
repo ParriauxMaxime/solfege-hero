@@ -86,7 +86,7 @@ export function createSeries({
   const bar = el('div', 'progress-fill')
   const hud = el('div', 'hud series-hud', counter, timerValue, el('span', 'series-count-balance'), el('div', 'progress', bar))
   const staffCard = el('div', 'staff-card')
-  const pad = createAnswerPad(submitAnswer, settings.naming)
+  const pad = createAnswerPad(submitAnswer, settings.naming, settings.keyboardSpan)
   const flash = el('div', 'flash')
   const effectsLayer = el('div', 'effects-layer')
   const element = el('section', 'screen game series', hud, staffCard, pad.element, flash, effectsLayer)

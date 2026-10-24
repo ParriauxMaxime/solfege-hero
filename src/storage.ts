@@ -1,6 +1,7 @@
 import type { NoteRecord, NoteStats } from './game/sampler'
 import { START_BPM_MAX, START_BPM_MIN } from './hero/tempo'
 import { CLEFS, type Clef, type Naming } from './music/notes'
+import { KEYBOARD_SPANS, type KeyboardSpan } from './ui/keyboardLayout'
 
 export const NAMINGS: readonly Naming[] = ['latin', 'english']
 export const THEMES = ['dark', 'light', 'system'] as const
@@ -23,6 +24,7 @@ export interface Settings {
   colorblind: boolean
   reducedMotion: boolean
   keySize: KeySize
+  keyboardSpan: KeyboardSpan
   vibration: boolean
   volume: number
 }
@@ -41,6 +43,7 @@ export const DEFAULT_SETTINGS: Settings = {
   colorblind: false,
   reducedMotion: false,
   keySize: 'M',
+  keyboardSpan: 1,
   vibration: true,
   volume: 0.8,
 }
@@ -132,6 +135,7 @@ export function sanitizeSettings(raw: unknown): Settings {
     colorblind: booleanOr(stored.colorblind, DEFAULT_SETTINGS.colorblind),
     reducedMotion: booleanOr(stored.reducedMotion, DEFAULT_SETTINGS.reducedMotion),
     keySize: oneOf(KEY_SIZES, stored.keySize, DEFAULT_SETTINGS.keySize),
+    keyboardSpan: KEYBOARD_SPANS.find((span) => span === stored.keyboardSpan) ?? DEFAULT_SETTINGS.keyboardSpan,
     vibration: booleanOr(stored.vibration, DEFAULT_SETTINGS.vibration),
     volume: sanitizeVolume(stored.volume),
   }

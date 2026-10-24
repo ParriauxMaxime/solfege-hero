@@ -95,7 +95,7 @@ export function createHero({
   const hud = el('div', 'hud', el('div', 'hud-score', scoreValue), streak, multiplierValue, bpm, muteButton, pauseButton)
   const countIn = el('div', 'count-in')
   const staffArea = el('div', 'hero-staff', staff.element, countIn)
-  const pad = createAnswerPad(tap, settings.naming)
+  const pad = createAnswerPad(tap, settings.naming, settings.keyboardSpan)
   const flash = el('div', 'flash')
   const effectsLayer = el('div', 'effects-layer')
   const element = el('section', 'screen game hero', hud, staffArea, pad.element, flash, effectsLayer)

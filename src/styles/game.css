@@ -103,7 +103,7 @@
 
 .answers {
   display: grid;
-  grid-template-columns: repeat(14, 1fr);
+  grid-template-columns: repeat(var(--piano-columns, 14), minmax(0, 1fr));
   grid-template-rows: 1fr 1fr;
   gap: 6px 4px;
 }
@@ -165,16 +165,18 @@
   white-space: nowrap;
 }
 
-@media (orientation: portrait) and (max-width: 599px) {
+@media (orientation: portrait) {
   .answers {
-    grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: none;
-    gap: 6px;
+    gap: 6px 3px;
   }
 
   .answer {
-    grid-row: auto;
-    grid-column: auto;
+    min-height: max(var(--key-h), 64px);
+    font-size: min(var(--key-font), 0.9rem);
+  }
+
+  .answer.altered {
+    font-size: min(var(--key-font-alt), 0.62rem);
   }
 }
 
@@ -205,6 +207,20 @@
 
   .game .answers {
     grid-area: pad;
+  }
+
+  .game:has(.answers.wide) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'hud'
+      'staff'
+      'feedback'
+      'pad';
+  }
+
+  .answers.wide .answer {
+    min-height: min(var(--key-h), 18dvh);
   }
 }
 
