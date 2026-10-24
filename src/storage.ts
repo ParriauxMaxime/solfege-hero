@@ -2,6 +2,7 @@ import { INSTRUMENTS, type Instrument } from './audio/instruments'
 import type { NoteRecord, NoteStats } from './game/sampler'
 import { START_BPM_MAX, START_BPM_MIN } from './hero/tempo'
 import { CLEFS, type Clef, type Naming } from './music/notes'
+import { isDailyKey, type DailyKey } from './series/daily'
 import { KEYBOARD_SPANS, type KeyboardSpan } from './ui/keyboardLayout'
 
 export const NAMINGS: readonly Naming[] = ['latin', 'english']
@@ -70,6 +71,18 @@ export interface SeriesProgress {
   bestByScore: Record<string, number>
 }
 
+export interface DailyAttempt {
+  totalMs: number
+  results: boolean[]
+  penaltyMs: number
+}
+
+export interface DailyProgress {
+  /** The first attempt of each day, kept for the last 400 days. */
+  attempts: Record<DailyKey, DailyAttempt>
+  bestMs: number
+}
+
 export interface Progress {
   notes: NoteStats
   bestStreak: number
@@ -77,7 +90,13 @@ export interface Progress {
   bestTimed: number
   hero: HeroProgress
   series: SeriesProgress
+  daily: DailyProgress
 }
+
+const MAX_DAILY_ATTEMPTS = 400
+const MAX_DAILY_RESULTS = 100
+
+export const EMPTY_DAILY_PROGRESS: DailyProgress = { attempts: {}, bestMs: 0 }
 
 export const EMPTY_SERIES_PROGRESS: SeriesProgress = {
   bestMs: 0,
@@ -103,6 +122,7 @@ export const EMPTY_PROGRESS: Progress = {
   bestTimed: 0,
   hero: EMPTY_HERO_PROGRESS,
   series: EMPTY_SERIES_PROGRESS,
+  daily: EMPTY_DAILY_PROGRESS,
 }
 
 const SETTINGS_KEY = 'solfege.settings.v2'
@@ -219,6 +239,50 @@ export function recordScoreBest(progress: Progress, scoreId: string, totalMs: nu
   }
 }
 
+function sanitizeDailyAttempt(raw: unknown): DailyAttempt | null {
+  const { totalMs, penaltyMs, results } = asObject(raw)
+  if (!isNonNegative(totalMs) || !isNonNegative(penaltyMs)) return null
+  if (!Array.isArray(results) || results.length > MAX_DAILY_RESULTS) return null
+  if (!results.every((result) => typeof result === 'boolean')) return null
+  return { totalMs, penaltyMs, results: results as boolean[] }
+}
+
+function newestDays(attempts: Record<DailyKey, DailyAttempt>): Record<DailyKey, DailyAttempt> {
+  const kept = Object.keys(attempts).sort().slice(-MAX_DAILY_ATTEMPTS)
+  return Object.fromEntries(kept.map((key) => [key, attempts[key] as DailyAttempt]))
+}
+
+function sanitizeDailyProgress(raw: unknown): DailyProgress {
+  const stored = asObject(raw)
+  const attempts: Record<DailyKey, DailyAttempt> = {}
+  const entries = Array.isArray(stored.attempts) ? [] : Object.entries(asObject(stored.attempts))
+  for (const [key, value] of entries) {
+    const attempt = sanitizeDailyAttempt(value)
+    if (isDailyKey(key) && attempt) attempts[key] = attempt
+  }
+  return { attempts: newestDays(attempts), bestMs: nonNegativeOr(stored.bestMs, 0) }
+}
+
+/** Only the first attempt of a day counts; later ones leave the progress untouched. */
+export function recordDaily(
+  progress: Progress,
+  key: DailyKey,
+  attempt: DailyAttempt,
+): { progress: Progress; counted: boolean } {
+  if (progress.daily.attempts[key]) return { progress, counted: false }
+  const { bestMs } = progress.daily
+  return {
+    counted: true,
+    progress: {
+      ...progress,
+      daily: {
+        attempts: newestDays({ ...progress.daily.attempts, [key]: attempt }),
+        bestMs: bestMs === 0 || attempt.totalMs < bestMs ? attempt.totalMs : bestMs,
+      },
+    },
+  }
+}
+
 export function sanitizeProgress(raw: unknown): Progress {
   const stored = asObject(raw)
   const notes: NoteStats = {}
@@ -233,6 +297,7 @@ export function sanitizeProgress(raw: unknown): Progress {
     bestTimed: nonNegativeOr(stored.bestTimed, 0),
     hero: sanitizeHeroProgress(stored.hero),
     series: sanitizeSeriesProgress(stored.series),
+    daily: sanitizeDailyProgress(stored.daily),
   }
 }
 
@@ -275,7 +340,13 @@ export function resetProgress(): Progress {
   } catch {
     // nothing persisted, nothing to clear
   }
-  return { ...EMPTY_PROGRESS, notes: {}, hero: { ...EMPTY_HERO_PROGRESS }, series: { ...EMPTY_SERIES_PROGRESS } }
+  return {
+    ...EMPTY_PROGRESS,
+    notes: {},
+    hero: { ...EMPTY_HERO_PROGRESS },
+    series: { ...EMPTY_SERIES_PROGRESS },
+    daily: { attempts: {}, bestMs: 0 },
+  }
 }
 
 const EXPORT_APP = 'solfege'

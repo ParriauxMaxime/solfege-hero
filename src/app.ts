@@ -23,7 +23,9 @@ import { createHero, type Hero } from './ui/hero'
 import { createHeroStart } from './ui/heroStart'
 import { createHome, type HomeChoice } from './ui/home'
 import { createLibrary } from './ui/library'
-import { createSeries, type ChallengeTarget, type Series } from './ui/series'
+import { createSeries, type ChallengeTarget, type DailyRun, type Series } from './ui/series'
+import { createDailyIntro } from './ui/dailyIntro'
+import { dailyConfig, dailyKey, dailyLabel, parseDailyHash, type DailyKey } from './series/daily'
 import { isInstrumentPickerOpen } from './ui/instrumentPicker'
 import { createSettingsScreen } from './ui/settings'
 import { createStatsScreen } from './ui/stats'
@@ -78,7 +80,7 @@ export function startApp(root: HTMLElement): void {
 
   function onPopState(): void {
     if (isInstrumentPickerOpen()) return
-    if (parseChallenge(location.hash) || parseScoreHash(location.hash)) return
+    if (parseChallenge(location.hash) || parseScoreHash(location.hash) || parseDailyHash(location.hash)) return
     pushed = false
     if (activeHero) {
       activeHero.pause()
@@ -92,11 +94,13 @@ export function startApp(root: HTMLElement): void {
   function openLaunchChallenge(): boolean {
     const challenge = parseChallenge(location.hash)
     const scoreLink = challenge ? null : parseScoreHash(location.hash)
-    if (!challenge && !scoreLink) return false
+    const dailyLink = challenge || scoreLink ? null : parseDailyHash(location.hash)
+    if (!challenge && !scoreLink && !dailyLink) return false
     history.replaceState(null, '', location.pathname + location.search)
     const open = () => {
       if (challenge) showChallengeIntro(challenge)
       else if (scoreLink) void openScoreLink(scoreLink)
+      else if (dailyLink) showDailyIntro(dailyLink)
     }
     if (!running) {
       open()
@@ -185,7 +189,9 @@ export function startApp(root: HTMLElement): void {
   }
 
   function renderHome(): void {
+    const today = dailyKey(new Date())
     const home = createHome({
+      daily: { label: dailyLabel(today), attemptMs: progress.daily.attempts[today]?.totalMs ?? null },
       onChoose: (choice) => enterFromHome(() => choose(choice)),
       onSettings: () => enterFromHome(showSettings),
       onStats: () => enterFromHome(showStats),
@@ -197,6 +203,10 @@ export function startApp(root: HTMLElement): void {
     if (choice === 'apprendre') showLearn()
     else if (choice === 'series') void showSeries(freshSeriesConfig(), null)
     else if (choice === 'partitions') showLibrary()
+    else if (choice === 'daily') {
+      const today = dailyKey(new Date())
+      playDaily(today, true)
+    }
     else showHeroStart()
   }
 
@@ -243,7 +253,22 @@ export function startApp(root: HTMLElement): void {
     activeHero = hero
   }
 
-  async function showSeries(config: SeriesConfig, against: ChallengeTarget | null, fromLibrary = false): Promise<void> {
+  function playDaily(key: DailyKey, ranked: boolean): void {
+    void showSeries(dailyConfig(key), null, false, { key, ranked })
+  }
+
+  function showDailyIntro(key: DailyKey): void {
+    const ranked = key === dailyKey(new Date())
+    const attemptMs = progress.daily.attempts[key]?.totalMs ?? null
+    show(createDailyIntro({ key, ranked, attemptMs, onStart: () => playDaily(key, ranked) }), true)
+  }
+
+  async function showSeries(
+    config: SeriesConfig,
+    against: ChallengeTarget | null,
+    fromLibrary = false,
+    daily: DailyRun | null = null,
+  ): Promise<void> {
     let items: SeriesItem[]
     let score: Score | null = null
     if (config.kind === 'score') {
@@ -261,11 +286,15 @@ export function startApp(root: HTMLElement): void {
       config,
       items,
       score,
+      daily,
       challenge: against,
       progress,
       sound,
       onProgress: changeProgress,
-      onReplay: () => void showSeries(config.kind === 'score' ? config : freshSeriesConfig(), null, fromLibrary),
+      onReplay: () =>
+        daily
+          ? playDaily(daily.key, daily.ranked)
+          : void showSeries(config.kind === 'score' ? config : freshSeriesConfig(), null, fromLibrary),
       onRetry: () => void showSeries(config, against, fromLibrary),
       onHome: fromLibrary ? showLibrary : goHome,
       homeLabel: fromLibrary ? 'Partitions' : 'Accueil',

@@ -31,6 +31,8 @@ export function shareText(input: {
   penaltyMs: number
   url: string
   squares?: ShareSquares
+  /** Sentence before the link, "Bats-moi" by default. */
+  callToAction?: string
 }): string {
   const { ok, bad } = input.squares ?? DEFAULT_SQUARES
   const penalty = input.penaltyMs > 0 ? ` (+${input.penaltyMs / MS_PER_SECOND} s)` : ''
@@ -39,6 +41,6 @@ export function shareText(input: {
     `Solfège hero · ${input.title}`,
     input.results.map((result) => (result ? ok : bad)).join(''),
     `⏱ ${formatTenths(input.totalMs)}${penalty} · ${firstTry}/${input.results.length}`,
-    `Bats-moi : ${input.url}`,
+    `${input.callToAction ?? 'Bats-moi'} : ${input.url}`,
   ].join('\n')
 }

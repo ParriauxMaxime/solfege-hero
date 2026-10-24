@@ -19,7 +19,8 @@ import {
   type SeriesRun,
 } from '../series/series'
 import { COLORBLIND_SQUARES, formatTenths, formatTime, shareText } from '../series/share'
-import { recordScoreBest, type Progress, type Settings } from '../storage'
+import { type DailyKey, dailyLabel, dailyStreak, encodeDailyHash } from '../series/daily'
+import { recordDaily, recordScoreBest, type Progress, type Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
 import { button, el } from './dom'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
@@ -36,12 +37,20 @@ export interface ChallengeTarget {
   timeS: number | null
 }
 
+export interface DailyRun {
+  key: DailyKey
+  /** True when the key is today, so the first attempt can count. */
+  ranked: boolean
+}
+
 export interface SeriesOptions {
   settings: Settings
   config: SeriesConfig
   items: SeriesItem[]
   /** The score being played; null for random series. */
   score: Score | null
+  /** Set when playing a daily challenge. */
+  daily: DailyRun | null
   challenge: ChallengeTarget | null
   progress: Progress
   sound: Sound
@@ -66,6 +75,8 @@ interface Outcome {
   results: boolean[]
   record: boolean
   best: number
+  /** Whether this run was the day's counted attempt. */
+  dailyCounted: boolean
 }
 
 export function createSeries({
@@ -73,6 +84,7 @@ export function createSeries({
   config,
   items,
   score,
+  daily,
   challenge,
   progress: initialProgress,
   sound,
@@ -105,7 +117,7 @@ export function createSeries({
     counter,
     timerValue,
     el('span', 'series-count-balance'),
-    ...(score ? [el('div', 'series-title', score.name)] : []),
+    ...(daily || score ? [el('div', 'series-title', daily ? 'Défi du jour' : (score?.name ?? ''))] : []),
     el('div', 'progress', bar),
   )
   const staffCard = el('div', 'staff-card')
@@ -224,15 +236,23 @@ export function createSeries({
       },
     }
     if (scoreId !== null && record) progress = recordScoreBest(progress, scoreId, best)
+    const results = firstTryResults(run, items.length)
+    let dailyCounted = false
+    if (daily?.ranked) {
+      const recorded = recordDaily(progress, daily.key, { totalMs: Math.round(totalMs), results, penaltyMs: penalty })
+      progress = recorded.progress
+      dailyCounted = recorded.counted
+    }
     onProgress(progress)
-    element.append(endOverlay({ totalMs, penalty, results: firstTryResults(run, items.length), record, best }, beaten))
+    element.append(endOverlay({ totalMs, penalty, results, record, best, dailyCounted }, beaten))
   }
 
   async function share(outcome: Outcome): Promise<void> {
     if (sharing) return
     sharing = true
     try {
-      if (config.kind === 'random') await shareOrCopy(resultText(outcome, randomChallengeUrl(outcome, config), `Série #${config.seed}`))
+      if (daily) await shareOrCopy(resultText(dailyOutcome(daily.key, outcome), dailyUrl(daily.key), `Défi du jour ${dailyLabel(daily.key)}`, 'Joue aussi'))
+      else if (config.kind === 'random') await shareOrCopy(resultText(outcome, randomChallengeUrl(outcome, config), `Série #${config.seed}`))
       else if (score) await shareScoreChallenge(outcome, score)
     } finally {
       sharing = false
@@ -253,9 +273,20 @@ export function createSeries({
     await shareOrCopy(resultText(outcome, url, `« ${shared.name} »`))
   }
 
-  function resultText(outcome: Outcome, url: string, title: string): string {
+  /** Like Wordle, the day's first attempt is the one shared, even after practice runs. */
+  function dailyOutcome(key: DailyKey, current: Outcome): Outcome {
+    const counted = progress.daily.attempts[key]
+    return counted ? { ...current, totalMs: counted.totalMs, results: counted.results, penalty: counted.penaltyMs } : current
+  }
+
+  function dailyUrl(key: DailyKey): string {
+    return `${location.origin}${location.pathname}#${encodeDailyHash(key)}`
+  }
+
+  function resultText(outcome: Outcome, url: string, title: string, callToAction?: string): string {
     return shareText({
       title,
+      callToAction,
       results: outcome.results,
       totalMs: outcome.totalMs,
       penaltyMs: outcome.penalty,
@@ -304,6 +335,23 @@ export function createSeries({
     return el('p', 'result-best', `Record${subject} : ${formatTenths(outcome.best)}`)
   }
 
+  function dailyHeadline(outcome: Outcome): string {
+    return outcome.dailyCounted && daily ? `Défi du jour · ${dailyLabel(daily.key)}` : 'Entraînement'
+  }
+
+  function dailyLines({ key, ranked }: DailyRun, outcome: Outcome): HTMLElement[] {
+    if (!ranked) return [el('p', 'result-best', `Défi du ${dailyLabel(key)} (hors délai)`)]
+    if (!outcome.dailyCounted) {
+      const counted = progress.daily.attempts[key]
+      return counted ? [el('p', 'result-best', `Ton score du jour : ${formatTenths(counted.totalMs)}`)] : []
+    }
+    const days = dailyStreak(Object.keys(progress.daily.attempts), key)
+    return [
+      el('p', 'result-record', `🔥 ${days} jour${days > 1 ? 's' : ''} d'affilée`),
+      el('p', 'result-best', `Meilleur défi : ${formatTenths(progress.daily.bestMs)}`),
+    ]
+  }
+
   function endOverlay(outcome: Outcome, beaten: boolean | null): HTMLElement {
     const comparing = challenge?.timeS != null
     const total = el('p', 'result-score series-total', formatTenths(0))
@@ -318,7 +366,13 @@ export function createSeries({
         return square
       }),
     )
-    const actions = challenge
+    const actions = daily
+      ? [
+          button('primary', 'Partager', () => void share(outcome)),
+          button('segment-button', 'Rejouer (entraînement)', onReplay),
+          button('segment-button', homeLabel, onHome),
+        ]
+      : challenge
       ? [
           button('primary', 'Partager mon résultat', () => void share(outcome)),
           button('segment-button', 'Réessayer ce défi', onRetry),
@@ -332,12 +386,12 @@ export function createSeries({
     const card = el(
       'div',
       'result series-end',
-      verdict(outcome, beaten) ?? el('h2', '', 'Série terminée'),
+      verdict(outcome, beaten) ?? el('h2', daily ? 'daily-headline' : '', daily ? dailyHeadline(outcome) : 'Série terminée'),
       comparing ? versus(outcome) : total,
       outcome.penalty > 0 ? el('p', 'result-best', `(+${outcome.penalty / 1000} s)`) : '',
       el('p', '', `${hits}/${outcome.results.length} du premier coup`),
       strip,
-      recordLine(outcome, beaten),
+      ...(daily ? dailyLines(daily, outcome) : [recordLine(outcome, beaten)]),
       el('div', 'result-actions', ...actions),
     )
     card.classList.toggle('win', beaten === true)

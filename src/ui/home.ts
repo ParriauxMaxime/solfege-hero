@@ -1,9 +1,17 @@
+import { formatTenths } from '../series/share'
 import { button, el, iconButton } from './dom'
 import { clefGlyph, inkGroup, noteHead, staffLines, stem, svgElement } from './glyphs'
 
-export type HomeChoice = 'apprendre' | 'series' | 'hero' | 'partitions'
+export type HomeChoice = 'apprendre' | 'series' | 'hero' | 'partitions' | 'daily'
+
+export interface DailyStatus {
+  label: string
+  /** Time of today's counted attempt, or null while it is still to play. */
+  attemptMs: number | null
+}
 
 interface HomeOptions {
+  daily: DailyStatus
   onChoose: (choice: HomeChoice) => void
   onSettings: () => void
   onStats: () => void
@@ -104,9 +112,26 @@ function card(spec: CardSpec, index: number, onChoose: (choice: HomeChoice) => v
   return element
 }
 
-export function createHome({ onChoose, onSettings, onStats }: HomeOptions): HTMLElement {
+function dailyCard(daily: DailyStatus): CardSpec {
+  const status = daily.attemptMs === null ? daily.label : `${daily.label} · ✓ ${formatTenths(daily.attemptMs)}`
+  return {
+    choice: 'daily',
+    accent: 'gold',
+    title: 'Défi du jour',
+    subtitle: status,
+    icon: () =>
+      icon([
+        ['path', { d: 'M10 14H54V56H10Z' }],
+        ['path', { d: 'M10 26H54M20 8V18M44 8V18' }],
+        ['circle', { cx: 32, cy: 42, r: 5, fill: 'currentColor', stroke: 'none' }],
+      ]),
+  }
+}
+
+export function createHome({ onChoose, onSettings, onStats, daily }: HomeOptions): HTMLElement {
   const actions = el('div', 'home-actions', iconButton('stats', onStats, 'Statistiques'), iconButton('settings', onSettings, 'Réglages'))
   const brand = el('div', 'home-brand', logo(), el('h1', 'home-title', 'Solfège ', el('span', '', 'hero')))
-  const cards = el('div', 'home-cards', ...CARDS.map((spec, index) => card(spec, index, onChoose)))
+  const cards = el('div', 'home-cards', ...[dailyCard(daily), ...CARDS].map((spec, index) => card(spec, index, onChoose)))
+  cards.firstElementChild?.classList.add('home-daily')
   return el('section', 'home', brand, actions, cards)
 }

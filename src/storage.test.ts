@@ -4,6 +4,7 @@ import {
   EMPTY_PROGRESS,
   exportData,
   importData,
+  recordDaily,
   recordScoreBest,
   sanitizeProgress,
   sanitizeSettings,
@@ -130,8 +131,45 @@ describe('sanitizeProgress', () => {
       bestTimed: 340,
       hero: { bestScore: 900, bestStreak: 30, maxBpm: 110, hits: 200, misses: 20, perfects: 90 },
       series: { bestMs: 47000, played: 6, won: 4, lost: 2, bestByScore: { abc: 31500 } },
+      daily: {
+        attempts: { '20261024': { totalMs: 52300, penaltyMs: 5000, results: [true, false, true] } },
+        bestMs: 52300,
+      },
     }
     expect(sanitizeProgress(JSON.parse(JSON.stringify(progress)))).toEqual(progress)
+  })
+
+  it('sanitizes daily progress, dropping bad days and keeping the newest 400', () => {
+    const good = { totalMs: 40000, penaltyMs: 0, results: [true, true] }
+    const days = Array.from({ length: 450 }, (_, offset) => {
+      const date = new Date(Date.UTC(2025, 0, 1 + offset))
+      return date.toISOString().slice(0, 10).replaceAll('-', '')
+    })
+    const attempts = Object.fromEntries(days.map((day) => [day, good]))
+    const { daily } = sanitizeProgress({
+      daily: {
+        attempts: {
+          ...attempts,
+          '20260230': good,
+          nope: good,
+          '20260101x': good,
+          '20270101': { ...good, totalMs: -1 },
+          '20270102': { ...good, results: ['yes'] },
+          '20270103': { ...good, results: Array(101).fill(true) },
+        },
+        bestMs: 'fast',
+      },
+    })
+    const keys = Object.keys(daily.attempts)
+    expect(keys).toHaveLength(400)
+    expect(keys[keys.length - 1]).toBe(days[449])
+    expect(keys[0]).toBe(days[50])
+    expect(daily.bestMs).toBe(0)
+  })
+
+  it('defaults daily progress to nothing', () => {
+    expect(sanitizeProgress({}).daily).toEqual({ attempts: {}, bestMs: 0 })
+    expect(sanitizeProgress({ daily: { attempts: [1] } }).daily.attempts).toEqual({})
   })
 
   it('sanitizes hero progress field by field', () => {
@@ -192,6 +230,45 @@ describe('sanitizeProgress', () => {
       },
     })
     expect(Object.keys(result.notes)).toEqual(['good'])
+  })
+})
+
+describe('recordDaily', () => {
+  const first = { totalMs: 50000, penaltyMs: 5000, results: [true, false] }
+
+  it('stores the first attempt of a day and counts it', () => {
+    const { progress, counted } = recordDaily(EMPTY_PROGRESS, '20261024', first)
+    expect(counted).toBe(true)
+    expect(progress.daily.attempts['20261024']).toEqual(first)
+    expect(progress.daily.bestMs).toBe(50000)
+    expect(EMPTY_PROGRESS.daily.attempts).toEqual({})
+  })
+
+  it('ignores later attempts on the same day', () => {
+    const stored = recordDaily(EMPTY_PROGRESS, '20261024', first).progress
+    const again = recordDaily(stored, '20261024', { totalMs: 30000, penaltyMs: 0, results: [true, true] })
+    expect(again.counted).toBe(false)
+    expect(again.progress).toBe(stored)
+    expect(again.progress.daily.bestMs).toBe(50000)
+  })
+
+  it('keeps the best time across days', () => {
+    let progress = recordDaily(EMPTY_PROGRESS, '20261024', first).progress
+    progress = recordDaily(progress, '20261025', { ...first, totalMs: 40000 }).progress
+    progress = recordDaily(progress, '20261026', { ...first, totalMs: 70000 }).progress
+    expect(progress.daily.bestMs).toBe(40000)
+    expect(Object.keys(progress.daily.attempts)).toEqual(['20261024', '20261025', '20261026'])
+  })
+
+  it('keeps only the last 400 days', () => {
+    let progress = EMPTY_PROGRESS
+    for (let offset = 0; offset < 402; offset++) {
+      const day = new Date(Date.UTC(2025, 0, 1 + offset)).toISOString().slice(0, 10).replaceAll('-', '')
+      progress = recordDaily(progress, day, first).progress
+    }
+    const keys = Object.keys(progress.daily.attempts)
+    expect(keys).toHaveLength(400)
+    expect(keys[0]).toBe('20250103')
   })
 })
 

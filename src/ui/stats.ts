@@ -1,5 +1,6 @@
 import { accuracy, promptId } from '../game/sampler'
 import { CLEFS, PITCH_CLASS_NAMES, pitchClass, pitchesInRange, type Clef } from '../music/notes'
+import { dailyKey, dailyStreak } from '../series/daily'
 import { formatTenths } from '../series/share'
 import type { Progress } from '../storage'
 import { button, el } from './dom'
@@ -60,6 +61,24 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
     )
   }
 
+  function dailySection(daily: Progress['daily']): HTMLElement {
+    const today = dailyKey(new Date())
+    const todayAttempt = daily.attempts[today]
+    return el(
+      'div',
+      'clef-section',
+      el('h2', '', 'Défi du jour'),
+      el(
+        'div',
+        'summary',
+        summary('jours d’affilée', dailyStreak(Object.keys(daily.attempts), today)),
+        summary('meilleur temps', daily.bestMs > 0 ? formatTenths(daily.bestMs) : '–'),
+        summary('jours joués', Object.keys(daily.attempts).length),
+        summary('aujourd’hui', todayAttempt ? `✓ ${formatTenths(todayAttempt.totalMs)}` : 'à jouer'),
+      ),
+    )
+  }
+
   function pitchRow(progress: Progress, clef: Clef, pitch: number): HTMLElement {
     const record = progress.notes[promptId({ clef, pitch })]
     const ratio = accuracy(record)
@@ -93,6 +112,7 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
         summary('meilleur 60 s', progress.bestTimed),
       ),
       heroSection(progress.hero),
+      dailySection(progress.daily),
       seriesSection(progress.series),
       ...CLEFS.filter((clef) => hasData(progress, clef)).map((clef) => clefSection(progress, clef)),
       el(

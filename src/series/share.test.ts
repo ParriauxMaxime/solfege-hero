@@ -55,6 +55,18 @@ describe('shareText', () => {
     expect(text.split('\n')[1]).toBe('🟦🟧')
   })
 
+  it('writes the daily challenge title and call to action', () => {
+    const text = shareText({
+      ...base,
+      title: 'Défi du jour 24/10/2026',
+      callToAction: 'Joue aussi',
+      url: 'https://example.com/#daily=20261024',
+    })
+    const lines = text.split('\n')
+    expect(lines[0]).toBe('Solfège hero · Défi du jour 24/10/2026')
+    expect(lines[3]).toBe('Joue aussi : https://example.com/#daily=20261024')
+  })
+
   it('accepts custom squares', () => {
     const text = shareText({ ...base, results: [true, false], squares: { ok: 'O', bad: 'X' } })
     expect(text.split('\n')[1]).toBe('OX')
