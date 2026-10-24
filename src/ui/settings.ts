@@ -1,12 +1,16 @@
+import { INSTRUMENT_LABELS } from '../audio/instruments'
+import type { Sound } from '../audio/sound'
 import { CLEFS, type Clef } from '../music/notes'
 import { exportData, importData, type KeySize, type Progress, type Settings, type Theme } from '../storage'
 import { button, el } from './dom'
 import type { KeyboardSpan } from './keyboardLayout'
 import { restartAnimation } from './effects'
+import { openInstrumentPicker } from './instrumentPicker'
 import { showToast } from './toast'
 
 export interface SettingsOptions {
   settings: Settings
+  sound: Sound
   getProgress: () => Progress
   onChange: (patch: Partial<Settings>) => void
   onReset: () => void
@@ -47,7 +51,7 @@ const EXPORT_FILE = 'solfege-progress.json'
 const ACTION_ROW = 'settings-row action-row'
 const KEY_NAMES_HINT = 'Désactivé : touches sans nom, pour les habitués'
 
-export function createSettingsScreen({ settings: initial, getProgress, onChange, onReset, onImport, onBack }: SettingsOptions): HTMLElement {
+export function createSettingsScreen({ settings: initial, sound, getProgress, onChange, onReset, onImport, onBack }: SettingsOptions): HTMLElement {
   let settings = initial
   const element = el('section', 'screen settings-list')
   let clefControl: HTMLElement | null = null
@@ -128,6 +132,19 @@ export function createSettingsScreen({ settings: initial, getProgress, onChange,
     return row('Volume', slider)
   }
 
+  function instrumentRow(): HTMLElement {
+    const choose = button('segment-button', 'Choisir', () =>
+      openInstrumentPicker({
+        sound,
+        current: settings.instrument,
+        naming: settings.naming,
+        onSelect: (instrument) => update({ instrument }, false),
+        onClose: render,
+      }),
+    )
+    return row('Instrument', choose, INSTRUMENT_LABELS[settings.instrument], ACTION_ROW)
+  }
+
   function exportProgress(): void {
     const blob = new Blob([exportData(settings, getProgress())], { type: 'application/json' })
     const link = el('a')
@@ -193,6 +210,7 @@ export function createSettingsScreen({ settings: initial, getProgress, onChange,
         toggleRow('Métronome', 'metronome'),
         vibrationRow(),
         volumeRow(),
+        instrumentRow(),
       ),
       section(
         'Données',

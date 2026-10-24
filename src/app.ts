@@ -15,6 +15,7 @@ import { createHome, type HomeChoice } from './ui/home'
 import { createSeries, type Series } from './ui/series'
 import { createSettingsScreen } from './ui/settings'
 import { createStatsScreen } from './ui/stats'
+import { isInstrumentPickerOpen } from './ui/instrumentPicker'
 import { showToast } from './ui/toast'
 
 const TRANSITION_MS = 200
@@ -67,6 +68,7 @@ export function startApp(root: HTMLElement): void {
     if (parseChallenge(location.hash)) return
     pushed = false
     if (activeHero) {
+    if (isInstrumentPickerOpen()) return
       activeHero.pause()
       history.pushState({ screen: 'inside' }, '')
       pushed = true
@@ -116,6 +118,7 @@ export function startApp(root: HTMLElement): void {
     setIcon(muteButton, settings.muted ? 'sound-off' : 'sound-on')
   }
 
+    sound.setInstrument(settings.instrument)
   function toggleMute(): void {
     changeSettings({ muted: !settings.muted })
   }
@@ -239,6 +242,7 @@ export function startApp(root: HTMLElement): void {
   }
 
   function showStats(): void {
+      sound,
     const onReset = () => {
       changeProgress(resetProgress())
       return progress

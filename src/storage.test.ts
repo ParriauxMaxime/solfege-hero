@@ -11,6 +11,13 @@ import {
 } from './storage'
 
 describe('sanitizeSettings', () => {
+  it('keeps a known instrument and falls back to piano otherwise', () => {
+    expect(DEFAULT_SETTINGS.instrument).toBe('piano')
+    expect(sanitizeSettings({ instrument: 'guitar' }).instrument).toBe('guitar')
+    expect(sanitizeSettings({ instrument: 'kazoo' }).instrument).toBe('piano')
+    expect(sanitizeSettings({ instrument: 3 }).instrument).toBe('piano')
+  })
+
   it('falls back to defaults for missing or malformed data', () => {
     expect(sanitizeSettings(null)).toEqual(DEFAULT_SETTINGS)
     expect(sanitizeSettings('nope')).toEqual(DEFAULT_SETTINGS)
@@ -50,6 +57,7 @@ describe('sanitizeSettings', () => {
       keyboardSpan: 1.5,
       vibration: false,
       volume: 0.35,
+      instrument: 'organ',
     }
     expect(sanitizeSettings(JSON.parse(JSON.stringify(settings)))).toEqual(settings)
   })

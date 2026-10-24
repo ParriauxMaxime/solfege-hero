@@ -1,4 +1,4 @@
-export type IconName = 'back' | 'pause' | 'play' | 'sound-on' | 'sound-off' | 'settings' | 'stats' | 'close'
+export type IconName = 'back' | 'pause' | 'play' | 'sound-on' | 'sound-off' | 'settings' | 'stats' | 'close' | 'wave' | 'piano' | 'organ' | 'guitar'
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
 
@@ -12,6 +12,12 @@ const PATHS: Record<IconName, string> = {
     '<path d="M4 6h10"/><path d="M18 6h2"/><circle cx="16" cy="6" r="2"/><path d="M4 12h2"/><path d="M10 12h10"/><circle cx="8" cy="12" r="2"/><path d="M4 18h10"/><path d="M18 18h2"/><circle cx="16" cy="18" r="2"/>',
   stats: '<path d="M5 20V11"/><path d="M12 20V4"/><path d="M19 20v-7"/>',
   close: '<path d="M6 6l12 12"/><path d="M18 6 6 18"/>',
+  wave: '<path d="M2 12c2-7 4-7 6 0s4 7 6 0 4-7 6 0 1.5 3.5 2 3.5"/>',
+  piano:
+    '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9 5v14"/><path d="M15 5v14"/><path d="M7 5v7"/><path d="M13 5v7"/><path d="M19 5v7"/>',
+  organ: '<path d="M5 20V9l2-4 2 4v11"/><path d="M10 20V6l2-4 2 4v14"/><path d="M15 20V9l2-4 2 4v11"/><path d="M3 20h18"/>',
+  guitar:
+    '<path d="M14.5 9.5 20 4"/><path d="M18 3l3 3"/><path d="M11 7.5c2.5-.5 5 2 4.5 4.5 1.5.5 2 3 .5 5-2 2.5-5 3-7 2-1 1-4 1-5-1s-1-4 1-5c-.5-2 1.5-4.5 4-4.5"/><circle cx="10" cy="14" r="1.2"/>',
 }
 
 export function icon(name: IconName): SVGSVGElement {

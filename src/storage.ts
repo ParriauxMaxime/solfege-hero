@@ -1,3 +1,4 @@
+import { INSTRUMENTS, type Instrument } from './audio/instruments'
 import type { NoteRecord, NoteStats } from './game/sampler'
 import { START_BPM_MAX, START_BPM_MIN } from './hero/tempo'
 import { CLEFS, type Clef, type Naming } from './music/notes'
@@ -27,6 +28,7 @@ export interface Settings {
   keyboardSpan: KeyboardSpan
   vibration: boolean
   volume: number
+  instrument: Instrument
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -46,6 +48,7 @@ export const DEFAULT_SETTINGS: Settings = {
   keyboardSpan: 1,
   vibration: true,
   volume: 0.8,
+  instrument: 'piano',
 }
 
 export interface HeroProgress {
@@ -138,6 +141,7 @@ export function sanitizeSettings(raw: unknown): Settings {
     keyboardSpan: KEYBOARD_SPANS.find((span) => span === stored.keyboardSpan) ?? DEFAULT_SETTINGS.keyboardSpan,
     vibration: booleanOr(stored.vibration, DEFAULT_SETTINGS.vibration),
     volume: sanitizeVolume(stored.volume),
+    instrument: oneOf(INSTRUMENTS, stored.instrument, DEFAULT_SETTINGS.instrument),
   }
 }
 

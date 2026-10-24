@@ -1,11 +1,14 @@
 import { frequency } from '../music/notes'
 import type { Note } from '../music/notes'
+import { playInstrument, type Instrument } from './instruments'
 
 export interface Sound {
   correct(streak: number): void
   wrong(): void
   milestone(): void
   playNote(note: Note): void
+  /** Plays a midi pitch with the given instrument after `delay` seconds, even when muted (instrument picker). */
+  preview(instrument: Instrument, midi: number, delay?: number): void
   /** Audio clock in seconds; starts the audio context even when muted. */
   now(): number
   /** Schedules a metronome click at audio time `at`. */
@@ -17,6 +20,7 @@ export interface Sound {
   whenRunning(): Promise<void>
   setMuted(muted: boolean): void
   setVolume(volume: number): void
+  setInstrument(instrument: Instrument): void
 }
 
 interface SoundOptions {
@@ -26,6 +30,7 @@ interface SoundOptions {
 const CORRECT_BASE_HZ = 523.25
 const MAX_STREAK_SEMITONES = 12
 const MILESTONE_SEMITONES = [0, 4, 7, 12]
+const NOTE_SECONDS = 0.6
 const CLICK_HZ = 1200
 const CLICK_ACCENT_HZ = 1800
 const RESUME_TIMEOUT_MS = 400
@@ -45,6 +50,7 @@ export function createSound({ onBlocked }: SoundOptions = {}): Sound {
   let master: GainNode | null = null
   let muted = false
   let volume = 1
+  let instrument: Instrument = 'piano'
 
   function ensureContext(): AudioContext {
     if (!context) {
@@ -67,8 +73,8 @@ export function createSound({ onBlocked }: SoundOptions = {}): Sound {
     return Promise.race([ctx.resume().catch(() => {}), timeout]).then(() => ctx.state === 'running')
   }
 
-  function play(sound: (ctx: AudioContext) => void): void {
-    if (muted) return
+  function play(sound: (ctx: AudioContext) => void, ignoreMute = false): void {
+    if (muted && !ignoreMute) return
     const ctx = ensureContext()
     if (ctx.state === 'running') {
       sound(ctx)
@@ -169,7 +175,11 @@ export function createSound({ onBlocked }: SoundOptions = {}): Sound {
       })
     },
     playNote(note) {
-      play((ctx) => tone(ctx, 'triangle', frequency(note), ctx.currentTime, 0.6, 0.25))
+      play((ctx) => playInstrument(ctx, output(), instrument, frequency(note), ctx.currentTime, NOTE_SECONDS))
+    },
+    preview(previewInstrument, midi, delay = 0) {
+      const hz = 440 * 2 ** ((midi - 69) / 12)
+      play((ctx) => playInstrument(ctx, output(), previewInstrument, hz, ctx.currentTime + delay, NOTE_SECONDS), true)
     },
     now: () => ensureContext().currentTime,
     click(at, accent) {
@@ -195,6 +205,9 @@ export function createSound({ onBlocked }: SoundOptions = {}): Sound {
     setVolume(value) {
       volume = value
       if (master) master.gain.value = value
+    },
+    setInstrument(value) {
+      instrument = value
     },
   }
 }
