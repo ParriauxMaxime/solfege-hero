@@ -3,18 +3,67 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#12101a" />
-    <meta name="description" content="Entraînement à la lecture de notes sur la portée." />
+    <title>Solfège hero : apprendre à lire les notes</title>
+    <meta name="description" content="Application gratuite pour apprendre à lire les notes sur la portée : clés de sol, fa et ut, séries chronométrées, survie, mode rythmique et partitions MusicXML, hors ligne." />
+    <link rel="canonical" href="https://parriauxmaxime.github.io/solfege-hero/" />
+    <meta name="robots" content="index,follow" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#12101a" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f3ee" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Solfège" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Solfège hero" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:title" content="Solfège hero : apprendre à lire les notes" />
+    <meta property="og:description" content="Application gratuite pour apprendre à lire les notes sur la portée : clés de sol, fa et ut, séries chronométrées, survie, mode rythmique et partitions MusicXML, hors ligne." />
+    <meta property="og:url" content="https://parriauxmaxime.github.io/solfege-hero/" />
+    <meta property="og:image" content="https://parriauxmaxime.github.io/solfege-hero/og/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Solfège hero : apprendre à lire les notes" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Solfège hero : apprendre à lire les notes" />
+    <meta name="twitter:description" content="Application gratuite pour apprendre à lire les notes sur la portée : clés de sol, fa et ut, séries chronométrées, survie, mode rythmique et partitions MusicXML, hors ligne." />
+    <meta name="twitter:image" content="https://parriauxmaxime.github.io/solfege-hero/og/og.png" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
-    <title>Solfège</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Solfège hero",
+        "url": "https://parriauxmaxime.github.io/solfege-hero/",
+        "description": "Application gratuite pour apprendre à lire les notes sur la portée : clés de sol, fa et ut, séries chronométrées, survie, mode rythmique et partitions MusicXML, hors ligne.",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Any",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+        "inLanguage": "fr",
+        "image": "https://parriauxmaxime.github.io/solfege-hero/og/og.png"
+      }
+    </script>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <main style="font-family: system-ui, sans-serif; padding: 1.5rem; max-width: 40rem; margin: 0 auto; line-height: 1.5">
+        <h1>Solfège hero</h1>
+        <p>Application gratuite pour apprendre à lire les notes sur la portée, hors ligne.</p>
+        <ul>
+          <li><strong>Apprendre</strong> : une note à la fois, tirage adaptatif selon vos erreurs.</li>
+          <li><strong>Séries</strong> : 20 notes chronométrées, +5 s par erreur, défis partageables.</li>
+          <li><strong>Armures</strong> : reconnaître la tonalité d'une armure.</li>
+          <li><strong>Survie</strong> : 3 vies, temps limité par note, difficulté croissante.</li>
+          <li><strong>Solfège hero</strong> : portée qui défile, rythme réel et métronome.</li>
+          <li><strong>Partitions</strong> : bibliothèque de fichiers MusicXML à jouer.</li>
+        </ul>
+      </main>
+    </div>
+    <noscript>
+      <p style="font-family: system-ui, sans-serif; padding: 1.5rem">
+        Solfège hero est une application d'entraînement à la lecture des notes. JavaScript est nécessaire pour l'utiliser : activez-le dans votre navigateur.
+      </p>
+    </noscript>
     <script type="module" src="./src/main.ts"></script>
   </body>
 </html>

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://parriauxmaxime.github.io/solfege-hero/sitemap.xml

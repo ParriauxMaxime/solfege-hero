@@ -43,7 +43,8 @@ export default defineConfig({
       manifest: {
         name: 'Solfège',
         short_name: 'Solfège',
-        description: 'Entraînement à la lecture de notes sur la portée.',
+        description:
+          'Application gratuite pour apprendre à lire les notes sur la portée : clés de sol, fa et ut, séries chronométrées, survie, mode rythmique et partitions MusicXML, hors ligne.',
         lang: 'fr',
         start_url: './',
         scope: './',
