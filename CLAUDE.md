@@ -43,6 +43,12 @@ The Tailscale node needs `.env` with `TS_AUTHKEY` (copied from the `maisons` rep
 - Modes: **Apprendre** (one note, adaptive sampler weighted by misses and slowness, speed bonus ×2 under 1 s, 60 s chrono option), **Séries** (20 seeded notes, +5 s per error, Wordle-style share and challenge links `#s=&c=&k=&t=`), **Solfège hero** (scrolling staff, real durations + metronome, adaptive tempo +2 per 8 hits, −4 per miss), **Partitions** (MusicXML library).
 - Scores: `.musicxml`/`.xml`/`.mxl` parsed in `src/music/musicxml.ts` (first part, voice 1, chord top note, ties merged, dots, tuplets). Stored in IndexedDB. Shared by `#score=<deflate+base64url>` link under ~6 kB, else as a `.musicxml` file. Séries on a score = whole score.
 - Instruments: sine / piano / organ / guitar, all synthesized in `src/audio/instruments.ts`, picker modal with a test keyboard.
+- **Survie**: 3 lives, 3 s or 5 s per note with a draining bar, difficulty rising every 20 hits, challenge links `#v=`.
+- **Hero challenges**: fixed-length (16 bars) shared runs `#h=`, adaptive tempo off, compare success % then points. Hero difficulty 1-5 shown as stars; **Séries difficulty** 1-5 in settings and carried in links. **Défi du jour** (`#daily=`), retries labelled "Entraînement".
+- **Catalogue**: `public/scores/` (community PRs, see CONTRIBUTING), `index.json` generated at build by `scripts/build-score-index.mjs`, listed as built-in; metadata parsed when the library opens.
+- **Octave stricte** setting (`src/game/strictOctave.ts`): landscape forces 2 octaves, portrait shows a rotation notice; exact-pitch stats in `progress.pitches`.
+- **Demo video**: `npm run demo` (`scripts/demo.mjs`, `?demo` hook in `src/ui/demoHook.ts`) records `docs/demo.gif`/`demo.mp4` for the README.
+- Learn 60 s chrono is the Jeu setting "Apprendre : chrono 60 s".
 - Settings à la Tusmo: Jeu / Affichage (dark/light/system, colourblind blue/orange, reduced motion, key size) / Son / Données (JSON export/import).
 
 ## Layout
@@ -53,16 +59,8 @@ The Tailscale node needs `.env` with `TS_AUTHKEY` (copied from the `maisons` rep
 - `src/ui/` screens and widgets; `staff.ts`/`heroStaff.ts`/`glyphs.ts` draw everything in SVG.
 - `src/audio/` sound engine and instruments. `src/platform/` haptics.
 
-## Backlog, in order
+## Backlog
 
-1. **Hero more musical + difficulty ramp** (may already be in flight, check `git log` for `feat: tonal seeded melody generator`): seeded generator with motifs, sequences, scale runs, calibrated against a hand-transcribed public-domain corpus in `src/music/melodies.ts`; hero difficulty 1–5 (range, intervals, rhythm, accidentals, tempo cap) shown as stars in the HUD; Séries and daily use difficulty 2.
-2. **Défi du jour** (check `git log` for `feat: défi du jour`): seed `YYYYMMDD` Europe/Paris, forced settings, first attempt of the day counts, retries labelled "Entraînement", share `#daily=YYYYMMDD`, daily streak and best daily time in stats.
-3. **Survie mode**: endless, 3 lives (hearts in the HUD, one breaks per error, game over on the third), 3 s or 5 s per note (setting, default 5 s) with a draining bar, timeout = error. Notes from the tonal generator, difficulty rising every 20 hits. Challenge link `#v=<seed>&c=&k=&d=<delay>&n=<score>`, Wordle-style share text, friend plays the same sequence, end screen compares scores. Stats: best score, challenges won/lost.
-4. **Hero challenges**: from the hero result screen (or "Terminer" in pause), share a link with generation seed, clef, armures, start tempo, fixed difficulty, length in bars (e.g. 16) and the sender's stats (`&p=<success %>&s=<score>`). A hero challenge lasts exactly those bars with adaptive tempo off; end screen compares success percentage, then points.
-5. **Séries difficulty setting** 1–5, carried in the challenge link.
-6. **Score catalogue in the repo**: `public/scores/` with community PRs, index generated at build, shown in the library as built-in.
-7. ~~Octave-strict mode~~ done: setting `strictOctave`, pure logic in `src/game/strictOctave.ts`. Landscape forces 2 octaves, the window (Do4, Do2, Do3 per clef) follows the note and shifts by octaves when needed; portrait shows a rotation notice and freezes the game. Computer keys answer in the window octave nearest the note. Exact-pitch stats in `progress.pitches`.
-8. **Demo video in the README**: `scripts/demo.mjs` records a ~20 s hero session at 844x390 with playwright (correct answers driven from the seed), ffmpeg makes `docs/demo.gif` (< 8 MB) and `docs/demo.mp4`, GIF at the top of the README with a home screenshot `docs/home.png`.
-9. **Known small fixes**: Apprendre 60 s chrono keeps running during the "Abandonner ?" prompt; challenge links leave an extra history entry; Volume and Données rows stack oddly in portrait settings; hero portrait staff still small (3 beats ahead).
+Nothing planned. Remaining nits: hero portrait staff still smallish (2,75 beats ahead, lots of free vertical space); a hero challenge sent from a free game replays at the sender's final difficulty, so the melody differs from the sender's; strict octave physical keys always answer in the nearest window octave.
 
 Agents never test on a real device: sound, vibration, install and PWA update are verified only by the owner on Android.

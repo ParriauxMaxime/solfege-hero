@@ -72,7 +72,7 @@ const CARDS: CardSpec[] = [
   {
     choice: 'hero',
     accent: 'sunset',
-    title: 'Solfège hero',
+    title: 'Solfège hero',
     subtitle: 'Les notes défilent en rythme',
     icon: () =>
       icon([
@@ -128,7 +128,7 @@ function dailyCard(daily: DailyStatus): CardSpec {
   return {
     choice: 'daily',
     accent: 'gold',
-    title: 'Défi du jour',
+    title: 'Défi du jour',
     subtitle: status,
     icon: () =>
       icon([

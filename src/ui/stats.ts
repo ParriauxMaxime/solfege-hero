@@ -6,6 +6,7 @@ import { formatTenthsUp } from '../series/share'
 import type { Progress } from '../storage'
 import { button, el } from './dom'
 import { icon } from './icons'
+import { plural } from './plural'
 
 export interface StatsOptions {
   progress: Progress
@@ -45,11 +46,11 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
         summary('meilleur score', hero.bestScore),
         summary('meilleure série', hero.bestStreak),
         summary('BPM max', hero.maxBpm),
-        summary('réussies', hero.hits),
-        summary('ratées', hero.misses),
+        summary(plural(hero.hits, 'réussie', 'réussies'), hero.hits),
+        summary(plural(hero.misses, 'ratée', 'ratées'), hero.misses),
         summary('parfaits', perfectRatio),
-        summary('défis gagnés', hero.challengesWon),
-        summary('défis perdus', hero.challengesLost),
+        summary(plural(hero.challengesWon, 'défi gagné', 'défis gagnés'), hero.challengesWon),
+        summary(plural(hero.challengesLost, 'défi perdu', 'défis perdus'), hero.challengesLost),
       ),
     )
   }
@@ -63,9 +64,9 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
         'div',
         'summary',
         summary('meilleur temps', series.bestMs > 0 ? formatTenthsUp(series.bestMs) : '–'),
-        summary('séries jouées', series.played),
-        summary('défis gagnés', series.won),
-        summary('défis perdus', series.lost),
+        summary(plural(series.played, 'série jouée', 'séries jouées'), series.played),
+        summary(plural(series.won, 'défi gagné', 'défis gagnés'), series.won),
+        summary(plural(series.lost, 'défi perdu', 'défis perdus'), series.lost),
       ),
     )
   }
@@ -79,9 +80,9 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
         'div',
         'summary',
         summary('meilleur score', survival.bestScore),
-        summary('parties jouées', survival.played),
-        summary('défis gagnés', survival.challengesWon),
-        summary('défis perdus', survival.challengesLost),
+        summary(plural(survival.played, 'partie jouée', 'parties jouées'), survival.played),
+        summary(plural(survival.challengesWon, 'défi gagné', 'défis gagnés'), survival.challengesWon),
+        summary(plural(survival.challengesLost, 'défi perdu', 'défis perdus'), survival.challengesLost),
       ),
     )
   }
@@ -98,9 +99,9 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
       el(
         'div',
         'summary',
-        summary(streak > 1 ? 'jours d’affilée' : 'jour d’affilée', streak),
+        summary(plural(streak, 'jour d’affilée', 'jours d’affilée'), streak),
         summary('meilleur temps', daily.bestMs > 0 ? formatTenthsUp(daily.bestMs) : '–'),
-        summary(played > 1 ? 'jours joués' : 'jour joué', played),
+        summary(plural(played, 'jour joué', 'jours joués'), played),
         summary('aujourd’hui', todayAttempt ? checked(formatTenthsUp(todayAttempt.totalMs)) : 'à jouer'),
       ),
     )
@@ -148,7 +149,7 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
         'div',
         'summary',
         summary('meilleure série', progress.bestStreak),
-        summary('réponses', progress.totalAnswered),
+        summary(plural(progress.totalAnswered, 'réponse', 'réponses'), progress.totalAnswered),
         summary('meilleur 60 s', progress.bestTimed),
       ),
       heroSection(progress.hero),

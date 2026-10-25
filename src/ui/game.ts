@@ -7,6 +7,7 @@ import { midi, noteName, spell, type Note } from '../music/notes'
 import { vibrate } from '../platform/haptics'
 import type { Progress, Settings } from '../storage'
 import { button, el } from './dom'
+import { icon } from './icons'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
 import { trackHiddenTime } from '../platform/visibility'
 import { createAnswerPad } from './answerPad'
@@ -52,7 +53,7 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
 
   const scoreValue = el('span', 'hud-value', '0')
   const streakValue = el('span', 'streak-value', '0')
-  const streak = el('div', 'hud-streak', el('span', 'flame', '🔥'), streakValue)
+  const streak = el('div', 'hud-streak', el('span', 'flame', icon('flame')), streakValue)
   const multiplierValue = el('span', 'multiplier', '×1')
   const timerValue = el('span', 'timer', String(TIMED_SECONDS))
   timerValue.hidden = !settings.timed

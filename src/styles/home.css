@@ -146,7 +146,7 @@
   .home-cards {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: minmax(80px, 0.55fr) 1fr 1fr;
+    grid-template-rows: minmax(0, 0.7fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.7fr);
   }
 
   .home-card {
@@ -157,7 +157,8 @@
     text-align: center;
   }
 
-  .home-card.home-daily {
+  .home-card.home-daily,
+  .home-card:last-child {
     grid-column: 1 / -1;
     flex-direction: row;
     justify-content: flex-start;
@@ -166,12 +167,13 @@
     text-align: left;
   }
 
-  .home-daily .home-card-icon {
-    width: 48px;
+  .home-card-icon {
+    width: clamp(40px, 8dvh, 64px);
   }
 
-  .home-card-icon {
-    width: clamp(48px, 10dvh, 80px);
+  .home-daily .home-card-icon,
+  .home-card:last-child .home-card-icon {
+    width: 44px;
   }
 
   .home-card-title {
@@ -223,8 +225,13 @@
     width: clamp(56px, 24dvh, 96px);
   }
 
+  .home-card {
+    padding: 0 6px;
+  }
+
   .home-card-title {
-    font-size: 1.2rem;
+    font-size: 1.05rem;
+    white-space: nowrap;
   }
 
   .home-card-subtitle {

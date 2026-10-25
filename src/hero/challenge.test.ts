@@ -128,9 +128,8 @@ describe('describeGap', () => {
   const target = { percent: 80, score: 1000 }
 
   it('names the percentage gap, then the points gap', () => {
-    expect(describeGap({ percent: 75, score: 5000 }, target)).toBe('à 5 % près')
-    expect(describeGap({ percent: 80, score: 990 }, target)).toBe('à 10 points près')
-    expect(describeGap({ percent: 80, score: 999 }, target)).toBe('à 1 point près')
+    expect(describeGap({ percent: 62, score: 5000 }, { percent: 87, score: 1000 })).toBe('62 % contre 87 %')
+    expect(describeGap({ percent: 80, score: 990 }, target)).toBe('990 pts contre 1000 pts')
     expect(describeGap(target, target)).toBe('à égalité, il en faut plus')
   })
 })

@@ -30,6 +30,7 @@ import { vibrate } from '../platform/haptics'
 import type { Progress, Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
 import { button, el, iconButton, setIcon } from './dom'
+import { icon } from './icons'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
 import { installDemoHook } from './demoHook'
 import { createScrollingStaff } from './heroStaff'
@@ -130,7 +131,7 @@ export function createHero({
   const staff = createScrollingStaff(clef, fifths, time)
   const scoreValue = el('span', 'hud-value', '0')
   const streakValue = el('span', 'streak-value', '0')
-  const streak = el('div', 'hud-streak', el('span', 'flame', '🔥'), streakValue)
+  const streak = el('div', 'hud-streak', el('span', 'flame', icon('flame')), streakValue)
   const multiplierValue = el('span', 'multiplier', '×1')
   const bpmValue = el('span', 'bpm-value', String(tempo.bpm))
   const bpm = el('div', 'bpm', bpmValue, el('small', '', 'BPM'))
@@ -391,7 +392,7 @@ export function createHero({
       'div',
       'result series-end',
       target ? verdict(result, target, won === true) : el('h2', '', melody?.name ?? 'Terminé'),
-      target ? versus(result, target) : el('p', 'result-score series-total', String(score.score)),
+      ...(target ? [versus(result, target)] : [el('p', 'result-score series-total', String(score.score)), el('p', 'result-best', 'points')]),
       stat('Réussite', `${result.percent} %`),
       stat('Meilleure série', score.bestStreak),
       stat('Parfaits', perfectRatio),
@@ -423,7 +424,7 @@ export function createHero({
       burstConfetti(effectsLayer)
       return el('p', 'verdict win', 'Gagné !')
     }
-    return el('p', 'verdict lose', `Perdu… ${describeGap(mine, target)}`)
+    return el('p', 'verdict lose', `Perdu : ${describeGap(mine, target)}`)
   }
 
   function versus(mine: HeroResult, target: HeroResult): HTMLElement {

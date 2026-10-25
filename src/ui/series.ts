@@ -97,6 +97,7 @@ export function createSeries({
   homeLabel,
 }: SeriesOptions): Series {
   let progress = initialProgress
+  const practisingDaily = daily !== null && (!daily.ranked || initialProgress.daily.attempts[daily.key] !== undefined)
   let run: SeriesRun = INITIAL_RUN
   let index = 0
   let streak = 0
@@ -119,7 +120,7 @@ export function createSeries({
     counter,
     timerValue,
     el('span', 'series-count-balance'),
-    ...(daily || score ? [el('div', 'series-title', daily ? 'Défi du jour' : (score?.name ?? ''))] : []),
+    ...(daily || score ? [el('div', 'series-title', daily ? (practisingDaily ? 'Entraînement' : 'Défi du jour') : (score?.name ?? ''))] : []),
     el('div', 'progress', bar),
   )
   const staffCard = el('div', 'staff-card')

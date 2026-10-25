@@ -4,7 +4,7 @@ import { importScoreFile } from '../music/musicxml'
 import { catalogueUrl, fetchCatalogueIndex, withoutCatalogued, type CatalogueEntry } from '../storage/catalogue'
 import type { createScoreLibrary } from '../storage/scores'
 import { confirmOverlay } from './confirm'
-import { button, el } from './dom'
+import { button, el, iconButton } from './dom'
 import { shareScore } from './sharing'
 import { showToast } from './toast'
 
@@ -47,17 +47,17 @@ export function createLibrary({ library, onPlayHero, onPlaySeries }: LibraryOpti
   const element = el('section', 'screen library', header, notice, list)
   let sharing = false
   let catalogue: CatalogueEntry[] = []
+  const catalogueScores = new Map<string, Score>()
 
   function showWarnings(warnings: string[]): void {
     notice.hidden = warnings.length === 0
     if (warnings.length === 0) return
     notice.replaceChildren(
       el('ul', '', ...warnings.map((warning) => el('li', '', warning))),
-      button('icon-button', '✕', () => {
+      iconButton('close', () => {
         notice.hidden = true
-      }),
+      }, 'Fermer'),
     )
-    notice.querySelector('button')?.setAttribute('aria-label', 'Fermer')
   }
 
   async function importFile(file: File): Promise<void> {
@@ -92,23 +92,17 @@ export function createLibrary({ library, onPlayHero, onPlaySeries }: LibraryOpti
     await renderList()
   }
 
-  function scoreCard(score: Score): HTMLElement {
+  function scoreCard(score: Score, composer?: string): HTMLElement {
     const builtin = score.source === 'builtin'
-    const meta = [CLEF_LABELS[score.clef], keyLabel(score.key), `${score.timeSignature.beats}/${score.timeSignature.beatType}`, `${noteCount(score)} notes`]
+    const meta = [...(composer ? [composer] : []), CLEF_LABELS[score.clef], keyLabel(score.key), `${score.timeSignature.beats}/${score.timeSignature.beatType}`, `${noteCount(score)} notes`]
     const actions = el(
       'div',
       'score-actions',
       button('primary', 'Hero', () => onPlayHero(score)),
       button('primary', 'Série', () => onPlaySeries(score)),
     )
-    const shareButton = button('icon-button', '🔗', () => void share(score))
-    shareButton.setAttribute('aria-label', `Partager ${score.name}`)
-    actions.append(shareButton)
-    if (!builtin) {
-      const deleteButton = button('icon-button', '🗑', () => void remove(score))
-      deleteButton.setAttribute('aria-label', `Supprimer ${score.name}`)
-      actions.append(deleteButton)
-    }
+    actions.append(iconButton('link', () => void share(score), `Partager ${score.name}`))
+    if (!builtin) actions.append(iconButton('trash', () => void remove(score), `Supprimer ${score.name}`))
     return el(
       'article',
       'score-card',
@@ -119,11 +113,15 @@ export function createLibrary({ library, onPlayHero, onPlaySeries }: LibraryOpti
   }
 
   async function loadCatalogueScore(entry: CatalogueEntry): Promise<Score | null> {
+    const cached = catalogueScores.get(entry.file)
+    if (cached) return cached
     try {
       const response = await fetch(catalogueUrl(import.meta.env.BASE_URL, entry.file))
       if (!response.ok) throw new Error(String(response.status))
       const { score } = await importScoreFile(entry.file, await response.arrayBuffer())
-      return library.registerBuiltin(score)
+      const registered = library.registerBuiltin(score)
+      catalogueScores.set(entry.file, registered)
+      return registered
     } catch {
       showToast('Partition indisponible pour le moment')
       return null
@@ -157,16 +155,21 @@ export function createLibrary({ library, onPlayHero, onPlaySeries }: LibraryOpti
       catalogue,
     )
     list.replaceChildren(
-      ...(imported.length > 0 ? imported.map(scoreCard) : [el('p', 'library-empty', EMPTY_MESSAGE)]),
-      ...builtin.map(scoreCard),
-      ...catalogue.map(catalogueCard),
+      ...(imported.length > 0 ? imported.map((score) => scoreCard(score)) : [el('p', 'library-empty', EMPTY_MESSAGE)]),
+      ...builtin.map((score) => scoreCard(score)),
+      ...catalogue.map((entry) => {
+        const score = catalogueScores.get(entry.file)
+        return score ? scoreCard(score, entry.composer) : catalogueCard(entry)
+      }),
     )
   }
 
   void renderList()
   void fetchCatalogueIndex(import.meta.env.BASE_URL).then((entries) => {
     catalogue = entries
-    if (entries.length > 0) void renderList()
+    if (entries.length === 0) return
+    void renderList()
+    void Promise.all(entries.map(loadCatalogueScore)).then(renderList)
   })
   return element
 }

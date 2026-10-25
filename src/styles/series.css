@@ -224,7 +224,7 @@
     grid-template-columns: minmax(0, 1fr) 240px;
     column-gap: 28px;
     width: min(92%, 640px);
-    padding: 12px 24px;
+    padding: 22px 24px;
   }
 
   .series-end > * {

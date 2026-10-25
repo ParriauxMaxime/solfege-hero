@@ -1,15 +1,20 @@
 .survival-hud {
-  gap: 10px;
+  gap: 8px;
+}
+
+.survival-hud .icon-button {
+  flex: none;
 }
 
 .hearts {
   display: flex;
-  gap: 4px;
+  flex: none;
+  gap: 2px;
 }
 
 .heart {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   overflow: visible;
   color: var(--error);
 }
@@ -41,6 +46,8 @@
 
 .survival-score {
   display: flex;
+  flex: 0 1 auto;
+  min-width: 0;
   align-items: baseline;
   gap: 6px;
   color: var(--ink-dim);
@@ -61,8 +68,11 @@
 }
 
 .survival-level {
+  min-width: 0;
   margin-left: auto;
-  padding: 4px 12px;
+  padding: 4px 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
   border-radius: 999px;
   background: var(--card-raised);

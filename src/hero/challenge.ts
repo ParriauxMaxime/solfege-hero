@@ -53,14 +53,10 @@ export function heroChallengeWon(mine: HeroResult, target: HeroResult): boolean 
   return mine.score > target.score
 }
 
-function plural(count: number, unit: string): string {
-  return `${count}${NBSP}${unit}${count > 1 ? 's' : ''}`
-}
-
 export function describeGap(mine: HeroResult, target: HeroResult): string {
-  if (mine.percent !== target.percent) return `à ${target.percent - mine.percent}${NBSP}% près`
-  const gap = target.score - mine.score
-  return gap === 0 ? 'à égalité, il en faut plus' : `à ${plural(gap, 'point')} près`
+  if (mine.percent !== target.percent) return `${mine.percent}${NBSP}% contre ${target.percent}${NBSP}%`
+  if (mine.score === target.score) return 'à égalité, il en faut plus'
+  return `${mine.score}${NBSP}pts contre ${target.score}${NBSP}pts`
 }
 
 /** The first `bars` bars of `source`, then exhausted. */

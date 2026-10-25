@@ -205,6 +205,7 @@ export function createSettingsScreen({ settings: initial, sound, getProgress, on
           'En paysage seulement',
         ),
         toggleRow('Octave stricte', 'strictOctave', STRICT_OCTAVE_HINT),
+        toggleRow('Apprendre : chrono 60 s', 'timed'),
       ),
       section(
         'Affichage',
