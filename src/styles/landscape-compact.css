@@ -115,32 +115,28 @@
     border-radius: 14px;
   }
 
-  .game .feedback {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 104px;
+  .game .feedback,
+  .game.keys-game .feedback {
+    grid-area: staff;
+    align-self: center;
+    justify-self: center;
+    z-index: 5;
+    box-sizing: border-box;
+    width: auto;
+    max-width: 80%;
     height: auto;
+    padding: 4px 12px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--card) 90%, transparent);
     font-size: 1rem;
+    line-height: 1.25;
+    text-align: center;
+    white-space: normal;
     pointer-events: none;
   }
 
-  .game:not(:has(.answers.wide)) .feedback {
-    left: 8px;
-    right: auto;
-    bottom: 10px;
-    width: calc(100% - 502px);
-  }
-
-  .game.keys-game .feedback,
-  .game.keys-game:not(:has(.answers.wide)) .feedback {
-    left: 20px;
-    right: auto;
-    bottom: 14px;
-    width: 316px;
-    height: auto;
-    text-align: left;
-    font-size: 0.95rem;
+  .game .feedback:empty {
+    display: none;
   }
 
   .keys-game .feedback-hint {

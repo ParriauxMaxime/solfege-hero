@@ -8,8 +8,6 @@ import { clefGlyph, inkGroup, ledgerLines, noteHead, staffLines, stem, stepY, sv
 
 export type HomeChoice = 'apprendre' | 'series' | 'keys' | 'survival' | 'hero' | 'partitions' | 'daily'
 
-export type LogoVariant = 'a' | 'b' | 'c'
-
 interface HomeOptions {
   progress: Progress
   today: DailyKey
@@ -89,11 +87,6 @@ const ICONS: Record<HomeChoice, () => SVGSVGElement> = {
     ]),
 }
 
-function logoParam(): LogoVariant {
-  const value = new URLSearchParams(window.location.search).get('logo')
-  return value === 'b' || value === 'c' ? value : 'a'
-}
-
 function logoStaff(): SVGSVGElement {
   const svg = svgElement('svg', { viewBox: '24 34 146 132', class: 'home-logo', 'aria-hidden': 'true' })
   const note = inkGroup({ class: 'home-logo-note' })
@@ -110,28 +103,9 @@ function logoStaff(): SVGSVGElement {
   return svg
 }
 
-function logoClef(): SVGSVGElement {
-  const svg = svgElement('svg', { viewBox: '30 30 56 140', class: 'home-logo', 'aria-hidden': 'true' })
-  svg.append(clefGlyph('treble'))
-  return svg
-}
-
-function logoBadge(): SVGSVGElement {
-  const svg = svgElement('svg', { viewBox: '0 0 48 48', class: 'home-logo', 'aria-hidden': 'true' })
-  const staff = svgElement('g', { transform: 'rotate(-12 24 24)', stroke: 'currentColor', 'stroke-linecap': 'round' })
-  for (const y of [14, 20, 26, 32, 38]) staff.append(svgElement('line', { x1: 7, x2: 41, y1: y, y2: y, 'stroke-width': 1.6 }))
-  staff.append(
-    svgElement('ellipse', { cx: 25, cy: 29, rx: 5.2, ry: 3.8, fill: 'currentColor', stroke: 'none', transform: 'rotate(-20 25 29)' }),
-    svgElement('line', { x1: 29.6, x2: 29.6, y1: 28, y2: 13, 'stroke-width': 2.2 }),
-  )
-  svg.append(svgElement('rect', { class: 'home-logo-badge', width: 48, height: 48, rx: 12 }), staff)
-  return svg
-}
-
-function renderLogo(variant: LogoVariant): HTMLElement {
+function renderLogo(): HTMLElement {
   const title = el('h1', 'home-title', 'Solfège hero')
-  const mark = variant === 'b' ? logoClef() : variant === 'c' ? logoBadge() : logoStaff()
-  return el('div', `home-brand home-brand-${variant}`, mark, title)
+  return el('div', 'home-brand', logoStaff(), title)
 }
 
 function flame(): SVGSVGElement {
@@ -279,5 +253,5 @@ export function createHome({ progress, today, scores, onChoose, onSettings, onSt
     utilityCard('stats', 'Statistiques', onStats, answers > 0 ? `${answers} réponses` : undefined),
   )
   cards.firstElementChild?.classList.add('home-daily')
-  return el('section', 'home', renderLogo(logoParam()), cards)
+  return el('section', 'home', renderLogo(), cards)
 }

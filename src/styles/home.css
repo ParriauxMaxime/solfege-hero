@@ -157,19 +157,6 @@
   white-space: nowrap;
 }
 
-.home-brand-b .home-logo {
-  width: 72px;
-}
-
-.home-brand-c .home-logo {
-  width: 80px;
-  color: var(--on-accent);
-}
-
-.home-logo-badge {
-  fill: var(--accent);
-}
-
 .home-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -338,9 +325,7 @@
     min-height: 48px;
   }
 
-  .home-logo,
-  .home-brand-b .home-logo,
-  .home-brand-c .home-logo {
+  .home-logo {
     width: 48px;
   }
 
