@@ -209,6 +209,19 @@ button.pressed {
   font-variant-numeric: tabular-nums;
 }
 
+.inline-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3em;
+}
+
+.inline-icon svg {
+  width: 1em;
+  height: 1em;
+  flex: none;
+}
+
 @keyframes screen-enter {
   from {
     opacity: 0;

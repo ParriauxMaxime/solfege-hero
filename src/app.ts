@@ -97,11 +97,12 @@ export function startApp(root: HTMLElement): void {
     const dailyLink = challenge || scoreLink ? null : parseDailyHash(location.hash)
     if (!challenge && !scoreLink && !dailyLink) return false
     history.replaceState(null, '', location.pathname + location.search)
-    const open = () => {
-      if (challenge) showChallengeIntro(challenge)
-      else if (scoreLink) void openScoreLink(scoreLink)
-      else if (dailyLink) showDailyIntro(dailyLink)
-    }
+    const open = () =>
+      enterFromHome(() => {
+        if (challenge) showChallengeIntro(challenge)
+        else if (scoreLink) void openScoreLink(scoreLink)
+        else if (dailyLink) showDailyIntro(dailyLink)
+      })
     if (!running) {
       open()
       return true

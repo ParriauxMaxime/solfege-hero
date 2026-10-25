@@ -36,6 +36,7 @@ function renderStars(level: number): string {
 const QUIT_CONFIRM_MS = 3000
 const NEUTRAL_FLASH_MS = 150
 const FLOAT_OFFSET_PX = 40
+const DEAD_TAP_LABEL_GAP_PX = 14
 const JUDGEMENT_LABELS: Record<Judgement, string> = { parfait: 'Parfait', bien: 'Bien', rate: 'Raté' }
 
 export interface HeroOptions {
@@ -210,7 +211,9 @@ export function createHero({
     pad.flash(chosen, 'neutral')
     window.setTimeout(() => pad.clear(), NEUTRAL_FLASH_MS)
     const zone = staff.element.querySelector('.hero-hit-zone') ?? staff.element
-    floatText(effectsLayer, centerOf(zone), nearest && nearest.beat < nowBeat ? 'Trop tard' : 'Trop tôt', 'neutral')
+    const { x } = centerOf(zone)
+    const { top } = zone.getBoundingClientRect()
+    floatText(effectsLayer, { x, y: top - DEAD_TAP_LABEL_GAP_PX }, nearest && nearest.beat < nowBeat ? 'Trop tard' : 'Trop tôt', 'neutral')
   }
 
   function tap(chosen: number): void {

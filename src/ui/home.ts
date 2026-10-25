@@ -1,5 +1,6 @@
 import { formatTenths } from '../series/share'
 import { button, el, iconButton } from './dom'
+import { icon as glyph } from './icons'
 import { clefGlyph, inkGroup, noteHead, staffLines, stem, svgElement } from './glyphs'
 
 export type HomeChoice = 'apprendre' | 'series' | 'hero' | 'partitions' | 'daily'
@@ -21,7 +22,7 @@ interface CardSpec {
   choice: HomeChoice
   accent: string
   title: string
-  subtitle: string
+  subtitle: string | Node
   icon: () => SVGSVGElement
 }
 
@@ -113,7 +114,10 @@ function card(spec: CardSpec, index: number, onChoose: (choice: HomeChoice) => v
 }
 
 function dailyCard(daily: DailyStatus): CardSpec {
-  const status = daily.attemptMs === null ? daily.label : `${daily.label} · ✓ ${formatTenths(daily.attemptMs)}`
+  const status =
+    daily.attemptMs === null
+      ? daily.label
+      : el('span', 'inline-icon', `${daily.label} · `, glyph('check'), formatTenths(daily.attemptMs))
   return {
     choice: 'daily',
     accent: 'gold',

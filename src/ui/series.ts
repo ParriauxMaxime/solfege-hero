@@ -25,6 +25,7 @@ import { createAnswerPad } from './answerPad'
 import { button, el } from './dom'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
 import { renderStaff } from './staff'
+import { icon } from './icons'
 import { downloadScoreFile, shareOrCopy } from './sharing'
 import { showToast } from './toast'
 
@@ -225,23 +226,26 @@ export function createSeries({
     const record = previousBest === 0 || totalMs < previousBest
     const best = record ? Math.round(totalMs) : previousBest
     const beaten = challenge?.timeS != null ? challengeWon(totalMs, challenge.timeS) : null
-    progress = {
-      ...progress,
-      series: {
-        ...progress.series,
-        played: progress.series.played + 1,
-        bestMs: scoreId === null ? best : progress.series.bestMs,
-        won: progress.series.won + (beaten === true ? 1 : 0),
-        lost: progress.series.lost + (beaten === false ? 1 : 0),
-      },
-    }
-    if (scoreId !== null && record) progress = recordScoreBest(progress, scoreId, best)
     const results = firstTryResults(run, items.length)
     let dailyCounted = false
-    if (daily?.ranked) {
-      const recorded = recordDaily(progress, daily.key, { totalMs: Math.round(totalMs), results, penaltyMs: penalty })
-      progress = recorded.progress
-      dailyCounted = recorded.counted
+    if (daily) {
+      if (daily.ranked) {
+        const recorded = recordDaily(progress, daily.key, { totalMs: Math.round(totalMs), results, penaltyMs: penalty })
+        progress = recorded.progress
+        dailyCounted = recorded.counted
+      }
+    } else {
+      progress = {
+        ...progress,
+        series: {
+          ...progress.series,
+          played: progress.series.played + 1,
+          bestMs: scoreId === null ? best : progress.series.bestMs,
+          won: progress.series.won + (beaten === true ? 1 : 0),
+          lost: progress.series.lost + (beaten === false ? 1 : 0),
+        },
+      }
+      if (scoreId !== null && record) progress = recordScoreBest(progress, scoreId, best)
     }
     onProgress(progress)
     element.append(endOverlay({ totalMs, penalty, results, record, best, dailyCounted }, beaten))
@@ -266,7 +270,7 @@ export function createSeries({
   async function shareScoreChallenge(outcome: Outcome, shared: Score): Promise<void> {
     const url = await scoreLink(shared, challengeTimeS(outcome.totalMs))
     if (!url) {
-      showToast("Partition trop longue : partage d'abord le fichier")
+      showToast('Partition trop longue : partage d’abord le fichier')
       downloadScoreFile(shared)
       return
     }
@@ -336,7 +340,7 @@ export function createSeries({
   }
 
   function dailyHeadline(outcome: Outcome): string {
-    return outcome.dailyCounted && daily ? `Défi du jour · ${dailyLabel(daily.key)}` : 'Entraînement'
+    return outcome.dailyCounted && daily ? `Défi du jour · ${dailyLabel(daily.key)}` : 'Entraînement'
   }
 
   function dailyLines({ key, ranked }: DailyRun, outcome: Outcome): HTMLElement[] {
@@ -347,7 +351,7 @@ export function createSeries({
     }
     const days = dailyStreak(Object.keys(progress.daily.attempts), key)
     return [
-      el('p', 'result-record', `🔥 ${days} jour${days > 1 ? 's' : ''} d'affilée`),
+      el('p', 'result-record inline-icon', icon('flame'), `${days} jour${days > 1 ? 's' : ''} d’affilée`),
       el('p', 'result-best', `Meilleur défi : ${formatTenths(progress.daily.bestMs)}`),
     ]
   }

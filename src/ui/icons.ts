@@ -1,4 +1,4 @@
-export type IconName = 'back' | 'pause' | 'play' | 'sound-on' | 'sound-off' | 'settings' | 'stats' | 'close' | 'wave' | 'piano' | 'organ' | 'guitar'
+export type IconName = 'back' | 'pause' | 'play' | 'sound-on' | 'sound-off' | 'settings' | 'stats' | 'close' | 'wave' | 'piano' | 'organ' | 'guitar' | 'check' | 'flame'
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
 
@@ -16,6 +16,8 @@ const PATHS: Record<IconName, string> = {
   piano:
     '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9 5v14"/><path d="M15 5v14"/><path d="M7 5v7"/><path d="M13 5v7"/><path d="M19 5v7"/>',
   organ: '<path d="M5 20V9l2-4 2 4v11"/><path d="M10 20V6l2-4 2 4v14"/><path d="M15 20V9l2-4 2 4v11"/><path d="M3 20h18"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  flame: '<path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5.3 1.5 1 2 1.5 2 .5-2 0-5 1.5-7.5z"/>',
   guitar:
     '<path d="M14.5 9.5 20 4"/><path d="M18 3l3 3"/><path d="M11 7.5c2.5-.5 5 2 4.5 4.5 1.5.5 2 3 .5 5-2 2.5-5 3-7 2-1 1-4 1-5-1s-1-4 1-5c-.5-2 1.5-4.5 4-4.5"/><circle cx="10" cy="14" r="1.2"/>',
 }

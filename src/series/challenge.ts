@@ -1,5 +1,6 @@
 import { CLEFS, type Clef } from '../music/notes'
 import type { RandomSeriesConfig } from './series'
+import { ceilToTenth } from './share'
 
 export interface Challenge {
   config: RandomSeriesConfig
@@ -11,11 +12,10 @@ const CODE_SEPARATOR = '-'
 const WHOLE_NUMBER = /^\d+$/
 const SECONDS_WITH_TENTH = /^\d+(\.\d)?$/
 const MAX_TIME_S = 5999.9
-const MS_PER_TENTH = 100
+const MS_PER_SECOND = 1000
 
-/** Rounds up to a tenth of a second so a sharer never looks faster than they were. */
 export function challengeTimeS(totalMs: number): number {
-  return Math.ceil(totalMs / MS_PER_TENTH) / 10
+  return ceilToTenth(totalMs) / MS_PER_SECOND
 }
 
 export function challengeWon(totalMs: number, timeS: number): boolean {

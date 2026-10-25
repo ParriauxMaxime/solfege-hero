@@ -4,6 +4,7 @@ import { dailyKey, dailyStreak } from '../series/daily'
 import { formatTenths } from '../series/share'
 import type { Progress } from '../storage'
 import { button, el } from './dom'
+import { icon } from './icons'
 
 export interface StatsOptions {
   progress: Progress
@@ -11,7 +12,7 @@ export interface StatsOptions {
   onBack: () => void
 }
 
-const CLEF_TITLES: Record<Clef, string> = { treble: 'Clé de sol', bass: 'Clé de fa', alto: "Clé d'ut 3" }
+const CLEF_TITLES: Record<Clef, string> = { treble: 'Clé de sol', bass: 'Clé de fa', alto: 'Clé d’ut 3' }
 const MAX_HUE = 130
 
 function hasData(progress: Progress, clef: Clef): boolean {
@@ -21,13 +22,17 @@ function hasData(progress: Progress, clef: Clef): boolean {
 export function createStatsScreen({ progress: initial, onReset, onBack }: StatsOptions): HTMLElement {
   const element = el('section', 'screen panel')
 
-  function summary(label: string, value: number | string): HTMLElement {
-    return el('div', 'summary-item', el('strong', '', String(value)), el('span', '', label))
+  function summary(label: string, value: number | string | Node): HTMLElement {
+    return el('div', 'summary-item', el('strong', '', typeof value === 'object' ? value : String(value)), el('span', '', label))
+  }
+
+  function checked(text: string): HTMLElement {
+    return el('span', 'inline-icon', icon('check'), text)
   }
 
   function heroSection(hero: Progress['hero']): HTMLElement {
     const judged = hero.hits + hero.misses
-    const perfectRatio = judged > 0 ? `${Math.round((hero.perfects / judged) * 100)} %` : '–'
+    const perfectRatio = judged > 0 ? `${Math.round((hero.perfects / judged) * 100)} %` : '–'
     return el(
       'div',
       'clef-section',
@@ -64,6 +69,8 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
   function dailySection(daily: Progress['daily']): HTMLElement {
     const today = dailyKey(new Date())
     const todayAttempt = daily.attempts[today]
+    const streak = dailyStreak(Object.keys(daily.attempts), today)
+    const played = Object.keys(daily.attempts).length
     return el(
       'div',
       'clef-section',
@@ -71,10 +78,10 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
       el(
         'div',
         'summary',
-        summary('jours d’affilée', dailyStreak(Object.keys(daily.attempts), today)),
+        summary(streak > 1 ? 'jours d’affilée' : 'jour d’affilée', streak),
         summary('meilleur temps', daily.bestMs > 0 ? formatTenths(daily.bestMs) : '–'),
-        summary('jours joués', Object.keys(daily.attempts).length),
-        summary('aujourd’hui', todayAttempt ? `✓ ${formatTenths(todayAttempt.totalMs)}` : 'à jouer'),
+        summary(played > 1 ? 'jours joués' : 'jour joué', played),
+        summary('aujourd’hui', todayAttempt ? checked(formatTenths(todayAttempt.totalMs)) : 'à jouer'),
       ),
     )
   }
@@ -89,7 +96,7 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
       row.append(el('span', '', '–'), el('span', '', ''))
     } else {
       row.style.setProperty('--tint', `hsl(${Math.round(ratio * MAX_HUE)} 60% 28%)`)
-      row.append(el('span', '', `${Math.round(ratio * 100)} %`), el('span', '', `${(record.avgMs / 1000).toFixed(1)} s`))
+      row.append(el('span', '', `${Math.round(ratio * 100)} %`), el('span', '', `${(record.avgMs / 1000).toFixed(1)} s`))
     }
     return row
   }

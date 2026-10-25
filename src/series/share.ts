@@ -9,6 +9,11 @@ export function formatTime(ms: number): string {
 
 const MS_PER_TENTH = 100
 
+/** Rounds up to a tenth of a second so a sharer never looks faster than they were. */
+export function ceilToTenth(ms: number): number {
+  return Math.ceil(ms / MS_PER_TENTH) * MS_PER_TENTH
+}
+
 export function formatTenths(ms: number): string {
   const tenths = Math.floor(ms / MS_PER_TENTH)
   return `${formatTime(ms)}.${tenths % 10}`
@@ -40,7 +45,7 @@ export function shareText(input: {
   return [
     `Solfège hero · ${input.title}`,
     input.results.map((result) => (result ? ok : bad)).join(''),
-    `⏱ ${formatTenths(input.totalMs)}${penalty} · ${firstTry}/${input.results.length}`,
+    `⏱ ${formatTenths(ceilToTenth(input.totalMs))}${penalty} · ${firstTry}/${input.results.length}`,
     `${input.callToAction ?? 'Bats-moi'} : ${input.url}`,
   ].join('\n')
 }

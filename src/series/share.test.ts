@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { challengeTimeS } from './challenge'
 import { COLORBLIND_SQUARES, formatTenths, formatTime, shareText } from './share'
 
 describe('formatTime', () => {
@@ -42,6 +43,12 @@ describe('shareText', () => {
         'Bats-moi : https://example.com/#s=4821&c=sol&k=1&t=47',
       ].join('\n'),
     )
+  })
+
+  it('shows the same rounded-up time as the challenge link', () => {
+    const text = shareText({ ...base, totalMs: 47_301, penaltyMs: 0 })
+    expect(text.split('\n')[2]).toBe('⏱ 0:47.4 · 18/20')
+    expect(challengeTimeS(47_301)).toBe(47.4)
   })
 
   it('omits the penalty when there is none', () => {

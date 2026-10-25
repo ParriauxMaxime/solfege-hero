@@ -107,8 +107,12 @@
 }
 
 .home-card[data-accent='gold'] {
-  --from: #b45309;
-  --to: #f59e0b;
+  --from: #92400e;
+  --to: #b45309;
+}
+
+.home-card[data-accent='gold'] .home-card-subtitle {
+  opacity: 1;
 }
 
 .home-card-icon {
