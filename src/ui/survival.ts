@@ -21,7 +21,7 @@ import {
 } from '../survival/game'
 import { createSurvivalSequence } from '../survival/sequence'
 import { noteCount, survivalShareText } from '../survival/share'
-import type { Progress, Settings } from '../storage'
+import { recordHistory, type Progress, type Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
 import { button, el, iconButton } from './dom'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
@@ -183,9 +183,11 @@ export function createSurvival({
     if (locked || heldAt !== null || !item) return
     const correct = isCorrectAnswer(item.pitch, chosen)
     const answeredInMs = elapsedMs()
+    const noteId = promptId({ clef: item.clef, pitch: item.pitch })
+    progress = recordHistory(progress, 'survival', { kind: 'answer', correct, ms: answeredInMs, noteId })
     progress = {
       ...progress,
-      notes: recordAnswer(progress.notes, promptId({ clef: item.clef, pitch: item.pitch }), correct, answeredInMs),
+      notes: recordAnswer(progress.notes, noteId, correct, answeredInMs),
       pitches: recordExactPitch(progress.pitches, item.pitch, correct, settings.strictOctave),
       totalAnswered: progress.totalAnswered + 1,
     }
@@ -195,6 +197,10 @@ export function createSurvival({
   }
 
   function onTimeout(): void {
+    if (item) {
+      const noteId = promptId({ clef: item.clef, pitch: item.pitch })
+      progress = recordHistory(progress, 'survival', { kind: 'answer', correct: false, ms: null, noteId })
+    }
     state = timeOut(state)
     onMiss(null, 'Trop lent')
   }
@@ -249,6 +255,7 @@ export function createSurvival({
         challengesLost: survival.challengesLost + (won === false ? 1 : 0),
       },
     }
+    progress = recordHistory(progress, 'survival', { kind: 'game', best: state.score })
     onProgress(progress)
     element.append(endOverlay(record, won))
   }

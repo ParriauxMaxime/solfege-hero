@@ -3,7 +3,7 @@ import { INITIAL_SCORE, applyAnswer, multiplier, type AnswerOutcome, type ScoreS
 import { answerPitch, type Answer } from '../game/strictOctave'
 import type { Clef, Note } from '../music/notes'
 import { vibrate } from '../platform/haptics'
-import type { Progress, Settings } from '../storage'
+import { recordHistory, type Progress, type Settings } from '../storage'
 import { button, el } from './dom'
 import { icon } from './icons'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
@@ -21,6 +21,7 @@ export interface DrillOptions {
 }
 
 export interface Drill {
+  historyMode: 'learn' | 'keys'
   /** Answers are exact pitches (strict octave) instead of pitch classes. */
   strictOctave: boolean
   screenClass?: string
@@ -34,6 +35,8 @@ export interface Drill {
 
 export interface DrillRound {
   staff: SVGSVGElement
+  /** Prompt id in the weekly note history: `clef:midi` or `keys:<fifths>`. */
+  historyId: string
   /** Lets a strict octave keyboard show the octaves around a note. */
   padTarget: { clef: Clef; pitch: number } | null
   /** The correct key: a MIDI pitch, or a pitch class. */
@@ -163,7 +166,8 @@ export function createDrillGame({ settings, progress: initialProgress, sound, on
     locked = true
     const best = drill.bestTimed(progress)
     const record = score.correct > best
-    if (record) updateProgress(drill.withBestTimed(score.correct))
+    progress = recordHistory(progress, drill.historyMode, { kind: 'game', best: score.correct })
+    updateProgress(record ? drill.withBestTimed(score.correct) : {})
     element.append(resultOverlay(record, best))
   }
 
@@ -201,6 +205,7 @@ export function createDrillGame({ settings, progress: initialProgress, sound, on
     const elapsed = clockMs() - shownAt
     const result = applyAnswer(score, correct, elapsed)
     score = result.state
+    progress = recordHistory(progress, drill.historyMode, { kind: 'answer', correct, ms: elapsed, noteId: answered.historyId })
     updateProgress({
       ...answered.record(progress, correct, elapsed),
       bestStreak: Math.max(progress.bestStreak, score.bestStreak),

@@ -5,6 +5,7 @@ import {
   exportData,
   importData,
   recordDaily,
+  recordHistory,
   recordPlayDay,
   recordScoreBest,
   sanitizeProgress,
@@ -180,6 +181,8 @@ describe('sanitizeProgress', () => {
         bestMs: 52300,
       },
       survival: { bestScore: 47, played: 9, challengesWon: 2, challengesLost: 1 },
+      history: {},
+      noteHistory: {},
     }
     expect(sanitizeProgress(JSON.parse(JSON.stringify(progress)))).toEqual(progress)
   })
@@ -425,5 +428,41 @@ describe('exportData and importData', () => {
       settings: DEFAULT_SETTINGS,
       progress: EMPTY_PROGRESS,
     })
+  })
+
+  it('round-trips the daily history and the note history', () => {
+    const withHistory: Progress = {
+      ...progress,
+      history: { '2026-10-24': { learn: { answered: 5, correct: 4, totalMs: 5000, timed: 5, games: 1, best: 4 } } },
+      noteHistory: { '2026-W43': { 'treble:60': { attempts: 5, correct: 4 } } },
+    }
+    expect(importData(exportData(settings, withHistory))?.progress).toEqual(withHistory)
+  })
+})
+
+describe('history in progress', () => {
+  it('sanitizes garbage history', () => {
+    const progress = sanitizeProgress({
+      history: { nope: {}, '2026-10-24': { learn: { answered: 1, correct: 2, totalMs: 0, games: 0, best: 0 } } },
+      noteHistory: [1, 2],
+    })
+    expect(progress.history).toEqual({})
+    expect(progress.noteHistory).toEqual({})
+  })
+
+  it('records an answer with its note in the day and the week', () => {
+    const now = new Date('2026-10-24T10:00:00Z')
+    const next = recordHistory(EMPTY_PROGRESS, 'learn', { kind: 'answer', correct: true, ms: 800, noteId: 'treble:64' }, now)
+    expect(next.history['2026-10-24']?.learn).toMatchObject({ answered: 1, correct: 1, totalMs: 800, timed: 1 })
+    expect(next.noteHistory['2026-W43']?.['treble:64']).toEqual({ attempts: 1, correct: 1 })
+    expect(EMPTY_PROGRESS.history).toEqual({})
+  })
+
+  it('records an answer without note id and a game', () => {
+    const now = new Date('2026-10-24T10:00:00Z')
+    const answered = recordHistory(EMPTY_PROGRESS, 'hero', { kind: 'answer', correct: false, ms: null }, now)
+    expect(answered.noteHistory).toEqual({})
+    const played = recordHistory(answered, 'hero', { kind: 'game', best: 120 }, now)
+    expect(played.history['2026-10-24']?.hero).toMatchObject({ answered: 1, games: 1, best: 120 })
   })
 })

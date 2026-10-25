@@ -27,7 +27,7 @@ import { multiplier } from '../game/scoring'
 import { answerPitch, defaultWindowStart, isCorrectAnswer, recordExactPitch, type Answer } from '../game/strictOctave'
 import { noteName, type Clef, type Note } from '../music/notes'
 import { vibrate } from '../platform/haptics'
-import type { Progress, Settings } from '../storage'
+import { recordHistory, type Progress, type Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
 import { button, el, iconButton, setIcon } from './dom'
 import { icon } from './icons'
@@ -125,6 +125,7 @@ export function createHero({
   let frozenBeat: number | null = null
   let frozenByRotation = false
   let over = false
+  let runRecorded = false
   let introDone = false
   let frame = 0
 
@@ -294,9 +295,11 @@ export function createHero({
 
   function updateProgress(pitch: number, hit: boolean, judgement: Judgement): void {
     const { hero } = progress
+    const noteId = promptId({ clef, pitch })
+    progress = recordHistory(progress, 'hero', { kind: 'answer', correct: hit, ms: null, noteId })
     progress = {
       ...progress,
-      notes: recordAnswer(progress.notes, promptId({ clef, pitch }), hit, null),
+      notes: recordAnswer(progress.notes, noteId, hit, null),
       pitches: recordExactPitch(progress.pitches, pitch, hit, settings.strictOctave),
       bestStreak: Math.max(progress.bestStreak, score.bestStreak),
       totalAnswered: progress.totalAnswered + 1,
@@ -381,6 +384,7 @@ export function createHero({
   function finish(nowBeat: number): void {
     frozenBeat = nowBeat
     over = true
+    recordRunHistory()
     const judgedCount = sessionHits + sessionMisses
     const perfectRatio = judgedCount > 0 ? `${Math.round((sessionPerfects / judgedCount) * 100)} %` : '–'
     const stat = (label: string, value: string | number) => el('p', 'result-best', `${label} : ${value}`)
@@ -403,6 +407,13 @@ export function createHero({
     card.classList.toggle('win', won === true)
     card.classList.toggle('lose', won === false)
     element.append(el('div', 'overlay', card))
+  }
+
+  function recordRunHistory(): void {
+    if (runRecorded || sessionHits + sessionMisses === 0) return
+    runRecorded = true
+    progress = recordHistory(progress, 'hero', { kind: 'game', best: score.score })
+    onProgress(progress)
   }
 
   function currentResult(): HeroResult {
@@ -491,6 +502,7 @@ export function createHero({
     let quitArmed = false
     const quit = button('danger', 'Quitter', () => {
       if (quitArmed) {
+        recordRunHistory()
         onQuit()
         return
       }

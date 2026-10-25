@@ -8,6 +8,17 @@ import { MAX_FIFTHS } from './music/keySignature'
 import { CLEFS, type Clef, type Naming } from './music/notes'
 import type { Difficulty } from './music/generator'
 import { isDailyKey, type DailyKey } from './series/daily'
+import { dayKeyOf, weekKeyOf } from './stats/dates'
+import {
+  recordHistoryAnswer,
+  recordHistoryGame,
+  recordNoteHistory,
+  sanitizeHistory,
+  sanitizeNoteHistory,
+  type History,
+  type HistoryMode,
+  type NoteHistory,
+} from './stats/history'
 import { DEFAULT_SERIES_DIFFICULTY, SERIES_DIFFICULTIES } from './series/series'
 import { DEFAULT_SURVIVAL_DELAY, SURVIVAL_DELAYS, type SurvivalDelay } from './survival/game'
 import { KEYBOARD_SPANS, type KeyboardSpan } from './ui/keyboardLayout'
@@ -134,6 +145,8 @@ export interface Progress {
   series: SeriesProgress
   daily: DailyProgress
   survival: SurvivalProgress
+  history: History
+  noteHistory: NoteHistory
 }
 
 const MAX_DAILY_ATTEMPTS = 400
@@ -183,6 +196,8 @@ export const EMPTY_PROGRESS: Progress = {
   series: EMPTY_SERIES_PROGRESS,
   daily: EMPTY_DAILY_PROGRESS,
   survival: EMPTY_SURVIVAL_PROGRESS,
+  history: {},
+  noteHistory: {},
 }
 
 const SETTINGS_KEY = 'solfege.settings.v2'
@@ -431,7 +446,21 @@ export function sanitizeProgress(raw: unknown): Progress {
     series: sanitizeSeriesProgress(stored.series),
     daily: sanitizeDailyProgress(stored.daily),
     survival: sanitizeSurvivalProgress(stored.survival),
+    history: sanitizeHistory(stored.history),
+    noteHistory: sanitizeNoteHistory(stored.noteHistory),
   }
+}
+
+export type HistoryEvent =
+  | { kind: 'answer'; correct: boolean; ms: number | null; noteId?: string }
+  | { kind: 'game'; best: number | null }
+
+export function recordHistory(progress: Progress, mode: HistoryMode, event: HistoryEvent, now = new Date()): Progress {
+  const day = dayKeyOf(now)
+  if (event.kind === 'game') return { ...progress, history: recordHistoryGame(progress.history, mode, day, event.best) }
+  const history = recordHistoryAnswer(progress.history, mode, day, event.correct, event.ms)
+  if (event.noteId === undefined) return { ...progress, history }
+  return { ...progress, history, noteHistory: recordNoteHistory(progress.noteHistory, weekKeyOf(day), event.noteId, event.correct) }
 }
 
 function readStored(key: string): unknown {
@@ -483,6 +512,8 @@ export function resetProgress(): Progress {
     series: { ...EMPTY_SERIES_PROGRESS },
     daily: { attempts: {}, bestMs: 0 },
     survival: { ...EMPTY_SURVIVAL_PROGRESS },
+    history: {},
+    noteHistory: {},
   }
 }
 

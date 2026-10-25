@@ -20,6 +20,7 @@ function learnDrill(settings: Settings, plan: LearnKeyPlan, onEditKey: GameOptio
   const sampler = createLearnSampler(settings.clefs, settings.accidentals, Math.random, plan)
   return {
     hudChip: { label: learnKeyChipLabel(plan), onTap: onEditKey },
+    historyMode: 'learn',
     strictOctave: settings.strictOctave,
     wrongDelayMs: NEXT_DELAY_WRONG_MS,
     bestTimed: (progress) => progress.bestTimed,
@@ -30,6 +31,7 @@ function learnDrill(settings: Settings, plan: LearnKeyPlan, onEditKey: GameOptio
       if (keyChanged) staff.classList.add('key-changed')
       return {
         staff,
+        historyId: promptId(prompt),
         padTarget: { clef: prompt.clef, pitch: prompt.pitch },
         keyPitch: midi(note),
         isCorrect: (chosen) => isCorrectAnswer(prompt.pitch, chosen),

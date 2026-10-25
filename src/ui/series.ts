@@ -21,7 +21,7 @@ import {
 } from '../series/series'
 import { COLORBLIND_SQUARES, ceilToTenth, formatTenths, formatTenthsUp, formatTime, shareText } from '../series/share'
 import { type DailyKey, dailyLabel, dailyStreak, encodeDailyHash } from '../series/daily'
-import { recordDaily, recordScoreBest, type Progress, type Settings } from '../storage'
+import { recordDaily, recordHistory, recordScoreBest, type Progress, type Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
 import { button, el } from './dom'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
@@ -97,6 +97,7 @@ export function createSeries({
   homeLabel,
 }: SeriesOptions): Series {
   let progress = initialProgress
+  const historyMode = daily ? 'daily' : 'series'
   const practisingDaily = daily !== null && (!daily.ranked || initialProgress.daily.attempts[daily.key] !== undefined)
   let run: SeriesRun = INITIAL_RUN
   let index = 0
@@ -201,9 +202,12 @@ export function createSeries({
       return
     }
     locked = true
+    const elapsed = performance.now() - shownAt
+    const noteId = promptId({ clef: item.clef, pitch: item.pitch })
+    progress = recordHistory(progress, historyMode, { kind: 'answer', correct: !missedCurrent, ms: elapsed, noteId })
     progress = {
       ...progress,
-      notes: recordAnswer(progress.notes, promptId({ clef: item.clef, pitch: item.pitch }), !missedCurrent, performance.now() - shownAt),
+      notes: recordAnswer(progress.notes, noteId, !missedCurrent, elapsed),
       pitches: recordExactPitch(progress.pitches, item.pitch, !missedCurrent, settings.strictOctave),
       totalAnswered: progress.totalAnswered + 1,
     }
@@ -271,6 +275,7 @@ export function createSeries({
       }
       if (scoreId !== null && record) progress = recordScoreBest(progress, scoreId, best)
     }
+    progress = recordHistory(progress, historyMode, { kind: 'game', best: config.kind === 'score' ? null : Math.round(totalMs) })
     onProgress(progress)
     element.append(endOverlay({ totalMs, penalty, results, record, best, dailyCounted }, beaten))
   }

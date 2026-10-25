@@ -27,6 +27,7 @@ function hintText({ fifths, ask }: KeyPrompt, naming: Naming): string {
 function keysDrill(settings: Settings): Drill {
   const sampler = createKeysSampler(settings.clefs, settings.keysMode)
   return {
+    historyMode: 'keys',
     strictOctave: false,
     screenClass: 'keys-game',
     wrongDelayMs: WRONG_DELAY_MS,
@@ -37,6 +38,7 @@ function keysDrill(settings: Settings): Drill {
       const answer = keyAnswerPitchClass(prompt)
       return {
         staff: renderKeySignatureStaff(prompt.clef, prompt.fifths),
+        historyId: `keys:${prompt.fifths}`,
         padTarget: null,
         keyPitch: answer,
         isCorrect: (chosen) => chosen.pitchClass === answer,
