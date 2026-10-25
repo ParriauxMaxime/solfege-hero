@@ -31,6 +31,7 @@ import type { Progress, Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
 import { button, el, iconButton, setIcon } from './dom'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
+import { installDemoHook } from './demoHook'
 import { createScrollingStaff } from './heroStaff'
 
 const BARS_AHEAD = 3
@@ -230,6 +231,12 @@ export function createHero({
     }
     renderCountIn(nowBeat)
     staff.render(notes, nowBeat, 0)
+  }
+
+  function nextPendingNote(): { pitch: number; dueInMs: number } | null {
+    const next = notes.find((note) => note.pitch !== null && !judged.has(note.id))
+    if (next?.pitch == null) return null
+    return { pitch: next.pitch, dueInMs: (clock.timeAt(next.beat) - sound.now()) * 1000 }
   }
 
   function showKeyboardForNextNote(): void {
@@ -531,6 +538,7 @@ export function createHero({
   }
 
   document.addEventListener('visibilitychange', onVisibilityChange)
+  const removeDemoHook = installDemoHook(nextPendingNote, tap)
   pad.setTarget(clef, defaultWindowStart(clef))
   if (pad.isBlocked()) freezeWhileBlocked(true)
   frame = requestAnimationFrame(tick)
@@ -547,6 +555,7 @@ export function createHero({
     isOver: () => over,
     destroy() {
       cancelAnimationFrame(frame)
+      removeDemoHook()
       document.removeEventListener('visibilitychange', onVisibilityChange)
       pad.destroy()
     },

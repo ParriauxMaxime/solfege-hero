@@ -8,7 +8,8 @@
     "build": "node scripts/build-score-index.mjs && tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "typecheck": "tsc --noEmit",
-    "icons": "node scripts/generate-icons.mjs"
+    "icons": "node scripts/generate-icons.mjs",
+    "demo": "node scripts/demo.mjs"
   },
   "type": "module",
   "devDependencies": {
