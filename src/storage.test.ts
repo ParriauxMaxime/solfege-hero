@@ -5,6 +5,7 @@ import {
   exportData,
   importData,
   recordDaily,
+  recordPlayDay,
   recordScoreBest,
   sanitizeProgress,
   sanitizeSettings,
@@ -117,6 +118,30 @@ describe('sanitizeSettings', () => {
   })
 })
 
+describe('play days', () => {
+  it('records a day once per mode and keeps them sorted', () => {
+    let progress = recordPlayDay(EMPTY_PROGRESS, 'hero', '20261024')
+    progress = recordPlayDay(progress, 'hero', '20261022')
+    expect(recordPlayDay(progress, 'hero', '20261024')).toBe(progress)
+    expect(progress.playDays.hero).toEqual(['20261022', '20261024'])
+    expect(progress.playDays.learn).toEqual([])
+  })
+
+  it('sanitizes malformed, duplicate and unordered days', () => {
+    const { playDays } = sanitizeProgress({
+      playDays: { learn: ['20261024', '20261023', '20261024', '20261340', 5, 'x'], series: 'nope' },
+    })
+    expect(playDays).toEqual({ learn: ['20261023', '20261024'], series: [], survival: [], hero: [] })
+  })
+
+  it('keeps only the newest 400 days', () => {
+    const keys = Array.from({ length: 450 }, (_, i) => new Date(Date.UTC(2025, 0, 1 + i)).toISOString().slice(0, 10).replaceAll('-', ''))
+    const { playDays } = sanitizeProgress({ playDays: { hero: keys } })
+    expect(playDays.hero).toHaveLength(400)
+    expect(playDays.hero.at(-1)).toBe(keys.at(-1))
+  })
+})
+
 describe('sanitizeProgress', () => {
   it('falls back to empty progress for missing or malformed data', () => {
     expect(sanitizeProgress(null)).toEqual(EMPTY_PROGRESS)
@@ -128,6 +153,7 @@ describe('sanitizeProgress', () => {
 
   it('round-trips valid progress', () => {
     const progress: Progress = {
+      playDays: { learn: ['20261023', '20261024'], series: [], survival: ['20261024'], hero: [] },
       notes: { 'treble:C4': { attempts: 5, correct: 3, misses: 1.5, avgMs: 1200 } },
       pitches: { Do4: { attempts: 6, correct: 4 }, 'Sol#3': { attempts: 2, correct: 0 } },
       bestStreak: 12,

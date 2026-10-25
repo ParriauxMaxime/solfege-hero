@@ -14,7 +14,17 @@ import {
   type SeriesConfig,
   type SeriesItem,
 } from './series/series'
-import { loadProgress, loadSettings, resetProgress, saveProgress, saveSettings, type Progress, type Settings } from './storage'
+import {
+  loadProgress,
+  loadSettings,
+  recordPlayDay,
+  resetProgress,
+  saveProgress,
+  saveSettings,
+  type PlayMode,
+  type Progress,
+  type Settings,
+} from './storage'
 import { BUILTIN_SCORES, createScoreLibrary, indexedDbBackend, type NewScore } from './storage/scores'
 import { decodeScoreBlob, parseScoreHash } from './scores/link'
 import { createChallengeIntro } from './ui/challengeIntro'
@@ -31,7 +41,7 @@ import { createSurvivalIntro } from './ui/survivalIntro'
 import { parseSurvivalChallenge, type SurvivalChallenge, type SurvivalConfig } from './survival/challenge'
 import { createSeries,type ChallengeTarget, type DailyRun, type Series } from './ui/series'
 import { createDailyIntro } from './ui/dailyIntro'
-import { dailyConfig, dailyKey, dailyLabel, parseDailyHash, type DailyKey } from './series/daily'
+import { dailyConfig, dailyKey, parseDailyHash, type DailyKey } from './series/daily'
 import { isInstrumentPickerOpen } from './ui/instrumentPicker'
 import { createSettingsScreen } from './ui/settings'
 import { createStatsScreen } from './ui/stats'
@@ -215,6 +225,10 @@ export function startApp(root: HTMLElement): void {
     saveProgress(progress)
   }
 
+  function progressFor(mode: PlayMode): (next: Progress) => void {
+    return (next) => changeProgress(recordPlayDay(next, mode, dailyKey(new Date())))
+  }
+
   function swapScreen(content: HTMLElement): void {
     window.clearTimeout(leaveTimeout)
     for (const old of leaving) old.remove()
@@ -264,7 +278,9 @@ export function startApp(root: HTMLElement): void {
   function renderHome(): void {
     const today = dailyKey(new Date())
     const home = createHome({
-      daily: { label: dailyLabel(today), attemptMs: progress.daily.attempts[today]?.totalMs ?? null },
+      progress,
+      today,
+      scores: scoreLibrary.list(),
       onChoose: (choice) => enterFromHome(() => choose(choice)),
       onSettings: () => enterFromHome(showSettings),
       onStats: () => enterFromHome(showStats),
@@ -301,7 +317,7 @@ export function startApp(root: HTMLElement): void {
   }
 
   function showLearn(): void {
-    const game = createGame({ settings, progress, sound, onProgress: changeProgress })
+    const game = createGame({ settings, progress, sound, onProgress: progressFor('learn') })
     show(game.element, true, game)
     activeGame = game
   }
@@ -349,7 +365,7 @@ export function startApp(root: HTMLElement): void {
       challenge,
       isMuted: () => settings.muted,
       onToggleMute: toggleMute,
-      onProgress: changeProgress,
+      onProgress: progressFor('hero'),
       onQuit: fromLibrary ? showLibrary : showHeroStart,
       onReplay: () => playHero(melody, fromLibrary),
       onRetry: () => playHero(melody, fromLibrary, challenge),
@@ -397,7 +413,7 @@ export function startApp(root: HTMLElement): void {
       challenge: against,
       progress,
       sound,
-      onProgress: changeProgress,
+      onProgress: progressFor('series'),
       onReplay: () =>
         daily
           ? playDaily(daily.key, daily.ranked)
@@ -417,7 +433,7 @@ export function startApp(root: HTMLElement): void {
       challenge: against,
       progress,
       sound,
-      onProgress: changeProgress,
+      onProgress: progressFor('survival'),
       onReplay: () => showSurvival(freshSurvivalConfig(), null),
       onRetry: () => showSurvival(config, against),
       onHome: goHome,

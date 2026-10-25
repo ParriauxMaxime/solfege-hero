@@ -102,7 +102,14 @@ export interface DailyProgress {
   bestMs: number
 }
 
+export const PLAY_MODES = ['learn', 'series', 'survival', 'hero'] as const
+export type PlayMode = (typeof PLAY_MODES)[number]
+
+/** Days with at least one game per mode, as ascending daily keys. */
+export type PlayDays = Record<PlayMode, DailyKey[]>
+
 export interface Progress {
+  playDays: PlayDays
   notes: NoteStats
   /** Answers per exact pitch (`Do4`), recorded in strict octave mode only. */
   pitches: PitchStats
@@ -117,6 +124,9 @@ export interface Progress {
 
 const MAX_DAILY_ATTEMPTS = 400
 const MAX_DAILY_RESULTS = 100
+const MAX_PLAY_DAYS = 400
+
+export const EMPTY_PLAY_DAYS: PlayDays = { learn: [], series: [], survival: [], hero: [] }
 
 export const EMPTY_DAILY_PROGRESS: DailyProgress = { attempts: {}, bestMs: 0 }
 
@@ -147,6 +157,7 @@ export const EMPTY_HERO_PROGRESS: HeroProgress = {
 }
 
 export const EMPTY_PROGRESS: Progress = {
+  playDays: EMPTY_PLAY_DAYS,
   notes: {},
   pitches: {},
   bestStreak: 0,
@@ -347,6 +358,22 @@ export function recordDaily(
   }
 }
 
+function sanitizePlayDays(raw: unknown): PlayDays {
+  const stored = asObject(raw)
+  const days = (mode: PlayMode): DailyKey[] => {
+    const keys = Array.isArray(stored[mode]) ? (stored[mode] as unknown[]) : []
+    return [...new Set(keys.filter(isDailyKey))].sort().slice(-MAX_PLAY_DAYS)
+  }
+  return { learn: days('learn'), series: days('series'), survival: days('survival'), hero: days('hero') }
+}
+
+/** Marks the day as played for this mode. */
+export function recordPlayDay(progress: Progress, mode: PlayMode, key: DailyKey): Progress {
+  const days = progress.playDays[mode]
+  if (days.includes(key)) return progress
+  return { ...progress, playDays: { ...progress.playDays, [mode]: [...days, key].sort().slice(-MAX_PLAY_DAYS) } }
+}
+
 export function sanitizeProgress(raw: unknown): Progress {
   const stored = asObject(raw)
   const notes: NoteStats = {}
@@ -355,6 +382,7 @@ export function sanitizeProgress(raw: unknown): Progress {
     if (sanitized) notes[id] = sanitized
   }
   return {
+    playDays: sanitizePlayDays(stored.playDays),
     notes,
     pitches: sanitizePitches(stored.pitches),
     bestStreak: nonNegativeOr(stored.bestStreak, 0),
@@ -408,6 +436,7 @@ export function resetProgress(): Progress {
   }
   return {
     ...EMPTY_PROGRESS,
+    playDays: { learn: [], series: [], survival: [], hero: [] },
     notes: {},
     pitches: {},
     hero: { ...EMPTY_HERO_PROGRESS },
