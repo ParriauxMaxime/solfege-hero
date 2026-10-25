@@ -23,6 +23,7 @@ export function createPdfSetup({ pageCount, preview, initialPreview, staffIndex,
     canvas.width = bitmap.width
     canvas.height = bitmap.height
     canvas.getContext('2d')?.drawImage(bitmap, 0, 0)
+    bitmap.close()
   }
 
   function refresh(): void {

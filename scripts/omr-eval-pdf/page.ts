@@ -1,9 +1,11 @@
 // Browser side of scripts/omr-eval-pdf.mjs: renders a PDF page with pdfjs, runs the recogniser and draws what it read.
 import { noteAccuracy } from '../../src/omr/accuracy'
-import { renderPdfPage } from '../../src/omr/pdf'
-import { recognize, rgbaToGray } from '../../src/omr/recognize'
+import { PdfSession } from '../../src/omr/pdf'
+import { binarize } from '../../src/omr/image'
+import { recognize } from '../../src/omr/recognize'
+import { measureStaffMetrics } from '../../src/omr/staves'
 import type { NoteSpec } from '../../src/hero/types'
-import type { OmrWorkerMessage, OmrWorkerRequest } from '../../src/omr/types'
+import type { GrayImage, OmrWorkerMessage, OmrWorkerRequest } from '../../src/omr/types'
 import { noteName, spell } from '../../src/music/notes'
 
 const SHORT: Record<string, string> = { whole: 'w', half: 'h', quarter: 'q', eighth: 'e', sixteenth: 's' }
@@ -26,7 +28,7 @@ declare global {
   }
 }
 
-function viaWorker(image: ImageData, staffIndexInSystem: number): Promise<{ notes: number; progress: number[] }> {
+function viaWorker(image: GrayImage, staffIndexInSystem: number): Promise<{ notes: number; progress: number[] }> {
   const worker = new Worker(new URL('../../src/omr/worker.ts', import.meta.url), { type: 'module' })
   const progress: number[] = []
   return new Promise((resolve, reject) => {
@@ -37,15 +39,23 @@ function viaWorker(image: ImageData, staffIndexInSystem: number): Promise<{ note
       if (data.type !== 'progress') worker.terminate()
     }
     worker.onerror = (event) => reject(new Error(event.message))
-    worker.postMessage({ image, staffIndexInSystem } satisfies OmrWorkerRequest)
+    const copy = image.data.slice()
+    worker.postMessage({ image: { ...image, data: copy }, staffIndexInSystem } satisfies OmrWorkerRequest, [copy.buffer])
   })
 }
 
 window.evalPage = async (base64, pageNumber, staffIndex, truth) => {
   const started = performance.now()
-  const { image, pageCount } = await renderPdfPage(bytesOf(base64), pageNumber)
+  const query = new URLSearchParams(location.search)
+  const session = new PdfSession(bytesOf(base64))
+  const { gray, pageCount, reduced } = await session.gray(pageNumber, {
+    width: Number(query.get('width')) || undefined,
+    deviceMemory: query.has('memory') ? Number(query.get('memory')) : undefined,
+  })
+  session.close()
+  const image = gray
   const renderMs = performance.now() - started
-  const gray = rgbaToGray(image.data, image.width, image.height)
+  const unit = measureStaffMetrics(binarize(gray))?.unit
   const t0 = performance.now()
   const result = recognize(gray, { staffIndexInSystem: staffIndex })
   const recognizeMs = performance.now() - t0
@@ -55,7 +65,9 @@ window.evalPage = async (base64, pageNumber, staffIndex, truth) => {
   canvas.width = image.width
   canvas.height = image.height
   const context = canvas.getContext('2d') as CanvasRenderingContext2D
-  context.putImageData(image, 0, 0)
+  const pixels = context.createImageData(image.width, image.height)
+  for (let i = 0; i < image.data.length; i++) pixels.data.set([image.data[i] as number, image.data[i] as number, image.data[i] as number, 255], i * 4)
+  context.putImageData(pixels, 0, 0)
   const raster = canvas.toDataURL('image/png')
   context.lineWidth = 3
   context.font = 'bold 22px sans-serif'
@@ -75,6 +87,8 @@ window.evalPage = async (base64, pageNumber, staffIndex, truth) => {
     pageCount,
     width: image.width,
     height: image.height,
+    unit,
+    reduced,
     renderMs,
     recognizeMs,
     workerNotes: worker.notes,

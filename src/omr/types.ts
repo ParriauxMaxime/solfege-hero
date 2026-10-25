@@ -57,9 +57,9 @@ export interface OmrResult {
   timings: Record<OmrStage, number>
 }
 
-/** Message to the OMR worker: a photo (ImageBitmap) or a rasterised PDF page (ImageData). */
+/** Message to the OMR worker: the gray page, whose buffer is transferred, not copied. */
 export interface OmrWorkerRequest {
-  image: ImageData | ImageBitmap
+  image: GrayImage
   staffIndexInSystem?: number
 }
 

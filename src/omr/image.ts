@@ -136,8 +136,33 @@ export function denoise(gray: GrayImage): GrayImage {
   return result
 }
 
-/** Shrinks by `scale` (< 1) averaging the source pixels each new pixel covers. */
+function enlargeGray(gray: GrayImage, scale: number): GrayImage {
+  const width = Math.max(1, Math.round(gray.width * scale))
+  const height = Math.max(1, Math.round(gray.height * scale))
+  const out = new Uint8Array(width * height)
+  const lastX = gray.width - 1
+  const lastY = gray.height - 1
+  for (let y = 0; y < height; y++) {
+    const sy = Math.min(lastY, Math.max(0, (y + 0.5) / scale - 0.5))
+    const y0 = Math.floor(sy)
+    const y1 = Math.min(lastY, y0 + 1)
+    const fy = sy - y0
+    for (let x = 0; x < width; x++) {
+      const sx = Math.min(lastX, Math.max(0, (x + 0.5) / scale - 0.5))
+      const x0 = Math.floor(sx)
+      const x1 = Math.min(lastX, x0 + 1)
+      const fx = sx - x0
+      const top = (gray.data[y0 * gray.width + x0] as number) * (1 - fx) + (gray.data[y0 * gray.width + x1] as number) * fx
+      const bottom = (gray.data[y1 * gray.width + x0] as number) * (1 - fx) + (gray.data[y1 * gray.width + x1] as number) * fx
+      out[y * width + x] = Math.round(top * (1 - fy) + bottom * fy)
+    }
+  }
+  return { width, height, data: out }
+}
+
+/** Resizes by `scale`: averages the source pixels each new pixel covers when shrinking, interpolates when enlarging. */
 export function resizeGray(gray: GrayImage, scale: number): GrayImage {
+  if (scale > 1) return enlargeGray(gray, scale)
   const width = Math.max(1, Math.round(gray.width * scale))
   const height = Math.max(1, Math.round(gray.height * scale))
   const out = new Uint8Array(width * height)

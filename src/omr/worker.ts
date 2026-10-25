@@ -1,5 +1,5 @@
-import { recognize, rgbaToGray } from './recognize'
-import type { GrayImage, OmrStage, OmrWorkerMessage, OmrWorkerRequest } from './types'
+import { recognize } from './recognize'
+import type { OmrStage, OmrWorkerMessage, OmrWorkerRequest } from './types'
 
 interface WorkerScope {
   postMessage(message: OmrWorkerMessage): void
@@ -16,18 +16,6 @@ const STAGE_RANGE: Record<OmrStage, [number, number]> = {
 
 const scope = self as unknown as WorkerScope
 
-function toGray(image: ImageData | ImageBitmap): GrayImage {
-  if ('data' in image) return rgbaToGray(image.data, image.width, image.height)
-  const canvas = new OffscreenCanvas(image.width, image.height)
-  const context = canvas.getContext('2d')
-  if (!context) throw new Error('canvas 2d unavailable')
-  context.fillStyle = '#fff'
-  context.fillRect(0, 0, image.width, image.height)
-  context.drawImage(image, 0, 0)
-  const pixels = context.getImageData(0, 0, image.width, image.height)
-  return rgbaToGray(pixels.data, pixels.width, pixels.height)
-}
-
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
@@ -37,9 +25,7 @@ self.addEventListener('messageerror', () => scope.postMessage({ type: 'error', m
 
 scope.onmessage = ({ data }) => {
   try {
-    const gray = toGray(data.image)
-    if ('close' in data.image) data.image.close()
-    const result = recognize(gray, {
+    const result = recognize(data.image, {
       staffIndexInSystem: data.staffIndexInSystem,
       onProgress: (stage, fraction) => {
         const [from, to] = STAGE_RANGE[stage]

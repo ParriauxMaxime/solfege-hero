@@ -21,8 +21,9 @@ const BEAT_EPSILON = 1e-6
 const DOUBTFUL_CONFIDENCE = 0.5
 const INCONSISTENT_MEASURE_FACTOR = 0.6
 const STAFF_MARGIN_UNITS = 1.5
-/** Staves taller than this are shrunk to the size the symbol sizes were tuned on. */
+/** Staves taller than this are shrunk to the size the symbol sizes were tuned on, smaller than MIN_WORKING_UNIT enlarged to it. */
 const MAX_UNIT = 34
+const MIN_WORKING_UNIT = 15
 const TARGET_UNIT = 22
 const MIN_READABLE_UNIT = 11
 
@@ -42,7 +43,7 @@ function preparePage(image: GrayImage): Page {
   let scale = 1
   let binary = binarize(gray)
   let metrics = measureStaffMetrics(binary)
-  if (metrics && metrics.unit > MAX_UNIT) {
+  if (metrics && (metrics.unit > MAX_UNIT || metrics.unit < MIN_WORKING_UNIT)) {
     scale = TARGET_UNIT / metrics.unit
     gray = resizeGray(gray, scale)
     binary = binarize(gray)

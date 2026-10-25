@@ -1,4 +1,5 @@
 export const FILE_READ_TIMEOUT_MS = 20_000
+export const PHOTO_DECODE_TIMEOUT_MS = 40_000
 export const PDF_RENDER_TIMEOUT_MS = 60_000
 export const RECOGNITION_TIMEOUT_MS = 60_000
 

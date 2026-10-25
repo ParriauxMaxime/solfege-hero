@@ -1,5 +1,6 @@
 // Runs the OMR pipeline on pages of a PDF inside headless Chromium (pdfjs + the TypeScript sources served by a throwaway Vite server).
 // Usage: node scripts/omr-eval-pdf.mjs <file.pdf> [pages, e.g. 1,5] [--staff N] [--truth file.json] [--out prefix]
+// OMR_QUERY="width=1400" forces the render width, OMR_QUERY="memory=4" plays a phone with 4 GB (phone width cap).
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -45,7 +46,7 @@ try {
   page.on('console', (message) => {
     if (['error', 'warning'].includes(message.type()) && !hmrNoise.test(message.text())) console.error(`console ${message.type()}:`, message.text())
   })
-  await page.goto(origin + PAGE_URL_PATH)
+  await page.goto(origin + PAGE_URL_PATH + (process.env.OMR_QUERY ? `?${process.env.OMR_QUERY}` : ''))
   await page.waitForFunction(() => typeof window.evalPage === 'function')
   const base64 = readFileSync(pdfPath).toString('base64')
   for (const pageNumber of pages) {

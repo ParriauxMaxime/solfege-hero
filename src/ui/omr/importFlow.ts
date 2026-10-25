@@ -1,5 +1,5 @@
 import type { Sound } from '../../audio/sound'
-import type { OmrResult } from '../../omr/types'
+import type { GrayImage, OmrResult } from '../../omr/types'
 import type { NewScore } from '../../storage/scores'
 import { confirmOverlay } from '../confirm'
 import { el } from '../dom'
@@ -12,8 +12,10 @@ import { startRecognition, RecognitionCancelled } from './recognition'
 import type { Recognition } from './recognition'
 import { createReview } from './review'
 import type { Review } from './review'
-import { decodePhoto, isPdf, readableError, readFile, renderPage } from './source'
+import type { PdfSession } from '../../omr/pdf'
+import { decodePhoto, isPdf, openPdf, readableError, readFile, renderPage, renderPreview } from './source'
 
+const REDUCED_MESSAGE = 'Image réduite pour ce téléphone'
 const NOTHING_READ_MESSAGE = 'Aucune portée ni note reconnue : cadre bien la partition, à plat et bien éclairée.'
 
 /** Closes the import even when the browser never delivers the popstate that history.back() should trigger. */
@@ -33,9 +35,9 @@ export function openOmrImport({ file, sound, onSave }: OmrImportOptions): void {
   modal.setAttribute('role', 'dialog')
   modal.setAttribute('aria-modal', 'true')
   modal.setAttribute('aria-label', 'Importer une partition')
-  let source: ImageBitmap | null = null
+  let source: GrayImage | null = null
   let sourcePage = 0
-  let pdfData: ArrayBuffer | null = null
+  let pdf: PdfSession | null = null
   let pageCount = 1
   let page = 1
   let staffIndex = 0
@@ -58,7 +60,8 @@ export function openOmrImport({ file, sound, onSave }: OmrImportOptions): void {
     abort.abort()
     job?.cancel()
     review?.destroy()
-    source?.close()
+    source = null
+    pdf?.close()
     modal.remove()
     window.removeEventListener('popstate', onPopState)
     setOmrImportOpen(false)
@@ -99,7 +102,7 @@ export function openOmrImport({ file, sound, onSave }: OmrImportOptions): void {
     run++
     restartAbort()
     job?.cancel()
-    if (pdfData) void showSetup()
+    if (pdf) void showSetup()
     else closeNow()
   }
 
@@ -109,7 +112,7 @@ export function openOmrImport({ file, sound, onSave }: OmrImportOptions): void {
     const loading = createProgress({ onCancel: () => void requestClose(), onBack: closeNow })
     show(loading.element)
     try {
-      const first = await renderPage(pdfData as ArrayBuffer, page, false, signal)
+      const first = await renderPreview(pdf as PdfSession, page, signal)
       if (mine !== run) return
       pageCount = first.pageCount
       show(
@@ -117,7 +120,7 @@ export function openOmrImport({ file, sound, onSave }: OmrImportOptions): void {
           pageCount,
           initialPreview: first.bitmap,
           staffIndex,
-          preview: async (target) => (await renderPage(pdfData as ArrayBuffer, target, false, abort.signal)).bitmap,
+          preview: async (target) => (await renderPreview(pdf as PdfSession, target, abort.signal)).bitmap,
           onStart: (chosenPage, chosenStaff) => {
             page = chosenPage
             staffIndex = chosenStaff
@@ -137,12 +140,14 @@ export function openOmrImport({ file, sound, onSave }: OmrImportOptions): void {
     const progress: ProgressScreen = createProgress({ onCancel: backFromRun, onBack: backFromRun })
     show(progress.element)
     try {
-      if (pdfData && sourcePage !== page) {
-        const rendered = await renderPage(pdfData, page, true, signal)
-        if (mine !== run) return rendered.bitmap.close()
-        source?.close()
-        source = rendered.bitmap
+      if (pdf && sourcePage !== page) {
+        source = null
+        sourcePage = 0
+        const rendered = await renderPage(pdf, page, signal)
+        if (mine !== run) return
+        source = rendered.gray
         sourcePage = page
+        if (rendered.reduced) showToast(REDUCED_MESSAGE)
       }
       if (!source) throw new Error('image manquante')
       progress.update('preprocess', 0)
@@ -156,14 +161,14 @@ export function openOmrImport({ file, sound, onSave }: OmrImportOptions): void {
       showReview(result)
     } catch (error) {
       if (mine !== run || error instanceof RecognitionCancelled) return
-      progress.fail(readableError(error, pdfData ? 'pdf' : 'photo'))
+      progress.fail(readableError(error, pdf ? 'pdf' : 'photo'))
     }
   }
 
   function showReview(result: OmrResult): void {
     review = null
     const created = createReview({
-      source: source as ImageBitmap,
+      source: source as GrayImage,
       result,
       sound,
       onClose: () => void requestClose(),
@@ -184,11 +189,14 @@ export function openOmrImport({ file, sound, onSave }: OmrImportOptions): void {
     show(loading.element)
     try {
       if (isPdf(file)) {
-        pdfData = await readFile(file)
+        pdf = await openPdf(await readFile(file))
+        if (closed) return pdf.close()
         await showSetup()
         return
       }
-      source = await decodePhoto(file)
+      const photo = await decodePhoto(file)
+      source = photo.gray
+      if (photo.reduced) showToast(REDUCED_MESSAGE)
       await recognise()
     } catch (error) {
       if (!closed) failScreen(readableError(error, isPdf(file) ? 'pdf' : 'photo'))

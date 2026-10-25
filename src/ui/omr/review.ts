@@ -20,7 +20,7 @@ import {
   uncertainMeasures,
 } from '../../omr/edit'
 import type { ReviewNote } from '../../omr/edit'
-import type { OmrResult } from '../../omr/types'
+import type { GrayImage, OmrResult } from '../../omr/types'
 import type { NewScore } from '../../storage/scores'
 import { button, el, iconButton, setIcon } from '../dom'
 import { confirmOverlay } from '../confirm'
@@ -33,7 +33,7 @@ import { createSettingsPanel } from './settingsPanel'
 import { createSourceCrop } from './sourceCrop'
 
 export interface ReviewOptions {
-  source: ImageBitmap
+  source: GrayImage
   result: OmrResult
   sound: Sound
   onSave: (score: NewScore) => void
