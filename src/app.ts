@@ -49,6 +49,7 @@ import { isInstrumentPickerOpen } from './ui/instrumentPicker'
 import { isOmrImportOpen } from './ui/omr/openState'
 import { createSettingsScreen } from './ui/settings'
 import { createStatsScreen } from './ui/stats'
+import { dayKeyOf } from './stats/dates'
 import { showToast } from './ui/toast'
 
 const TRANSITION_MS = 200
@@ -89,6 +90,17 @@ export function startApp(root: HTMLElement): void {
   window.addEventListener('hashchange', () => openLaunchChallenge(true))
   window.addEventListener('popstate', onPopState)
   if (!openLaunchChallenge(false)) renderHome()
+  void openDemoStats()
+
+  async function openDemoStats(): Promise<void> {
+    const query = new URLSearchParams(location.search)
+    if (!(import.meta.env.DEV || query.has('demo'))) return
+    if (query.has('seed-stats')) {
+      const { seedProgress } = await import('./stats/seed')
+      progress = seedProgress(progress, dayKeyOf(new Date()))
+    }
+    if (query.has('stats')) showStats()
+  }
 
   function enterFromHome(open: () => void): void {
     if (!pushed) {

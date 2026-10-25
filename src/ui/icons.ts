@@ -1,5 +1,5 @@
 export type IconName = 'back' | 'pause' | 'play' | 'sound-on' | 'sound-off' | 'settings' | 'stats' | 'close' | 'wave' | 'piano' | 'organ' | 'guitar' | 'check' | 'flame' | 'rotate' | 'link' | 'trash'
-  | 'chevron-left' | 'chevron-right' | 'chevron-down' | 'arrow-up' | 'arrow-down' | 'camera' | 'document' | 'plus' | 'stop'
+  | 'chevron-left' | 'chevron-right' | 'chevron-down' | 'arrow-up' | 'arrow-down' | 'arrow-right' | 'camera' | 'document' | 'plus' | 'stop'
   | 'note-whole' | 'note-half' | 'note-quarter' | 'note-eighth' | 'note-sixteenth' | 'dot' | 'sharp' | 'flat' | 'natural' | 'rest'
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
@@ -30,6 +30,7 @@ const PATHS: Record<IconName, string> = {
   'chevron-down': '<path d="M5 9l7 7 7-7"/>',
   'arrow-up': '<path d="M12 19V5"/><path d="M5 12l7-7 7 7"/>',
   'arrow-down': '<path d="M12 5v14"/><path d="M5 12l7 7 7-7"/>',
+  'arrow-right': '<path d="M5 12h14"/><path d="M12 5l7 7-7 7"/>',
   camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
   document: '<path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/><path d="M9 13h6"/><path d="M9 17h6"/>',
   plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
