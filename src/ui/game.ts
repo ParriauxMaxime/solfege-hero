@@ -2,6 +2,7 @@ import { learnKeyChipLabel, learnKeyPlan } from '../game/learnKey'
 import { createLearnSampler, type LearnKeyPlan } from '../game/runs'
 import { buildPool, promptId, recordAnswer } from '../game/sampler'
 import { isCorrectAnswer, recordExactPitch } from '../game/strictOctave'
+import { capsFor } from '../level/level'
 import { midi, noteName } from '../music/notes'
 import type { Settings } from '../storage'
 import { createDrillGame, type Drill, type DrillOptions, type Game } from './drillGame'
@@ -17,7 +18,7 @@ export type { Game }
 
 function learnDrill(settings: Settings, plan: LearnKeyPlan, onEditKey: GameOptions['onEditKey']): Drill {
   const pool = buildPool(settings.clefs, settings.accidentals)
-  const sampler = createLearnSampler(settings.clefs, settings.accidentals, Math.random, plan)
+  const sampler = createLearnSampler(settings.clefs, settings.accidentals, Math.random, plan, capsFor(settings.level))
   return {
     hudChip: { label: learnKeyChipLabel(plan), onTap: onEditKey },
     historyMode: 'learn',
@@ -48,5 +49,6 @@ function learnDrill(settings: Settings, plan: LearnKeyPlan, onEditKey: GameOptio
 }
 
 export function createGame(options: GameOptions): Game {
-  return createDrillGame(options, learnDrill(options.settings, learnKeyPlan(options.settings), options.onEditKey))
+  const plan = learnKeyPlan(options.settings, Math.random, capsFor(options.settings.level).maxFifths)
+  return createDrillGame(options, learnDrill(options.settings, plan, options.onEditKey))
 }

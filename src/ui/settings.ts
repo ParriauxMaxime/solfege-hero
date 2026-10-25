@@ -1,5 +1,6 @@
 import { INSTRUMENT_LABELS } from '../audio/instruments'
 import type { Sound } from '../audio/sound'
+import { MAX_LEVEL, capsFor, describeCaps, tierName } from '../level/level'
 import { CLEFS, type Clef } from '../music/notes'
 import type { Difficulty } from '../music/generator'
 import { SERIES_DIFFICULTIES } from '../series/series'
@@ -18,6 +19,8 @@ export interface SettingsOptions {
   sound: Sound
   getProgress: () => Progress
   onChange: (patch: Partial<Settings>) => void
+  /** The slider was released on a new level; saves it and returns the settings it changed. */
+  onLevelChange: (level: number) => Partial<Settings>
   onReset: () => void
   onImport: (data: { settings: Settings; progress: Progress }) => void
   onBack: () => void
@@ -57,9 +60,19 @@ const SERIES_DIFFICULTY_CHOICES: Choice<Difficulty>[] = SERIES_DIFFICULTIES.map(
 const EXPORT_FILE = 'solfege-progress.json'
 const ACTION_ROW = 'settings-row action-row'
 const STRICT_OCTAVE_HINT = 'La réponse doit être à la bonne octave. Clavier 2 octaves, paysage uniquement.'
+const LEVEL_AUTO_HINT = 'Monte ou descend selon tes 50 dernières réponses en Apprendre et Armures'
 const KEY_NAMES_HINT = 'Désactivé : touches sans nom, pour les habitués'
 
-export function createSettingsScreen({ settings: initial, sound, getProgress, onChange, onReset, onImport, onBack }: SettingsOptions): HTMLElement {
+export function createSettingsScreen({
+  settings: initial,
+  sound,
+  getProgress,
+  onChange,
+  onLevelChange,
+  onReset,
+  onImport,
+  onBack,
+}: SettingsOptions): HTMLElement {
   let settings = initial
   const element = el('section', 'screen settings-list')
   let clefControl: HTMLElement | null = null
@@ -140,6 +153,37 @@ export function createSettingsScreen({ settings: initial, sound, getProgress, on
     return row('Volume', slider)
   }
 
+  function levelLabel(level: number): string {
+    return `${level} · ${tierName(level)}`
+  }
+
+  function levelRows(): HTMLElement[] {
+    const value = el('span', 'level-value', levelLabel(settings.level))
+    const caps = el('p', 'level-caps', describeCaps(capsFor(settings.level)))
+    const slider = el('input', 'slider')
+    slider.type = 'range'
+    slider.min = '0'
+    slider.max = String(MAX_LEVEL)
+    slider.step = '5'
+    slider.value = String(settings.level)
+    slider.setAttribute('aria-label', 'Niveau')
+    slider.addEventListener('input', () => {
+      const level = Number(slider.value)
+      value.textContent = levelLabel(level)
+      caps.textContent = describeCaps(capsFor(level))
+    })
+    slider.addEventListener('change', () => {
+      const level = Number(slider.value)
+      settings = { ...settings, ...onLevelChange(level) }
+      render()
+    })
+    const label = el('span', 'settings-label', 'Niveau')
+    return [
+      el('div', 'settings-row level-row', el('div', 'level-head', label, value), slider, caps),
+      row('Auto', toggle(settings.levelAuto, (levelAuto) => update({ levelAuto })), LEVEL_AUTO_HINT),
+    ]
+  }
+
   function instrumentRow(): HTMLElement {
     const choose = button('segment-button', 'Choisir', () =>
       openInstrumentPicker({
@@ -194,9 +238,16 @@ export function createSettingsScreen({ settings: initial, sound, getProgress, on
     return el('div', 'settings-section', el('h2', '', title), ...rows)
   }
 
+  function levelSection(): HTMLElement {
+    const level = section('Niveau', ...levelRows())
+    level.classList.add('level-section')
+    return level
+  }
+
   function render(): void {
     element.replaceChildren(
       el('h1', '', 'Réglages'),
+      levelSection(),
       section(
         'Jeu',
         clefRow(),

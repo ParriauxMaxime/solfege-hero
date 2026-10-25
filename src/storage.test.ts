@@ -8,6 +8,7 @@ import {
   recordHistory,
   recordPlayDay,
   recordScoreBest,
+  resetProgress,
   sanitizeProgress,
   sanitizeSettings,
   type Progress,
@@ -69,6 +70,10 @@ describe('sanitizeSettings', () => {
       learnKeyMode: 'fixed',
       learnFixedFifths: -3,
       learnKeyChange: '20',
+      level: 35,
+      levelAuto: false,
+      onboarded: true,
+      levelTips: ['bass'],
     }
     expect(sanitizeSettings(JSON.parse(JSON.stringify(settings)))).toEqual(settings)
   })
@@ -183,6 +188,7 @@ describe('sanitizeProgress', () => {
       survival: { bestScore: 47, played: 9, challengesWon: 2, challengesLost: 1 },
       history: {},
       noteHistory: {},
+      levelWindow: [{ ok: true, ms: 640 }],
     }
     expect(sanitizeProgress(JSON.parse(JSON.stringify(progress)))).toEqual(progress)
   })
@@ -196,6 +202,29 @@ describe('sanitizeProgress', () => {
     expect(sanitizeSettings({ seriesDifficulty: 5 }).seriesDifficulty).toBe(5)
     expect(sanitizeSettings({ seriesDifficulty: 6 }).seriesDifficulty).toBe(2)
     expect(sanitizeSettings({ seriesDifficulty: '3' }).seriesDifficulty).toBe(2)
+  })
+
+  it('sanitizes the level settings', () => {
+    expect(DEFAULT_SETTINGS).toMatchObject({ level: 100, levelAuto: true, onboarded: false, levelTips: [] })
+    expect(sanitizeSettings({ level: 35 }).level).toBe(35)
+    expect(sanitizeSettings({ level: 250 }).level).toBe(100)
+    expect(sanitizeSettings({ level: -4 }).level).toBe(0)
+    expect(sanitizeSettings({ level: 42.4 }).level).toBe(42)
+    expect(sanitizeSettings({ level: '30' }).level).toBe(100)
+    expect(sanitizeSettings({ level: Number.NaN }).level).toBe(100)
+    expect(sanitizeSettings({ levelAuto: false, onboarded: true })).toMatchObject({ levelAuto: false, onboarded: true })
+    expect(sanitizeSettings({ levelAuto: 'no', onboarded: 1 })).toMatchObject({ levelAuto: true, onboarded: false })
+    expect(sanitizeSettings({ levelTips: ['alto', 'tuba', 'bass', 'alto'] }).levelTips).toEqual(['bass', 'alto'])
+    expect(sanitizeSettings({ levelTips: 'bass' }).levelTips).toEqual([])
+  })
+
+  it('sanitizes the level window and clears it on reset', () => {
+    expect(EMPTY_PROGRESS.levelWindow).toEqual([])
+    expect(sanitizeProgress({ levelWindow: [{ ok: true, ms: 800 }, { ok: 'x', ms: 1 }, { ok: false, ms: -1 }] }).levelWindow).toEqual([
+      { ok: true, ms: 800 },
+    ])
+    expect(sanitizeProgress({ levelWindow: 'nope' }).levelWindow).toEqual([])
+    expect(resetProgress().levelWindow).toEqual([])
   })
 
   it('defaults strict octave to off and ignores non-boolean values', () => {

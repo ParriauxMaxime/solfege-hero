@@ -6,6 +6,7 @@ export interface Sound {
   correct(streak: number): void
   wrong(): void
   milestone(): void
+  levelUp(): void
   /** Plays a note for `seconds`, a short default when absent. */
   playNote(note: Note, seconds?: number): void
   /** Plays a midi pitch with the given instrument after `delay` seconds, even when muted (instrument picker). */
@@ -31,6 +32,7 @@ interface SoundOptions {
 const CORRECT_BASE_HZ = 523.25
 const MAX_STREAK_SEMITONES = 12
 const MILESTONE_SEMITONES = [0, 4, 7, 12]
+const LEVEL_UP_SEMITONES = [0, 4, 7, 12, 16]
 const NOTE_SECONDS = 0.6
 const CLICK_HZ = 1200
 const CLICK_ACCENT_HZ = 1800
@@ -172,6 +174,14 @@ export function createSound({ onBlocked }: SoundOptions = {}): Sound {
         const now = ctx.currentTime
         MILESTONE_SEMITONES.forEach((semitones, index) => {
           tone(ctx, 'triangle', transpose(CORRECT_BASE_HZ * 2, semitones), now + index * 0.07, 0.3, 0.16)
+        })
+      })
+    },
+    levelUp() {
+      play((ctx) => {
+        const now = ctx.currentTime
+        LEVEL_UP_SEMITONES.forEach((semitones, index) => {
+          tone(ctx, 'triangle', transpose(CORRECT_BASE_HZ, semitones), now + index * 0.09, 0.28, 0.15)
         })
       })
     },

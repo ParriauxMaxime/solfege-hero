@@ -1,5 +1,7 @@
 import { INSTRUMENTS, type Instrument } from './audio/instruments'
 import { KEYS_MODES, type KeysMode } from './game/keysSampler'
+import { sanitizeLevelWindow, type LevelSample } from './level/auto'
+import { clampLevel, MAX_LEVEL } from './level/level'
 import { LEARN_KEY_CHANGES, LEARN_KEY_MODES, type LearnKeyChange, type LearnKeyMode } from './game/learnKey'
 import type { NoteRecord, NoteStats } from './game/sampler'
 import type { PitchRecord, PitchStats } from './game/strictOctave'
@@ -29,6 +31,9 @@ export type Theme = (typeof THEMES)[number]
 export const KEY_SIZES = ['S', 'M', 'L'] as const
 export type KeySize = (typeof KEY_SIZES)[number]
 
+export const LEVEL_TIPS = ['bass', 'alto'] as const
+export type LevelTip = (typeof LEVEL_TIPS)[number]
+
 export interface Settings {
   clefs: Clef[]
   accidentals: boolean
@@ -55,6 +60,11 @@ export interface Settings {
   learnKeyMode: LearnKeyMode
   learnFixedFifths: number
   learnKeyChange: LearnKeyChange
+  level: number
+  levelAuto: boolean
+  onboarded: boolean
+  /** Clef suggestions already shown. */
+  levelTips: LevelTip[]
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -82,6 +92,10 @@ export const DEFAULT_SETTINGS: Settings = {
   learnKeyMode: 'random',
   learnFixedFifths: 0,
   learnKeyChange: 'short',
+  level: MAX_LEVEL,
+  levelAuto: true,
+  onboarded: false,
+  levelTips: [],
 }
 
 export interface HeroProgress {
@@ -147,6 +161,7 @@ export interface Progress {
   survival: SurvivalProgress
   history: History
   noteHistory: NoteHistory
+  levelWindow: LevelSample[]
 }
 
 const MAX_DAILY_ATTEMPTS = 400
@@ -198,6 +213,7 @@ export const EMPTY_PROGRESS: Progress = {
   survival: EMPTY_SURVIVAL_PROGRESS,
   history: {},
   noteHistory: {},
+  levelWindow: [],
 }
 
 const SETTINGS_KEY = 'solfege.settings.v2'
@@ -252,6 +268,10 @@ export function sanitizeSettings(raw: unknown): Settings {
     learnKeyMode: oneOf(LEARN_KEY_MODES, stored.learnKeyMode, DEFAULT_SETTINGS.learnKeyMode),
     learnFixedFifths: sanitizeFifths(stored.learnFixedFifths),
     learnKeyChange: oneOf(LEARN_KEY_CHANGES, stored.learnKeyChange, DEFAULT_SETTINGS.learnKeyChange),
+    level: typeof stored.level === 'number' && Number.isFinite(stored.level) ? clampLevel(stored.level) : DEFAULT_SETTINGS.level,
+    levelAuto: booleanOr(stored.levelAuto, DEFAULT_SETTINGS.levelAuto),
+    onboarded: booleanOr(stored.onboarded, DEFAULT_SETTINGS.onboarded),
+    levelTips: LEVEL_TIPS.filter((tip) => Array.isArray(stored.levelTips) && stored.levelTips.includes(tip)),
   }
 }
 
@@ -448,6 +468,7 @@ export function sanitizeProgress(raw: unknown): Progress {
     survival: sanitizeSurvivalProgress(stored.survival),
     history: sanitizeHistory(stored.history),
     noteHistory: sanitizeNoteHistory(stored.noteHistory),
+    levelWindow: sanitizeLevelWindow(stored.levelWindow),
   }
 }
 
@@ -514,6 +535,7 @@ export function resetProgress(): Progress {
     survival: { ...EMPTY_SURVIVAL_PROGRESS },
     history: {},
     noteHistory: {},
+    levelWindow: [],
   }
 }
 

@@ -4,6 +4,7 @@ import { vibrate } from '../platform/haptics'
 import type { Clef } from '../music/notes'
 import type { Settings } from '../storage'
 import { button, el } from './dom'
+import { levelPill } from './levelPill'
 import { renderKeySignatureStaff } from './staff'
 
 export interface LearnStartOptions {
@@ -91,6 +92,7 @@ export function createLearnStart({ settings: initial, onChange, onPlay, onOpenSe
     element.classList.toggle('is-fixed', fixed)
     element.replaceChildren(
       el('h1', 'learn-title', 'Apprendre'),
+      levelPill(settings.level, onOpenSettings),
       el(
         'div',
         'setting learn-mode',

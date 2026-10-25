@@ -23,6 +23,7 @@ export function createDailyIntro({ key, ranked, attemptMs, onStart }: DailyIntro
     el('h1', '', 'Défi du jour'),
     el('p', 'challenge-headline', headline),
     el('p', 'result-best', details),
+    el('p', 'result-best', 'Niveau 50 pour tout le monde'),
     played ? el('p', 'result-record inline-icon', icon('check'), `Ton score du jour : ${formatTenthsUp(attemptMs)}`) : '',
     button('primary big', played ? 'Rejouer (entraînement)' : 'Jouer', onStart),
   )

@@ -1,5 +1,7 @@
 import { createSound } from './audio/sound'
-import { MAX_LEVEL } from './level/level'
+import { clefTipAfterLevelChange, survivalDelayAfterLevelChange, type ClefTip } from './level/transition'
+import { CLEFS, type Clef } from './music/notes'
+import { createOnboarding } from './ui/onboarding'
 import { CHALLENGE_BARS, parseHeroChallenge, type HeroChallenge, type HeroChallengeConfig } from './hero/challenge'
 import { INITIAL_DIFFICULTY } from './hero/difficulty'
 import { createHeroChallengeIntro } from './ui/heroChallengeIntro'
@@ -57,6 +59,12 @@ const TRANSITION_MS = 200
 const UNLOCK_EVENTS = ['pointerup', 'touchend', 'click', 'keydown'] as const
 const SOUND_BLOCKED_TOAST_GAP_MS = 4000
 
+const CLEF_TIP_DELAY_MS = 2000
+const CLEF_TIP_TEXT: Record<ClefTip, { message: string; clef: Clef }> = {
+  bass: { message: 'Prêt pour la clé de fa ?', clef: 'bass' },
+  alto: { message: 'Et la clé d’ut ?', clef: 'alto' },
+}
+
 type HeroRun = NonNullable<HeroOptions['challenge']>
 
 interface Destroyable {
@@ -90,8 +98,17 @@ export function startApp(root: HTMLElement): void {
 
   window.addEventListener('hashchange', () => openLaunchChallenge(true))
   window.addEventListener('popstate', onPopState)
-  if (!openLaunchChallenge(false)) renderHome()
+  markExistingPlayerOnboarded()
+  if (!openLaunchChallenge(false)) {
+    if (settings.onboarded || new URLSearchParams(location.search).has('demo')) renderHome()
+    else showOnboarding()
+  }
   void openDemoStats()
+
+  function markExistingPlayerOnboarded(): void {
+    const hasPlayed = progress.totalAnswered > 0 || Object.values(progress.playDays).some((days) => days.length > 0)
+    if (!settings.onboarded && hasPlayed) changeSettings({ onboarded: true })
+  }
 
   async function openDemoStats(): Promise<void> {
     const query = new URLSearchParams(location.search)
@@ -280,16 +297,66 @@ export function startApp(root: HTMLElement): void {
   function freshSeriesConfig(): RandomSeriesConfig {
     return {
       kind: 'random',
-      version: 3,
+      version: 4,
       seed: newSeed(),
       clefs: settings.clefs,
       armures: settings.accidentals,
       difficulty: settings.seriesDifficulty,
+      level: settings.level,
     }
   }
 
   function freshSurvivalConfig(): SurvivalConfig {
-    return { seed: newSeed(), clefs: settings.clefs, armures: settings.accidentals, delayS: settings.survivalDelayS }
+    return {
+      seed: newSeed(),
+      clefs: settings.clefs,
+      armures: settings.accidentals,
+      delayS: settings.survivalDelayS,
+      level: settings.level,
+    }
+  }
+
+  /** Saves the level with the survival delay that goes with it; returns the settings changed. */
+  function applyLevel(level: number): Partial<Settings> {
+    const patch: Partial<Settings> = {
+      level,
+      survivalDelayS: survivalDelayAfterLevelChange(settings.level, level, settings.survivalDelayS),
+    }
+    changeSettings(patch)
+    return patch
+  }
+
+  function changeLevel(level: number): Partial<Settings> {
+    const from = settings.level
+    const patch = applyLevel(level)
+    offerClefTip(from, level)
+    return patch
+  }
+
+  function onAutoLevelChange(from: number, to: number): void {
+    applyLevel(to)
+    if (to > from) showToast(`Niveau ${from} → ${to}`, { className: 'toast-level' })
+    window.setTimeout(() => offerClefTip(from, to), to > from ? CLEF_TIP_DELAY_MS : 0)
+  }
+
+  function offerClefTip(from: number, to: number): void {
+    const tip = clefTipAfterLevelChange(from, to, settings.clefs, settings.levelTips)
+    if (!tip) return
+    changeSettings({ levelTips: [...settings.levelTips, tip] })
+    const text = CLEF_TIP_TEXT[tip]
+    showToast(text.message, {
+      action: { label: 'Ajouter', onClick: () => changeSettings({ clefs: CLEFS.filter((clef) => clef === text.clef || settings.clefs.includes(clef)) }) },
+    })
+  }
+
+  function chooseStartingLevel(level: number): void {
+    applyLevel(level)
+    changeSettings({ onboarded: true })
+    renderHome()
+  }
+
+  function showOnboarding(): void {
+    show(createOnboarding({ onChoose: chooseStartingLevel }), false)
   }
 
   function renderHome(): void {
@@ -345,6 +412,7 @@ export function startApp(root: HTMLElement): void {
       progress,
       sound,
       onProgress: progressFor('learn'),
+      onLevelChange: onAutoLevelChange,
       onEditKey: (chronoRunning) => (chronoRunning ? confirmAbandonOrOpen(showLearnStart) : showLearnStart()),
     })
     show(game.element, true, game)
@@ -352,11 +420,17 @@ export function startApp(root: HTMLElement): void {
   }
 
   function showKeysStart(): void {
-    show(createKeysStart({ settings, onChange: changeSettings, onPlay: showKeys }), true)
+    show(createKeysStart({ settings, onChange: changeSettings, onPlay: showKeys, onOpenSettings: () => showSettings() }), true)
   }
 
   function showKeys(): void {
-    const game = createKeysGame({ settings, progress, sound, onProgress: progressFor('keys') })
+    const game = createKeysGame({
+      settings,
+      progress,
+      sound,
+      onProgress: progressFor('keys'),
+      onLevelChange: onAutoLevelChange,
+    })
     show(game.element, true, game)
     activeGame = game
   }
@@ -382,7 +456,7 @@ export function startApp(root: HTMLElement): void {
       bpm: settings.heroTempo,
       difficulty: INITIAL_DIFFICULTY.level,
       bars: CHALLENGE_BARS,
-      level: MAX_LEVEL,
+      level: settings.level,
     }
   }
 
@@ -528,6 +602,7 @@ export function startApp(root: HTMLElement): void {
       sound,
       getProgress: () => progress,
       onChange: changeSettings,
+      onLevelChange: changeLevel,
       onReset: () => changeProgress(resetProgress()),
       onImport(data) {
         changeSettings(data.settings)

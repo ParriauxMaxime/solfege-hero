@@ -1,6 +1,7 @@
 import type { Sound } from '../audio/sound'
 import { INITIAL_SCORE, applyAnswer, multiplier, type AnswerOutcome, type ScoreState } from '../game/scoring'
 import { answerPitch, type Answer } from '../game/strictOctave'
+import { recordLevelAnswer, type LevelUpdate } from '../level/auto'
 import type { Clef, Note } from '../music/notes'
 import { vibrate } from '../platform/haptics'
 import { recordHistory, type Progress, type Settings } from '../storage'
@@ -18,6 +19,8 @@ export interface DrillOptions {
   progress: Progress
   sound: Sound
   onProgress: (progress: Progress) => void
+  /** Auto progression moved the level; the current game keeps its caps until the next one. */
+  onLevelChange: (from: number, to: number) => void
 }
 
 export interface Drill {
@@ -58,8 +61,12 @@ export interface Game {
   hold: () => () => void
 }
 
-export function createDrillGame({ settings, progress: initialProgress, sound, onProgress }: DrillOptions, drill: Drill): Game {
+export function createDrillGame(
+  { settings, progress: initialProgress, sound, onProgress, onLevelChange }: DrillOptions,
+  drill: Drill,
+): Game {
   let progress = initialProgress
+  let level = settings.level
   let score: ScoreState = INITIAL_SCORE
   let shown: DrillRound | null = null
   let shownAt = 0
@@ -206,15 +213,28 @@ export function createDrillGame({ settings, progress: initialProgress, sound, on
     const result = applyAnswer(score, correct, elapsed)
     score = result.state
     progress = recordHistory(progress, drill.historyMode, { kind: 'answer', correct, ms: elapsed, noteId: answered.historyId })
+    const levelUpdate = recordLevelAnswer(progress.levelWindow, { ok: correct, ms: elapsed }, level, settings.levelAuto)
     updateProgress({
       ...answered.record(progress, correct, elapsed),
       bestStreak: Math.max(progress.bestStreak, score.bestStreak),
       totalAnswered: progress.totalAnswered + 1,
+      levelWindow: levelUpdate.window,
     })
     renderScore()
+    if (levelUpdate.step) changeLevel(levelUpdate)
     if (correct) onCorrect(answered, result)
     else onWrong(chosen, answered, result.brokenStreak)
     nextTimeout = window.setTimeout(showNext, correct ? NEXT_DELAY_CORRECT_MS : drill.wrongDelayMs)
+  }
+
+  function changeLevel({ level: next, step }: LevelUpdate): void {
+    const previous = level
+    level = next
+    if (step === 'up') {
+      sound.levelUp()
+      burstConfetti(effectsLayer)
+    }
+    onLevelChange(previous, next)
   }
 
   function onCorrect(round: DrillRound, { gained, milestone, speedFactor }: AnswerOutcome): void {

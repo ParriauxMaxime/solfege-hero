@@ -1,5 +1,6 @@
 import { createKeysSampler, keyAnswerPitchClass, keyStatsId, type KeyPrompt } from '../game/keysSampler'
 import { recordAnswer } from '../game/sampler'
+import { capsFor } from '../level/level'
 import { keyFullName, keyMnemonic, type KeyQuality } from '../music/keySignature'
 import type { Settings } from '../storage'
 import { createDrillGame, type Drill, type DrillOptions, type DrillRound, type Game } from './drillGame'
@@ -25,7 +26,7 @@ function hintText({ fifths, ask }: KeyPrompt, naming: Naming): string {
 }
 
 function keysDrill(settings: Settings): Drill {
-  const sampler = createKeysSampler(settings.clefs, settings.keysMode)
+  const sampler = createKeysSampler(settings.clefs, settings.keysMode, Math.random, capsFor(settings.level).maxFifths)
   return {
     historyMode: 'keys',
     strictOctave: false,

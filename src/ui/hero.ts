@@ -1,5 +1,5 @@
 import type { Sound } from '../audio/sound'
-import { MAX_LEVEL as UNCAPPED_LEVEL } from '../level/level'
+import { capsFor } from '../level/level'
 import { createBeatClock, withTempo, type BeatClock } from '../hero/clock'
 import {
   CHALLENGE_BARS,
@@ -99,7 +99,9 @@ export function createHero({
   const startBpm = challenge?.config.bpm ?? settings.heroTempo
   const clef: Clef = melody?.clef ?? challengeClef({ seed, clefs: challenge?.config.clefs ?? settings.clefs })
   let difficulty: DifficultyState = challenge ? { ...INITIAL_DIFFICULTY, level: challenge.config.difficulty } : INITIAL_DIFFICULTY
-  const generated = melody ? null : generatedSource(seed, { clef, armures }, () => difficulty.level)
+  const level = challenge?.config.level ?? settings.level
+  const caps = capsFor(level)
+  const generated = melody ? null : generatedSource(seed, { clef, armures, caps }, () => difficulty.level)
   const placementRandom = challenge ? seededRandom(seed) : Math.random
   const fifths = melody ? melody.key : (generated?.key ?? 0)
   const time = melody ? (melody.timeSignature ?? COMMON_TIME) : (generated?.time ?? COMMON_TIME)
@@ -185,7 +187,7 @@ export function createHero({
         exhausted = true
         break
       }
-      const placed = placeNotes(specs, nextBarBeat, nextId, fifths, melody || difficulty.level < INLINE_FROM_LEVEL ? 0 : INLINE_ACCIDENTAL_CHANCE, placementRandom)
+      const placed = placeNotes(specs, nextBarBeat, nextId, fifths, melody || difficulty.level < INLINE_FROM_LEVEL || !caps.inlineAccidentals ? 0 : INLINE_ACCIDENTAL_CHANCE, placementRandom)
       notes.push(...placed)
       nextId += placed.length
       nextBarBeat += bar
@@ -326,7 +328,7 @@ export function createHero({
   }
 
   function updateDifficulty(hit: boolean, barIndex: number): void {
-    const next = onJudgement(difficulty, hit, barIndex)
+    const next = onJudgement(difficulty, hit, barIndex, caps.heroMaxDifficulty)
     if (next.level !== difficulty.level) {
       stars.textContent = renderStars(next.level)
       restartAnimation(stars, 'bump')
@@ -336,7 +338,7 @@ export function createHero({
   }
 
   function adaptTempoTo(hit: boolean): void {
-    const next = adaptTempo(tempo, hit, melody ? undefined : TEMPO_CAP[difficulty.level])
+    const next = adaptTempo(tempo, hit, melody ? undefined : Math.min(TEMPO_CAP[difficulty.level], caps.heroTempoCap))
     if (next.bpm !== tempo.bpm) {
       clock = withTempo(clock, sound.now(), next.bpm)
       bpmValue.textContent = String(next.bpm)
@@ -459,7 +461,7 @@ export function createHero({
       bpm: startBpm,
       difficulty: difficulty.level,
       bars: CHALLENGE_BARS,
-      level: UNCAPPED_LEVEL,
+      level,
     }
     return { config, result: null }
   }
