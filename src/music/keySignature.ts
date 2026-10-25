@@ -102,3 +102,53 @@ export function withInlineAccidental(
   if (keyAlteration(note.letter, fifths) !== 0) return { ...note, alter: 0 }
   return { ...note, alter: random() < 0.5 ? 1 : -1 }
 }
+
+export type KeyQuality = 'major' | 'minor'
+type KeyNaming = 'latin' | 'english'
+
+const FIFTHS_LETTERS: readonly Letter[] = ['F', 'C', 'G', 'D', 'A', 'E', 'B']
+const LATIN_LETTERS: Record<Letter, string> = { C: 'Do', D: 'Ré', E: 'Mi', F: 'Fa', G: 'Sol', A: 'La', B: 'Si' }
+const MINOR_THIRD_IN_FIFTHS = 3
+const SEMITONES_PER_FIFTH = 7
+const MINOR_ABOVE_SEMITONES = 9
+
+/** Pitch class of the major key written with `fifths` sharps (negative: flats), walking the circle of fifths from Do. */
+export function majorTonicPitchClass(fifths: number): number {
+  return (((fifths * SEMITONES_PER_FIFTH) % 12) + 12) % 12
+}
+
+export function relativeMinorPitchClass(fifths: number): number {
+  return (majorTonicPitchClass(fifths) + MINOR_ABOVE_SEMITONES) % 12
+}
+
+export function keyTonicPitchClass(fifths: number, quality: KeyQuality): number {
+  return quality === 'major' ? majorTonicPitchClass(fifths) : relativeMinorPitchClass(fifths)
+}
+
+function spelledTonic(fifths: number, quality: KeyQuality): { letter: Letter; alter: number } {
+  const position = (quality === 'major' ? fifths : fifths + MINOR_THIRD_IN_FIFTHS) + 1
+  const index = ((position % 7) + 7) % 7
+  return { letter: FIFTHS_LETTERS[index] as Letter, alter: Math.floor(position / 7) }
+}
+
+/** `Mi`, `Do♯`, `Si♭`: the tonic as the key signature spells it. */
+export function keyTonicName(fifths: number, quality: KeyQuality, naming: KeyNaming = 'latin'): string {
+  const { letter, alter } = spelledTonic(fifths, quality)
+  return `${naming === 'latin' ? LATIN_LETTERS[letter] : letter}${alter === 1 ? '♯' : alter === -1 ? '♭' : ''}`
+}
+
+export function keyFullName(fifths: number, quality: KeyQuality, naming: KeyNaming = 'latin'): string {
+  return `${keyTonicName(fifths, quality, naming)} ${quality === 'major' ? 'majeur' : 'mineur'}`
+}
+
+export function signatureLabel(fifths: number): string {
+  return fifths === 0 ? '0' : `${Math.abs(fifths)}${fifths > 0 ? '♯' : '♭'}`
+}
+
+/** How to read the major key off a signature. */
+export function keyMnemonic(fifths: number, naming: KeyNaming = 'latin'): string {
+  if (fifths === 0) return 'Aucune altération : Do'
+  if (fifths > 0) return 'dernier ♯ + ½ ton'
+  if (fifths === -1) return naming === 'latin' ? 'Fa' : 'F'
+  return 'avant-dernier ♭'
+}

@@ -113,6 +113,24 @@
   color: var(--error);
 }
 
+.keys-game .feedback {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 3.6rem;
+  line-height: 1.25;
+}
+
+.feedback.ask {
+  color: var(--ink-dim);
+}
+
+.feedback-hint {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink-dim);
+}
+
 .answers {
   display: grid;
   grid-template-columns: repeat(var(--piano-columns, 14), minmax(0, 1fr));

@@ -6,7 +6,7 @@ import { button, el } from './dom'
 import { icon as glyph } from './icons'
 import { clefGlyph, inkGroup, ledgerLines, noteHead, staffLines, stem, stepY, svgElement } from './glyphs'
 
-export type HomeChoice = 'apprendre' | 'series' | 'survival' | 'hero' | 'partitions' | 'daily'
+export type HomeChoice = 'apprendre' | 'series' | 'keys' | 'survival' | 'hero' | 'partitions' | 'daily'
 
 export type LogoVariant = 'a' | 'b' | 'c'
 
@@ -57,6 +57,11 @@ const ICONS: Record<HomeChoice, () => SVGSVGElement> = {
       ['circle', { cx: 32, cy: 36, r: 20 }],
       ['path', { d: 'M26 8H38M32 8V16M32 36L42 26' }],
       ['path', { d: 'M50 14L54 18' }],
+    ]),
+  keys: () =>
+    icon([
+      ...STAFF_SHAPES,
+      ['path', { d: 'M25 10V50M36 7V47M19 25L42 20M19 38L42 33', 'stroke-width': 3.5, 'stroke-linecap': 'round' }],
     ]),
   survival: () => icon([['path', { d: 'M32 56C32 56 8 42 8 24a12 12 0 0 1 24-5 12 12 0 0 1 24 5C56 42 32 56 32 56Z' }]]),
   hero: () =>
@@ -186,6 +191,13 @@ function streakOf(progress: Progress, mode: PlayMode, today: DailyKey): number {
   return dailyStreak(progress.playDays[mode], today)
 }
 
+function keysAccuracyStat(progress: Progress): Stat {
+  const records = Object.values(progress.keys)
+  const attempts = records.reduce((sum, record) => sum + record.attempts, 0)
+  const correct = records.reduce((sum, record) => sum + record.correct, 0)
+  return { value: attempts > 0 ? `${Math.round((100 * correct) / attempts)} %` : NONE, label: 'précision' }
+}
+
 function cardSpecs(progress: Progress, today: DailyKey): CardSpec[] {
   const best = (value: number, format: (value: number) => string = String): string => (value > 0 ? format(value) : NONE)
   return [
@@ -202,6 +214,13 @@ function cardSpecs(progress: Progress, today: DailyKey): CardSpec[] {
       title: 'Séries',
       stats: statsRow({ value: best(progress.series.bestMs, formatTenthsUp), label: 'temps' }, streakOf(progress, 'series', today)),
       icon: ICONS.series,
+    },
+    {
+      choice: 'keys',
+      accent: 'teal',
+      title: 'Armures',
+      stats: statsRow(keysAccuracyStat(progress), streakOf(progress, 'keys', today)),
+      icon: ICONS.keys,
     },
     {
       choice: 'survival',
@@ -244,7 +263,7 @@ export function createHome({ progress, today, scores, onChoose, onSettings, onSt
     const mark = glyph(name)
     mark.classList.add('home-card-icon')
     const element = button('home-card home-utility', '', onClick)
-    element.style.setProperty('--i', '6')
+    element.style.setProperty('--i', '7')
     element.append(mark, el('span', 'home-card-text', el('strong', 'home-card-title', title), ...(detail ? [el('small', 'home-stat-label', detail)] : [])))
     return element
   }
@@ -255,11 +274,10 @@ export function createHome({ progress, today, scores, onChoose, onSettings, onSt
     'home-cards',
     card('daily', 'gold', 0, onChoose, dailyBanner(progress, today)),
     ...cardSpecs(progress, today).map((spec, index) => specCard(spec, index + 1, onChoose)),
-    card('partitions', 'ocean', 5, onChoose, el('span', 'home-card-text', el('strong', 'home-card-title', 'Partitions'), partitionsStats)),
+    card('partitions', 'ocean', 6, onChoose, el('span', 'home-card-text', el('strong', 'home-card-title', 'Partitions'), partitionsStats)),
     utilityCard('settings', 'Réglages', onSettings),
     utilityCard('stats', 'Statistiques', onStats, answers > 0 ? `${answers} réponses` : undefined),
   )
   cards.firstElementChild?.classList.add('home-daily')
-  cards.children[5]?.classList.add('home-partitions')
   return el('section', 'home', renderLogo(logoParam()), cards)
 }

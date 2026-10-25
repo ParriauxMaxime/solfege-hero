@@ -201,6 +201,11 @@
   --to: #158070;
 }
 
+.home-card[data-accent='teal'] {
+  --from: #1aa3b8;
+  --to: #117486;
+}
+
 .home-card[data-accent='sunset'] {
   --from: #e8854a;
   --to: #cf5a72;
@@ -299,18 +304,13 @@
 }
 
 @media (orientation: portrait) {
-  .home-card.home-daily,
-  .home-card.home-partitions {
+  .home-card.home-daily {
     grid-column: 1 / -1;
     min-height: 84px;
     flex-direction: row;
     justify-content: flex-start;
     gap: 14px;
     text-align: left;
-  }
-
-  .home-partitions .home-card-text {
-    align-items: flex-start;
   }
 
   .home-daily .home-banner-body {
@@ -349,7 +349,7 @@
   }
 
   .home-cards {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
 
   .home-card,

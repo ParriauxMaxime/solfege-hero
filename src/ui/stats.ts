@@ -1,5 +1,7 @@
 import { accuracy, promptId } from '../game/sampler'
+import { ALL_SIGNATURES, keyStatsId } from '../game/keysSampler'
 import { mostMissedPitches, successRate } from '../game/strictOctave'
+import { keyFullName, signatureLabel } from '../music/keySignature'
 import { CLEFS, PITCH_CLASS_NAMES, pitchClass, pitchesInRange, type Clef } from '../music/notes'
 import { dailyKey, dailyStreak } from '../series/daily'
 import { formatTenthsUp } from '../series/share'
@@ -107,6 +109,20 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
     )
   }
 
+  function keysSection(keys: Progress['keys']): HTMLElement {
+    const rows = ALL_SIGNATURES.flatMap((fifths) => {
+      const record = keys[keyStatsId(fifths)]
+      const ratio = accuracy(record)
+      if (ratio === null || !record) return []
+      const row = el('div', 'note-row', el('span', 'note-name', `${signatureLabel(fifths)} ${keyFullName(fifths, 'major')}`))
+      row.style.setProperty('--tint', `hsl(${Math.round(ratio * MAX_HUE)} 60% 28%)`)
+      row.append(el('span', '', `${Math.round(ratio * 100)} %`), el('span', '', `${record.correct}/${record.attempts}`))
+      return [row]
+    })
+    const empty = el('p', 'result-best', 'Joue Armures pour voir tes progrès.')
+    return el('div', 'clef-section', el('h2', '', 'Armures'), ...(rows.length > 0 ? rows : [empty]))
+  }
+
   function strictOctaveSection(pitches: Progress['pitches']): HTMLElement {
     const missed = mostMissedPitches(pitches, MOST_MISSED_SHOWN)
     const rows = missed.map(({ label, record }) => {
@@ -156,6 +172,7 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
       dailySection(progress.daily),
       seriesSection(progress.series),
       survivalSection(progress.survival),
+      keysSection(progress.keys),
       strictOctaveSection(progress.pitches),
       ...CLEFS.filter((clef) => hasData(progress, clef)).map((clef) => clefSection(progress, clef)),
       el(

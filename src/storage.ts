@@ -1,7 +1,9 @@
 import { INSTRUMENTS, type Instrument } from './audio/instruments'
+import { KEYS_MODES, type KeysMode } from './game/keysSampler'
 import type { NoteRecord, NoteStats } from './game/sampler'
 import type { PitchRecord, PitchStats } from './game/strictOctave'
 import { START_BPM_MAX, START_BPM_MIN } from './hero/tempo'
+import { MAX_FIFTHS } from './music/keySignature'
 import { CLEFS, type Clef, type Naming } from './music/notes'
 import type { Difficulty } from './music/generator'
 import { isDailyKey, type DailyKey } from './series/daily'
@@ -37,6 +39,7 @@ export interface Settings {
   survivalDelayS: SurvivalDelay
   seriesDifficulty: Difficulty
   strictOctave: boolean
+  keysMode: KeysMode
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -60,6 +63,7 @@ export const DEFAULT_SETTINGS: Settings = {
   survivalDelayS: DEFAULT_SURVIVAL_DELAY,
   seriesDifficulty: DEFAULT_SERIES_DIFFICULTY,
   strictOctave: false,
+  keysMode: 'major',
 }
 
 export interface HeroProgress {
@@ -102,7 +106,7 @@ export interface DailyProgress {
   bestMs: number
 }
 
-export const PLAY_MODES = ['learn', 'series', 'survival', 'hero'] as const
+export const PLAY_MODES = ['learn', 'series', 'survival', 'hero', 'keys'] as const
 export type PlayMode = (typeof PLAY_MODES)[number]
 
 /** Days with at least one game per mode, as ascending daily keys. */
@@ -113,6 +117,9 @@ export interface Progress {
   notes: NoteStats
   /** Answers per exact pitch (`Do4`), recorded in strict octave mode only. */
   pitches: PitchStats
+  /** Answers per key signature, keyed by the number of fifths (`-3` is three flats). */
+  keys: NoteStats
+  keysBestTimed: number
   bestStreak: number
   totalAnswered: number
   bestTimed: number
@@ -126,7 +133,7 @@ const MAX_DAILY_ATTEMPTS = 400
 const MAX_DAILY_RESULTS = 100
 const MAX_PLAY_DAYS = 400
 
-export const EMPTY_PLAY_DAYS: PlayDays = { learn: [], series: [], survival: [], hero: [] }
+export const EMPTY_PLAY_DAYS: PlayDays = { learn: [], series: [], survival: [], hero: [], keys: [] }
 
 export const EMPTY_DAILY_PROGRESS: DailyProgress = { attempts: {}, bestMs: 0 }
 
@@ -160,6 +167,8 @@ export const EMPTY_PROGRESS: Progress = {
   playDays: EMPTY_PLAY_DAYS,
   notes: {},
   pitches: {},
+  keys: {},
+  keysBestTimed: 0,
   bestStreak: 0,
   totalAnswered: 0,
   bestTimed: 0,
@@ -217,6 +226,7 @@ export function sanitizeSettings(raw: unknown): Settings {
     survivalDelayS: SURVIVAL_DELAYS.find((delay) => delay === stored.survivalDelayS) ?? DEFAULT_SETTINGS.survivalDelayS,
     seriesDifficulty: SERIES_DIFFICULTIES.find((level) => level === stored.seriesDifficulty) ?? DEFAULT_SERIES_DIFFICULTY,
     strictOctave: booleanOr(stored.strictOctave, DEFAULT_SETTINGS.strictOctave),
+    keysMode: oneOf(KEYS_MODES, stored.keysMode, DEFAULT_SETTINGS.keysMode),
   }
 }
 
@@ -269,6 +279,18 @@ function sanitizePitches(raw: unknown): PitchStats {
     if (sanitized) pitches[label] = sanitized
   }
   return pitches
+}
+
+function sanitizeKeyStats(raw: unknown): NoteStats {
+  const keys: NoteStats = {}
+  const entries = Array.isArray(raw) ? [] : Object.entries(asObject(raw))
+  for (const [id, record] of entries) {
+    const fifths = Number(id)
+    const sanitized = sanitizeNoteRecord(record)
+    const isSignature = Number.isInteger(fifths) && Math.abs(fifths) <= MAX_FIFTHS && String(fifths) === id
+    if (isSignature && sanitized) keys[id] = sanitized
+  }
+  return keys
 }
 
 function sanitizeSeriesProgress(raw: unknown): SeriesProgress {
@@ -364,7 +386,7 @@ function sanitizePlayDays(raw: unknown): PlayDays {
     const keys = Array.isArray(stored[mode]) ? (stored[mode] as unknown[]) : []
     return [...new Set(keys.filter(isDailyKey))].sort().slice(-MAX_PLAY_DAYS)
   }
-  return { learn: days('learn'), series: days('series'), survival: days('survival'), hero: days('hero') }
+  return { learn: days('learn'), series: days('series'), survival: days('survival'), hero: days('hero'), keys: days('keys') }
 }
 
 /** Marks the day as played for this mode. */
@@ -385,6 +407,8 @@ export function sanitizeProgress(raw: unknown): Progress {
     playDays: sanitizePlayDays(stored.playDays),
     notes,
     pitches: sanitizePitches(stored.pitches),
+    keys: sanitizeKeyStats(stored.keys),
+    keysBestTimed: nonNegativeOr(stored.keysBestTimed, 0),
     bestStreak: nonNegativeOr(stored.bestStreak, 0),
     totalAnswered: nonNegativeOr(stored.totalAnswered, 0),
     bestTimed: nonNegativeOr(stored.bestTimed, 0),
@@ -436,9 +460,10 @@ export function resetProgress(): Progress {
   }
   return {
     ...EMPTY_PROGRESS,
-    playDays: { learn: [], series: [], survival: [], hero: [] },
+    playDays: { learn: [], series: [], survival: [], hero: [], keys: [] },
     notes: {},
     pitches: {},
+    keys: {},
     hero: { ...EMPTY_HERO_PROGRESS },
     series: { ...EMPTY_SERIES_PROGRESS },
     daily: { attempts: {}, bestMs: 0 },

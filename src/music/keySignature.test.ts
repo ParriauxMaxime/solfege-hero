@@ -5,7 +5,14 @@ import {
   chooseKey,
   inlineAccidental,
   keyAlteration,
+  keyFullName,
+  keyMnemonic,
+  keyTonicName,
+  keyTonicPitchClass,
+  majorTonicPitchClass,
   randomKey,
+  relativeMinorPitchClass,
+  signatureLabel,
   signatureSteps,
   spellInKey,
   withInlineAccidental,
@@ -180,5 +187,60 @@ describe('chooseKey', () => {
       counts.set(fifths, (counts.get(fifths) ?? 0) + 1)
     }
     expect(counts.get(1)).toBeGreaterThan(counts.get(6) ?? 0)
+  })
+})
+
+describe('key tonics', () => {
+  it('walks the circle of fifths from Do to the major tonic', () => {
+    const tonics = [-7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7].map(majorTonicPitchClass)
+    expect(tonics).toEqual([11, 6, 1, 8, 3, 10, 5, 0, 7, 2, 9, 4, 11, 6, 1])
+  })
+
+  it('merges enharmonic signatures on the same pad key', () => {
+    expect(majorTonicPitchClass(6)).toBe(majorTonicPitchClass(-6))
+    expect(majorTonicPitchClass(7)).toBe(majorTonicPitchClass(-5))
+    expect(majorTonicPitchClass(5)).toBe(majorTonicPitchClass(-7))
+  })
+
+  it('finds the relative minor three semitones below the major tonic', () => {
+    expect(relativeMinorPitchClass(0)).toBe(9)
+    expect(relativeMinorPitchClass(1)).toBe(4)
+    expect(relativeMinorPitchClass(4)).toBe(1)
+    expect(relativeMinorPitchClass(-3)).toBe(0)
+    expect(keyTonicPitchClass(2, 'minor')).toBe(11)
+    expect(keyTonicPitchClass(2, 'major')).toBe(2)
+  })
+
+  it('spells the tonic as the signature does', () => {
+    expect(keyFullName(4, 'major')).toBe('Mi majeur')
+    expect(keyFullName(4, 'minor')).toBe('Do♯ mineur')
+    expect(keyFullName(-2, 'major')).toBe('Si♭ majeur')
+    expect(keyFullName(-7, 'major')).toBe('Do♭ majeur')
+    expect(keyFullName(-7, 'minor')).toBe('La♭ mineur')
+    expect(keyFullName(7, 'major')).toBe('Do♯ majeur')
+    expect(keyFullName(7, 'minor')).toBe('La♯ mineur')
+    expect(keyFullName(0, 'minor')).toBe('La mineur')
+    expect(keyFullName(-1, 'major', 'english')).toBe('F majeur')
+  })
+
+  it('spells every tonic with the pitch class it sounds', () => {
+    const base: Record<string, number> = { Do: 0, Ré: 2, Mi: 4, Fa: 5, Sol: 7, La: 9, Si: 11 }
+    for (let fifths = -MAX_FIFTHS; fifths <= MAX_FIFTHS; fifths++) {
+      for (const quality of ['major', 'minor'] as const) {
+        const name = keyTonicName(fifths, quality)
+        const letter = name.replace(/[♯♭]/, '')
+        const alter = name.endsWith('♯') ? 1 : name.endsWith('♭') ? -1 : 0
+        expect(((base[letter] as number) + alter + 12) % 12).toBe(keyTonicPitchClass(fifths, quality))
+      }
+    }
+  })
+
+  it('labels signatures and gives the reading mnemonic', () => {
+    expect(signatureLabel(4)).toBe('4♯')
+    expect(signatureLabel(-3)).toBe('3♭')
+    expect(signatureLabel(0)).toBe('0')
+    expect(keyMnemonic(3)).toBe('dernier ♯ + ½ ton')
+    expect(keyMnemonic(-4)).toBe('avant-dernier ♭')
+    expect(keyMnemonic(-1)).toBe('Fa')
   })
 })

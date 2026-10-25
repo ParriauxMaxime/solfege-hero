@@ -35,6 +35,8 @@ import { createGame, type Game } from './ui/game'
 import { createHero, type Hero, type HeroOptions } from './ui/hero'
 import { createHeroStart } from './ui/heroStart'
 import { createHome, type HomeChoice } from './ui/home'
+import { createKeysGame } from './ui/keysGame'
+import { createKeysStart } from './ui/keysStart'
 import { createLibrary } from './ui/library'
 import { createSurvival, type Survival, type SurvivalTarget } from './ui/survival'
 import { createSurvivalIntro } from './ui/survivalIntro'
@@ -292,6 +294,7 @@ export function startApp(root: HTMLElement): void {
   function choose(choice: HomeChoice): void {
     if (choice === 'apprendre') showLearn()
     else if (choice === 'series') void showSeries(freshSeriesConfig(), null)
+    else if (choice === 'keys') showKeysStart()
     else if (choice === 'survival') showSurvival(freshSurvivalConfig(), null)
     else if (choice === 'partitions') showLibrary()
     else if (choice === 'daily') {
@@ -320,6 +323,16 @@ export function startApp(root: HTMLElement): void {
 
   function showLearn(): void {
     const game = createGame({ settings, progress, sound, onProgress: progressFor('learn') })
+    show(game.element, true, game)
+    activeGame = game
+  }
+
+  function showKeysStart(): void {
+    show(createKeysStart({ settings, onChange: changeSettings, onPlay: showKeys }), true)
+  }
+
+  function showKeys(): void {
+    const game = createKeysGame({ settings, progress, sound, onProgress: progressFor('keys') })
     show(game.element, true, game)
     activeGame = game
   }

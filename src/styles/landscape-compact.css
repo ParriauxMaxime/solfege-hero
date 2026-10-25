@@ -132,6 +132,21 @@
     width: calc(100% - 502px);
   }
 
+  .game.keys-game .feedback,
+  .game.keys-game:not(:has(.answers.wide)) .feedback {
+    left: 20px;
+    right: auto;
+    bottom: 14px;
+    width: 316px;
+    height: auto;
+    text-align: left;
+    font-size: 0.95rem;
+  }
+
+  .keys-game .feedback-hint {
+    font-size: 0.8rem;
+  }
+
   .game .answers {
     gap: 4px;
   }

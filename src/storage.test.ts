@@ -64,6 +64,7 @@ describe('sanitizeSettings', () => {
       survivalDelayS: 3,
       seriesDifficulty: 4,
       strictOctave: true,
+      keysMode: 'both',
     }
     expect(sanitizeSettings(JSON.parse(JSON.stringify(settings)))).toEqual(settings)
   })
@@ -131,7 +132,7 @@ describe('play days', () => {
     const { playDays } = sanitizeProgress({
       playDays: { learn: ['20261024', '20261023', '20261024', '20261340', 5, 'x'], series: 'nope' },
     })
-    expect(playDays).toEqual({ learn: ['20261023', '20261024'], series: [], survival: [], hero: [] })
+    expect(playDays).toEqual({ learn: ['20261023', '20261024'], series: [], survival: [], hero: [], keys: [] })
   })
 
   it('keeps only the newest 400 days', () => {
@@ -153,9 +154,11 @@ describe('sanitizeProgress', () => {
 
   it('round-trips valid progress', () => {
     const progress: Progress = {
-      playDays: { learn: ['20261023', '20261024'], series: [], survival: ['20261024'], hero: [] },
+      playDays: { learn: ['20261023', '20261024'], series: [], survival: ['20261024'], hero: [], keys: ['20261024'] },
       notes: { 'treble:C4': { attempts: 5, correct: 3, misses: 1.5, avgMs: 1200 } },
       pitches: { Do4: { attempts: 6, correct: 4 }, 'Sol#3': { attempts: 2, correct: 0 } },
+      keys: { '4': { attempts: 6, correct: 5, misses: 0.5, avgMs: 2100 }, '-3': { attempts: 2, correct: 0, misses: 2, avgMs: 3000 } },
+      keysBestTimed: 14,
       bestStreak: 12,
       totalAnswered: 80,
       bestTimed: 340,
@@ -185,6 +188,23 @@ describe('sanitizeProgress', () => {
     expect(DEFAULT_SETTINGS.strictOctave).toBe(false)
     expect(sanitizeSettings({ strictOctave: true }).strictOctave).toBe(true)
     expect(sanitizeSettings({ strictOctave: 'yes' }).strictOctave).toBe(false)
+  })
+
+  it('sanitizes key signature stats entry by entry', () => {
+    const good = { attempts: 3, correct: 2, misses: 1, avgMs: 900 }
+    const { keys } = sanitizeProgress({
+      keys: { '4': good, '-7': good, '8': good, '1.5': good, '01': good, x: good, '2': { attempts: 1, correct: 2, misses: 0, avgMs: 0 }, '3': 'x' },
+    })
+    expect(keys).toEqual({ '4': good, '-7': good })
+    expect(sanitizeProgress({ keys: [1] }).keys).toEqual({})
+    expect(sanitizeProgress({ bestStreak: 4 }).keys).toEqual({})
+  })
+
+  it('defaults the armures mode to major and accepts the three modes', () => {
+    expect(DEFAULT_SETTINGS.keysMode).toBe('major')
+    expect(sanitizeSettings({ keysMode: 'both' }).keysMode).toBe('both')
+    expect(sanitizeSettings({ keysMode: 'minor' }).keysMode).toBe('minor')
+    expect(sanitizeSettings({ keysMode: 'dorian' }).keysMode).toBe('major')
   })
 
   it('loads progress saved before exact pitch stats existed', () => {
