@@ -53,6 +53,7 @@ export function encodeChallenge({ config, timeS }: Challenge): string {
 
 export function parseChallenge(hash: string): Challenge | null {
   const params = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash)
+  if (params.has('h')) return null
   const seed = params.get('s') ?? ''
   if (!WHOLE_NUMBER.test(seed)) return null
 

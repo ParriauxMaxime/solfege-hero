@@ -1,5 +1,20 @@
 import type { Sound } from '../audio/sound'
 import { createBeatClock, withTempo, type BeatClock } from '../hero/clock'
+import {
+  CHALLENGE_BARS,
+  challengeClef,
+  describeGap,
+  heroChallengeUrl,
+  heroChallengeWon,
+  heroShareText,
+  limitedSource,
+  successPercent,
+  type HeroChallengeConfig,
+  type HeroResult,
+} from '../hero/challenge'
+import { newSeed } from '../series/series'
+import { seededRandom } from '../random'
+import { shareOrCopy } from './sharing'
 import { expiredNotes, noteInWindow, timingJudgement } from '../hero/judgement'
 import { INITIAL_HERO_SCORE, applyJudgement, type HeroScore } from '../hero/scoring'
 import { INITIAL_DIFFICULTY, TEMPO_CAP, onJudgement, type DifficultyState } from '../hero/difficulty'
@@ -24,11 +39,6 @@ const START_LEAD_S = 0.1
 const INLINE_ACCIDENTAL_CHANCE = 0.02
 const INLINE_FROM_LEVEL = 3
 const MAX_LEVEL = 5
-const SEED_RANGE = 1_000_000
-
-function randomSeed(): number {
-  return Math.floor(Math.random() * SEED_RANGE)
-}
 
 function renderStars(level: number): string {
   return '★'.repeat(level) + '☆'.repeat(MAX_LEVEL - level)
@@ -44,11 +54,14 @@ export interface HeroOptions {
   progress: Progress
   sound: Sound
   melody: Melody | null
+  /** A fixed 16-bar run on a seeded melody; `against` is the friend's result to beat, if any. */
+  challenge?: { config: HeroChallengeConfig; against: HeroResult | null } | null
   isMuted: () => boolean
   onToggleMute: () => void
   onProgress: (progress: Progress) => void
   onQuit: () => void
   onReplay: () => void
+  onRetry: () => void
   onHome: () => void
   /** "Accueil", or "Partitions" when the run started from the library. */
   homeLabel: string
@@ -57,6 +70,7 @@ export interface HeroOptions {
 export interface Hero {
   element: HTMLElement
   pause: () => void
+  isOver: () => boolean
   destroy: () => void
 }
 
@@ -65,27 +79,36 @@ export function createHero({
   progress: initialProgress,
   sound,
   melody,
+  challenge = null,
   isMuted,
   onToggleMute,
   onProgress,
   onQuit,
   onReplay,
+  onRetry,
   onHome,
   homeLabel,
 }: HeroOptions): Hero {
-  const clef: Clef = melody?.clef ?? (settings.clefs[Math.floor(Math.random() * settings.clefs.length)] as Clef)
-  let difficulty: DifficultyState = INITIAL_DIFFICULTY
-  const generated = melody
-    ? null
-    : generatedSource(randomSeed(), { clef, armures: settings.accidentals }, () => difficulty.level)
+  const seed = challenge?.config.seed ?? newSeed()
+  const armures = challenge?.config.armures ?? settings.accidentals
+  const startBpm = challenge?.config.bpm ?? settings.heroTempo
+  const clef: Clef = melody?.clef ?? challengeClef({ seed, clefs: challenge?.config.clefs ?? settings.clefs })
+  let difficulty: DifficultyState = challenge ? { ...INITIAL_DIFFICULTY, level: challenge.config.difficulty } : INITIAL_DIFFICULTY
+  const generated = melody ? null : generatedSource(seed, { clef, armures }, () => difficulty.level)
+  const placementRandom = challenge ? seededRandom(seed) : Math.random
   const fifths = melody ? melody.key : (generated?.key ?? 0)
   const time = melody ? (melody.timeSignature ?? COMMON_TIME) : (generated?.time ?? COMMON_TIME)
   const bar = barLength(time)
   const clicks = barClicks(time)
-  const source: NoteSource = melody ? melodySource(melody) : (generated?.source as NoteSource)
+  const generatedNotes = generated?.source as NoteSource
+  const source: NoteSource = melody
+    ? melodySource(melody)
+    : challenge
+      ? limitedSource(generatedNotes, challenge.config.bars)
+      : generatedNotes
   let progress = initialProgress
   let score: HeroScore = INITIAL_HERO_SCORE
-  let tempo: TempoState = { bpm: settings.heroTempo, hitsInRow: 0 }
+  let tempo: TempoState = { bpm: startBpm, hitsInRow: 0 }
   let clock: BeatClock = createBeatClock(sound.now() + START_LEAD_S, -bar, tempo.bpm)
   let notes: HeroNote[] = []
   const judged = new Set<number>()
@@ -97,6 +120,7 @@ export function createHero({
   let sessionMisses = 0
   let sessionPerfects = 0
   let frozenBeat: number | null = null
+  let over = false
   let introDone = false
   let frame = 0
 
@@ -151,7 +175,7 @@ export function createHero({
         exhausted = true
         break
       }
-      const placed = placeNotes(specs, nextBarBeat, nextId, fifths, melody || difficulty.level < INLINE_FROM_LEVEL ? 0 : INLINE_ACCIDENTAL_CHANCE)
+      const placed = placeNotes(specs, nextBarBeat, nextId, fifths, melody || difficulty.level < INLINE_FROM_LEVEL ? 0 : INLINE_ACCIDENTAL_CHANCE, placementRandom)
       notes.push(...placed)
       nextId += placed.length
       nextBarBeat += bar
@@ -241,8 +265,8 @@ export function createHero({
     const hit = judgement !== 'rate'
     const result = applyJudgement(score, judgement)
     score = result.state
-    if (!melody) updateDifficulty(hit, Math.floor(note.beat / bar))
-    adaptTempoTo(hit)
+    if (!melody && !challenge) updateDifficulty(hit, Math.floor(note.beat / bar))
+    if (!challenge) adaptTempoTo(hit)
     updateProgress(note.pitch, hit, judgement)
     renderScore()
     if (hit) onHit(note.id, note.note, judgement, result.gained, result.milestone)
@@ -257,9 +281,14 @@ export function createHero({
       bestStreak: Math.max(progress.bestStreak, score.bestStreak),
       totalAnswered: progress.totalAnswered + 1,
       hero: {
-        bestScore: Math.max(hero.bestScore, score.score),
-        bestStreak: Math.max(hero.bestStreak, score.bestStreak),
-        maxBpm: Math.max(hero.maxBpm, tempo.bpm),
+        ...hero,
+        ...(challenge
+          ? {}
+          : {
+              bestScore: Math.max(hero.bestScore, score.score),
+              bestStreak: Math.max(hero.bestStreak, score.bestStreak),
+              maxBpm: Math.max(hero.maxBpm, tempo.bpm),
+            }),
         hits: hero.hits + (hit ? 1 : 0),
         misses: hero.misses + (hit ? 0 : 1),
         perfects: hero.perfects + (judgement === 'parfait' ? 1 : 0),
@@ -331,26 +360,97 @@ export function createHero({
 
   function finish(nowBeat: number): void {
     frozenBeat = nowBeat
+    over = true
     const judgedCount = sessionHits + sessionMisses
     const perfectRatio = judgedCount > 0 ? `${Math.round((sessionPerfects / judgedCount) * 100)} %` : '–'
     const stat = (label: string, value: string | number) => el('p', 'result-best', `${label} : ${value}`)
-    element.append(
-      el(
-        'div',
-        'overlay',
-        el(
-          'div',
-          'result',
-          el('h2', '', melody?.name ?? 'Terminé'),
-          el('p', 'result-score', String(score.score)),
-          stat('Meilleure série', score.bestStreak),
-          stat('Parfaits', perfectRatio),
-          stat('Réussies', sessionHits),
-          stat('Ratées', sessionMisses),
-          el('div', 'result-actions', button('primary', 'Rejouer', onReplay), button('segment-button', homeLabel, onHome)),
-        ),
-      ),
+    const result = currentResult()
+    const target = challenge?.against ?? null
+    const won = target ? heroChallengeWon(result, target) : null
+    if (target) recordChallenge(won === true)
+    const card = el(
+      'div',
+      'result series-end',
+      target ? verdict(result, target, won === true) : el('h2', '', melody?.name ?? 'Terminé'),
+      target ? versus(result, target) : el('p', 'result-score series-total', String(score.score)),
+      stat('Réussite', `${result.percent} %`),
+      stat('Meilleure série', score.bestStreak),
+      stat('Parfaits', perfectRatio),
+      stat('Réussies', sessionHits),
+      stat('Ratées', sessionMisses),
+      el('div', 'result-actions', ...resultActions(target)),
     )
+    card.classList.toggle('win', won === true)
+    card.classList.toggle('lose', won === false)
+    element.append(el('div', 'overlay', card))
+  }
+
+  function currentResult(): HeroResult {
+    return { percent: successPercent(sessionHits, sessionMisses), score: score.score }
+  }
+
+  function recordChallenge(won: boolean): void {
+    const { hero } = progress
+    progress = {
+      ...progress,
+      hero: { ...hero, challengesWon: hero.challengesWon + (won ? 1 : 0), challengesLost: hero.challengesLost + (won ? 0 : 1) },
+    }
+    onProgress(progress)
+  }
+
+  function verdict(mine: HeroResult, target: HeroResult, won: boolean): HTMLElement {
+    if (won) {
+      sound.milestone()
+      burstConfetti(effectsLayer)
+      return el('p', 'verdict win', 'Gagné !')
+    }
+    return el('p', 'verdict lose', `Perdu… ${describeGap(mine, target)}`)
+  }
+
+  function versus(mine: HeroResult, target: HeroResult): HTMLElement {
+    const line = ({ percent, score: points }: HeroResult) => `${percent} % · ${points} pts`
+    return el(
+      'div',
+      'versus stacked',
+      el('span', 'versus-you', `Toi : ${line(mine)}`),
+      el('span', 'versus-friend', `Ami : ${line(target)}`),
+    )
+  }
+
+  function challengeToShare(): { config: HeroChallengeConfig; result: HeroResult | null } {
+    if (challenge) return { config: challenge.config, result: currentResult() }
+    const config: HeroChallengeConfig = {
+      seed,
+      clefs: settings.clefs,
+      armures,
+      bpm: startBpm,
+      difficulty: difficulty.level,
+      bars: CHALLENGE_BARS,
+    }
+    return { config, result: null }
+  }
+
+  let sharing = false
+  async function share(): Promise<void> {
+    if (sharing) return
+    sharing = true
+    try {
+      const { config, result } = challengeToShare()
+      const url = heroChallengeUrl(location.origin + location.pathname, { config, target: result })
+      await shareOrCopy(heroShareText({ config, result, url }))
+    } finally {
+      sharing = false
+    }
+  }
+
+  function resultActions(target: HeroResult | null): HTMLElement[] {
+    const home = button('segment-button', homeLabel, onHome)
+    if (challenge) {
+      const label = target ? 'Partager mon résultat' : 'Défier un ami'
+      return [button('primary', label, () => void share()), button('segment-button', 'Réessayer ce défi', onRetry), home]
+    }
+    const replay = button('primary', 'Rejouer', onReplay)
+    return melody ? [replay, home] : [replay, button('segment-button', 'Défier un ami', () => void share()), home]
   }
 
   function pause(): void {
@@ -380,6 +480,14 @@ export function createHero({
           overlay.remove()
           resume()
         }),
+        ...(challenge
+          ? []
+          : [
+              button('segment-button', 'Terminer', () => {
+                overlay.remove()
+                finish(currentBeat())
+              }),
+            ]),
         quit,
       ),
     )
@@ -410,6 +518,7 @@ export function createHero({
   return {
     element,
     pause,
+    isOver: () => over,
     destroy() {
       cancelAnimationFrame(frame)
       document.removeEventListener('visibilitychange', onVisibilityChange)

@@ -29,7 +29,7 @@ export function encodeSurvivalChallenge({ config, score }: SurvivalChallenge): s
 /** Series links carry `s=` (and sometimes `v=2`); a Survie link has `v=<seed>` and no `s`. */
 export function parseSurvivalChallenge(hash: string): SurvivalChallenge | null {
   const params = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash)
-  if (params.has('s')) return null
+  if (params.has('s') || params.has('h')) return null
 
   const seed = params.get('v') ?? ''
   const score = params.get('n') ?? ''

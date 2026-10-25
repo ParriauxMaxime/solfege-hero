@@ -62,6 +62,8 @@ export interface HeroProgress {
   hits: number
   misses: number
   perfects: number
+  challengesWon: number
+  challengesLost: number
 }
 
 export interface SeriesProgress {
@@ -131,6 +133,8 @@ export const EMPTY_HERO_PROGRESS: HeroProgress = {
   hits: 0,
   misses: 0,
   perfects: 0,
+  challengesWon: 0,
+  challengesLost: 0,
 }
 
 export const EMPTY_PROGRESS: Progress = {
@@ -216,6 +220,8 @@ function sanitizeHeroProgress(raw: unknown): HeroProgress {
     hits: nonNegativeOr(stored.hits, 0),
     misses: nonNegativeOr(stored.misses, 0),
     perfects: nonNegativeOr(stored.perfects, 0),
+    challengesWon: nonNegativeOr(stored.challengesWon, 0),
+    challengesLost: nonNegativeOr(stored.challengesLost, 0),
   }
 }
 

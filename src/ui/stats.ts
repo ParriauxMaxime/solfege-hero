@@ -46,6 +46,8 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
         summary('réussies', hero.hits),
         summary('ratées', hero.misses),
         summary('parfaits', perfectRatio),
+        summary('défis gagnés', hero.challengesWon),
+        summary('défis perdus', hero.challengesLost),
       ),
     )
   }

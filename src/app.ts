@@ -1,4 +1,7 @@
 import { createSound } from './audio/sound'
+import { CHALLENGE_BARS, parseHeroChallenge, type HeroChallenge, type HeroChallengeConfig } from './hero/challenge'
+import { INITIAL_DIFFICULTY } from './hero/difficulty'
+import { createHeroChallengeIntro } from './ui/heroChallengeIntro'
 import type { Melody, Score } from './hero/types'
 import { createAppearance, motionReduced } from './platform/appearance'
 import { setVibrationEnabled } from './platform/haptics'
@@ -19,7 +22,7 @@ import { createScoreChallengeIntro, createScoreReceived } from './ui/scoreReceiv
 import { confirmOverlay } from './ui/confirm'
 import { el, iconButton, setIcon } from './ui/dom'
 import { createGame } from './ui/game'
-import { createHero, type Hero } from './ui/hero'
+import { createHero, type Hero, type HeroOptions } from './ui/hero'
 import { createHeroStart } from './ui/heroStart'
 import { createHome, type HomeChoice } from './ui/home'
 import { createLibrary } from './ui/library'
@@ -37,6 +40,8 @@ import { showToast } from './ui/toast'
 const TRANSITION_MS = 200
 const UNLOCK_EVENTS = ['pointerup', 'touchend', 'click', 'keydown'] as const
 const SOUND_BLOCKED_TOAST_GAP_MS = 4000
+
+type HeroRun = NonNullable<HeroOptions['challenge']>
 
 interface Destroyable {
   destroy: () => void
@@ -91,7 +96,7 @@ export function startApp(root: HTMLElement): void {
       pushed = true
       return
     }
-    if (activeHero) {
+    if (activeHero && !activeHero.isOver()) {
       activeHero.pause()
       history.pushState({ screen: 'inside' }, '')
       pushed = true
@@ -101,19 +106,27 @@ export function startApp(root: HTMLElement): void {
   }
 
   function isLaunchLink(hash: string): boolean {
-    return Boolean(parseChallenge(hash) || parseScoreHash(hash) || parseDailyHash(hash) || parseSurvivalChallenge(hash))
+    return Boolean(
+      parseHeroChallenge(hash) ||
+        parseChallenge(hash) ||
+        parseScoreHash(hash) ||
+        parseDailyHash(hash) ||
+        parseSurvivalChallenge(hash),
+    )
   }
 
   function openLaunchChallenge(): boolean {
-    const challenge = parseChallenge(location.hash)
-    const scoreLink = challenge ? null : parseScoreHash(location.hash)
-    const dailyLink = challenge || scoreLink ? null : parseDailyHash(location.hash)
-    const survivalLink = challenge || scoreLink || dailyLink ? null : parseSurvivalChallenge(location.hash)
-    if (!challenge && !scoreLink && !dailyLink && !survivalLink) return false
+    const heroLink = parseHeroChallenge(location.hash)
+    const challenge = heroLink ? null : parseChallenge(location.hash)
+    const scoreLink = heroLink || challenge ? null : parseScoreHash(location.hash)
+    const dailyLink = heroLink || challenge || scoreLink ? null : parseDailyHash(location.hash)
+    const survivalLink = heroLink || challenge || scoreLink || dailyLink ? null : parseSurvivalChallenge(location.hash)
+    if (!heroLink && !challenge && !scoreLink && !dailyLink && !survivalLink) return false
     history.replaceState(null, '', location.pathname + location.search)
     const open = () =>
       enterFromHome(() => {
-        if (challenge) showChallengeIntro(challenge)
+        if (heroLink) showHeroChallengeIntro(heroLink)
+        else if (challenge) showChallengeIntro(challenge)
         else if (scoreLink) void openScoreLink(scoreLink)
         else if (dailyLink) showDailyIntro(dailyLink)
         else if (survivalLink) showSurvivalIntro(survivalLink)
@@ -254,20 +267,52 @@ export function startApp(root: HTMLElement): void {
   }
 
   function showHeroStart(): void {
-    show(createHeroStart({ settings, library: scoreLibrary, onChange: changeSettings, onPlay: (melody) => playHero(melody) }), true)
+    show(
+      createHeroStart({
+        settings,
+        library: scoreLibrary,
+        onChange: changeSettings,
+        onPlay: (melody) => playHero(melody),
+        onPlayChallenge: () => playHero(null, false, { config: freshHeroChallengeConfig(), against: null }),
+      }),
+      true,
+    )
   }
 
-  function playHero(melody: Melody | null, fromLibrary = false): void {
+  function freshHeroChallengeConfig(): HeroChallengeConfig {
+    return {
+      seed: newSeed(),
+      clefs: settings.clefs,
+      armures: settings.accidentals,
+      bpm: settings.heroTempo,
+      difficulty: INITIAL_DIFFICULTY.level,
+      bars: CHALLENGE_BARS,
+    }
+  }
+
+  function showHeroChallengeIntro(challenge: HeroChallenge): void {
+    show(
+      createHeroChallengeIntro({
+        challenge,
+        onStart: () => playHero(null, false, { config: challenge.config, against: challenge.target }),
+      }),
+      true,
+    )
+  }
+
+  function playHero(melody: Melody | null, fromLibrary = false, challenge: HeroRun | null = null): void {
     const hero = createHero({
       settings,
       progress,
       sound,
       melody,
+      challenge,
       isMuted: () => settings.muted,
       onToggleMute: toggleMute,
       onProgress: changeProgress,
       onQuit: fromLibrary ? showLibrary : showHeroStart,
       onReplay: () => playHero(melody, fromLibrary),
+      onRetry: () => playHero(melody, fromLibrary, challenge),
       onHome: fromLibrary ? showLibrary : goHome,
       homeLabel: fromLibrary ? 'Partitions' : 'Accueil',
     })

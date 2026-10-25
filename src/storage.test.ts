@@ -130,7 +130,7 @@ describe('sanitizeProgress', () => {
       bestStreak: 12,
       totalAnswered: 80,
       bestTimed: 340,
-      hero: { bestScore: 900, bestStreak: 30, maxBpm: 110, hits: 200, misses: 20, perfects: 90 },
+      hero: { bestScore: 900, bestStreak: 30, maxBpm: 110, hits: 200, misses: 20, perfects: 90, challengesWon: 3, challengesLost: 1 },
       series: { bestMs: 47000, played: 6, won: 4, lost: 2, bestByScore: { abc: 31500 } },
       daily: {
         attempts: { '20261024': { totalMs: 52300, penaltyMs: 5000, results: [true, false, true] } },
@@ -198,6 +198,15 @@ describe('sanitizeProgress', () => {
   it('sanitizes hero progress field by field', () => {
     const { hero } = sanitizeProgress({ hero: { bestScore: 50, maxBpm: -3, hits: 'x' } })
     expect(hero).toEqual({ ...EMPTY_PROGRESS.hero, bestScore: 50 })
+  })
+
+  it('defaults hero challenge counters for progress saved before hero challenges', () => {
+    const { hero } = sanitizeProgress({ hero: { bestScore: 50, hits: 4 } })
+    expect(hero).toMatchObject({ challengesWon: 0, challengesLost: 0, hits: 4 })
+    expect(sanitizeProgress({ hero: { challengesWon: 3, challengesLost: -1 } }).hero).toMatchObject({
+      challengesWon: 3,
+      challengesLost: 0,
+    })
   })
 
   it('sanitizes series progress field by field', () => {

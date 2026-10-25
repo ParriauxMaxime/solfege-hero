@@ -1,3 +1,4 @@
+import { CHALLENGE_BARS } from '../hero/challenge'
 import type { Melody, Score } from '../hero/types'
 import { START_BPM_MAX, START_BPM_MIN } from '../hero/tempo'
 import type { Settings } from '../storage'
@@ -9,11 +10,12 @@ export interface HeroStartOptions {
   library: ReturnType<typeof createScoreLibrary>
   onChange: (patch: Partial<Settings>) => void
   onPlay: (melody: Melody | null) => void
+  onPlayChallenge: () => void
 }
 
 const RANDOM_LABEL = 'Aléatoire'
 
-export function createHeroStart({ settings: initial, library, onChange, onPlay }: HeroStartOptions): HTMLElement {
+export function createHeroStart({ settings: initial, library, onChange, onPlay, onPlayChallenge }: HeroStartOptions): HTMLElement {
   let settings = initial
   let scores: Score[] = []
   const element = el('section', 'screen panel')
@@ -71,6 +73,7 @@ export function createHeroStart({ settings: initial, library, onChange, onPlay }
       tempoSetting(),
       metronomeSetting(),
       button('primary', 'Jouer', () => onPlay(selectedMelody())),
+      ...(selectedMelody() ? [] : [button('segment-button', `Défi ${CHALLENGE_BARS} mesures`, onPlayChallenge)]),
     )
   }
 
