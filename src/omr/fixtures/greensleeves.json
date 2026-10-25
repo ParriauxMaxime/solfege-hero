@@ -1,0 +1,133 @@
+{
+  "name": "Greensleeves",
+  "clef": "treble",
+  "key": 0,
+  "timeSignature": {
+    "beats": 6,
+    "beatType": 8
+  },
+  "notes": [
+    {
+      "pitch": null,
+      "duration": "quarter"
+    },
+    {
+      "pitch": null,
+      "duration": "quarter"
+    },
+    {
+      "pitch": null,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 72,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 74,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 76,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 77,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 76,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 74,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 71,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 67,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 71,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 72,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 68,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 71,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 68,
+      "duration": "quarter",
+      "dots": 1
+    },
+    {
+      "pitch": 64,
+      "duration": "quarter",
+      "dots": 1
+    },
+    {
+      "pitch": null,
+      "duration": "quarter"
+    },
+    {
+      "pitch": null,
+      "duration": "quarter"
+    },
+    {
+      "pitch": null,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 72,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 74,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 76,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 77,
+      "duration": "eighth"
+    }
+  ]
+}

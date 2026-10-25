@@ -1,0 +1,52 @@
+{
+  "name": "Amazing Grace",
+  "clef": "treble",
+  "key": 1,
+  "timeSignature": {
+    "beats": 3,
+    "beatType": 4
+  },
+  "notes": [
+    {
+      "pitch": null,
+      "duration": "half"
+    },
+    {
+      "pitch": 62,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 67,
+      "duration": "half"
+    },
+    {
+      "pitch": 71,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 67,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 71,
+      "duration": "half"
+    },
+    {
+      "pitch": 69,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 67,
+      "duration": "half"
+    },
+    {
+      "pitch": 64,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 62,
+      "duration": "half",
+      "dots": 1
+    }
+  ]
+}

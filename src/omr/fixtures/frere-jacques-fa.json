@@ -1,0 +1,139 @@
+{
+  "name": "Frère Jacques (clé de fa)",
+  "clef": "bass",
+  "key": 0,
+  "timeSignature": {
+    "beats": 4,
+    "beatType": 4
+  },
+  "notes": [
+    {
+      "pitch": 48,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 50,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 52,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 48,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 48,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 50,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 52,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 48,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 52,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 53,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 55,
+      "duration": "half"
+    },
+    {
+      "pitch": 52,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 53,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 55,
+      "duration": "half"
+    },
+    {
+      "pitch": 55,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 57,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 55,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 53,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 52,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 48,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 55,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 57,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 55,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 53,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 52,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 48,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 48,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 43,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 48,
+      "duration": "half"
+    },
+    {
+      "pitch": 48,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 43,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 48,
+      "duration": "half"
+    }
+  ]
+}

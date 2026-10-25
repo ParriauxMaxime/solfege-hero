@@ -1,0 +1,139 @@
+{
+  "name": "Frère Jacques",
+  "clef": "treble",
+  "key": 0,
+  "timeSignature": {
+    "beats": 4,
+    "beatType": 4
+  },
+  "notes": [
+    {
+      "pitch": 72,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 74,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 76,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 72,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 72,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 74,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 76,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 72,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 76,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 77,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 79,
+      "duration": "half"
+    },
+    {
+      "pitch": 76,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 77,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 79,
+      "duration": "half"
+    },
+    {
+      "pitch": 79,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 81,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 79,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 77,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 76,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 72,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 79,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 81,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 79,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 77,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 76,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 72,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 72,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 67,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 72,
+      "duration": "half"
+    },
+    {
+      "pitch": 72,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 67,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 72,
+      "duration": "half"
+    }
+  ]
+}

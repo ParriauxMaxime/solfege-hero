@@ -1,0 +1,140 @@
+{
+  "name": "Menuet en sol (Bach)",
+  "clef": "treble",
+  "key": 1,
+  "timeSignature": {
+    "beats": 3,
+    "beatType": 4
+  },
+  "notes": [
+    {
+      "pitch": 74,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 67,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 71,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 72,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 74,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 67,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 67,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 76,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 72,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 74,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 76,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 78,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 79,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 67,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 67,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 72,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 74,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 72,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 71,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 71,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 72,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 71,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 67,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 66,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 67,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 71,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 67,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "half",
+      "dots": 1
+    }
+  ]
+}

@@ -1,0 +1,167 @@
+{
+  "name": "À la claire fontaine",
+  "clef": "treble",
+  "key": -1,
+  "timeSignature": {
+    "beats": 4,
+    "beatType": 4
+  },
+  "notes": [
+    {
+      "pitch": 65,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 65,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 67,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 67,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 65,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 65,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 67,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 69,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 67,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 65,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 72,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 72,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 72,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 65,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 67,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 65,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 65,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 67,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 65,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 67,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 67,
+      "duration": "eighth"
+    },
+    {
+      "pitch": 65,
+      "duration": "quarter"
+    }
+  ]
+}

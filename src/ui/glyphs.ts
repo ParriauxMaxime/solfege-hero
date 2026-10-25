@@ -46,16 +46,20 @@ const CLEF_DOTS: Record<Clef, { cx: number; cy: number; r: number }[]> = {
   ],
 }
 
-interface AccidentalShape {
+export interface AccidentalShape {
   stems: string[]
   bars: string[]
 }
 
-const ACCIDENTAL_SHAPES: Record<Exclude<Accidental, 'flat'>, AccidentalShape> = {
+export const ACCIDENTAL_STEM_WIDTH = 1.8
+export const ACCIDENTAL_BAR_WIDTH = 4
+export const FLAT_WIDTH = 2.4
+
+export const ACCIDENTAL_SHAPES: Record<Exclude<Accidental, 'flat'>, AccidentalShape> = {
   sharp: { stems: ['M-3.5 -19 V21', 'M3.5 -21 V19'], bars: ['M-7.5 -3 L7.5 -8', 'M-7.5 8 L7.5 3'] },
   natural: { stems: ['M-3.5 -21 V5', 'M3.5 -5 V21'], bars: ['M-3.5 -2 L3.5 -5', 'M-3.5 5 L3.5 2'] },
 }
-const FLAT_PATH = 'M-3 -24 V8 C8 2 13 -4 13 -9 C13 -16 3 -15 -3 -5'
+export const FLAT_PATH ='M-3 -24 V8 C8 2 13 -4 13 -9 C13 -16 3 -15 -3 -5'
 
 const SIGNATURE_SPACING = 14
 const SIGNATURE_GAP = 6
@@ -72,7 +76,11 @@ const HEAD_TILT: Record<HeadFill, number> = { hollow: -15, filled: -20 }
 const FLAG_PATH = 'M0 0 C1 8 12 12 10 24'
 const REST_BLOCK_HALF_WIDTH = 7
 const REST_BLOCK_HEIGHT = 5
-const REST_FLAG_PATH = 'M-5 -6 C-1 -4 2 -6 4 -10'
+export const REST_STROKE_WIDTH = 3
+export const REST_FLAG_PATH = 'M-5 -6 C-1 -4 2 -6 4 -10'
+export const FLAGGED_REST_STEMS = ['M5 -10 L-2 12', 'M6 -14 L-2 12']
+export const FLAGGED_REST_BALL = { cx: -5, cy: -6, r: 2.4 }
+export const FLAGGED_REST_FLAG_SHIFT = { x: -2.5, y: 8 }
 const DOT_SPACING = 7
 const DOT_GAP = 6
 const DIGIT_WIDTH = 20
@@ -80,7 +88,7 @@ const DIGIT_FONT_SIZE = 34
 const DIGIT_BASELINE_LIFT = 4
 const TIME_SIGNATURE_LEAD = 10
 const TIME_SIGNATURE_GAP = 12
-const QUARTER_REST_PATH ='M-4 -16 L3 -9 L-3 -1 L4 7 C-4 8 -5 14 2 18'
+export const QUARTER_REST_PATH = 'M-4 -16 L3 -9 L-3 -1 L4 7 C-4 8 -5 14 2 18'
 
 export function stepY(step: number): number {
   return BOTTOM_LINE_Y - step * STEP_HEIGHT
@@ -136,12 +144,12 @@ export function accidentalGlyph(accidental: Accidental, x: number, step: number)
     'stroke-linejoin': 'round',
   })
   if (accidental === 'flat') {
-    group.append(svgElement('path', { d: FLAT_PATH, 'stroke-width': 2.4 }))
+    group.append(svgElement('path', { d: FLAT_PATH, 'stroke-width': FLAT_WIDTH }))
     return group
   }
   const { stems, bars } = ACCIDENTAL_SHAPES[accidental]
-  for (const d of stems) group.append(svgElement('path', { d, 'stroke-width': 1.8, 'stroke-linecap': 'butt' }))
-  for (const d of bars) group.append(svgElement('path', { d, 'stroke-width': 4, 'stroke-linecap': 'butt' }))
+  for (const d of stems) group.append(svgElement('path', { d, 'stroke-width': ACCIDENTAL_STEM_WIDTH, 'stroke-linecap': 'butt' }))
+  for (const d of bars) group.append(svgElement('path', { d, 'stroke-width': ACCIDENTAL_BAR_WIDTH, 'stroke-linecap': 'butt' }))
   return group
 }
 
@@ -221,12 +229,14 @@ function restBlock(step: number, hanging: boolean): SVGRectElement {
 
 function flaggedRest(flags: number): SVGGElement {
   const group = svgElement('g', { transform: `translate(0 ${stepY(MIDDLE_LINE_STEP)})` })
-  group.append(svgElement('path', { d: flags === 1 ? 'M5 -10 L-2 12' : 'M6 -14 L-2 12' }))
+  group.append(svgElement('path', { d: FLAGGED_REST_STEMS[flags - 1] as string }))
   for (let flag = 0; flag < flags; flag++) {
-    const flagGroup = svgElement('g', { transform: `translate(${-flag * 2.5} ${flag * 8})` })
+    const flagGroup = svgElement('g', {
+      transform: `translate(${flag * FLAGGED_REST_FLAG_SHIFT.x} ${flag * FLAGGED_REST_FLAG_SHIFT.y})`,
+    })
     flagGroup.append(
       svgElement('path', { d: REST_FLAG_PATH }),
-      svgElement('circle', { cx: -5, cy: -6, r: 2.4, fill: 'currentColor', stroke: 'none' }),
+      svgElement('circle', { ...FLAGGED_REST_BALL, fill: 'currentColor', stroke: 'none' }),
     )
     group.append(flagGroup)
   }
@@ -234,7 +244,7 @@ function flaggedRest(flags: number): SVGGElement {
 }
 
 export function restGlyph(duration: Duration, x: number): SVGGElement {
-  const group = svgElement('g', { transform: `translate(${x} 0)`, fill: 'none', 'stroke-width': 3, 'stroke-linejoin': 'round' })
+  const group = svgElement('g', { transform: `translate(${x} 0)`, fill: 'none', 'stroke-width': REST_STROKE_WIDTH, 'stroke-linejoin': 'round' })
   if (duration === 'whole') group.append(restBlock(6, true))
   else if (duration === 'half') group.append(restBlock(MIDDLE_LINE_STEP, false))
   else if (duration === 'quarter') {

@@ -1,0 +1,171 @@
+{
+  "name": "Lettre à Élise (Beethoven)",
+  "clef": "treble",
+  "key": 0,
+  "timeSignature": {
+    "beats": 3,
+    "beatType": 8
+  },
+  "notes": [
+    {
+      "pitch": null,
+      "duration": "quarter"
+    },
+    {
+      "pitch": 76,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 75,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 76,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 75,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 76,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 71,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 74,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 72,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": null,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 60,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 64,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 69,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 71,
+      "duration": "eighth"
+    },
+    {
+      "pitch": null,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 64,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 68,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 71,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 72,
+      "duration": "eighth"
+    },
+    {
+      "pitch": null,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 64,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 76,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 75,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 76,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 75,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 76,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 71,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 74,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 72,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 69,
+      "duration": "eighth"
+    },
+    {
+      "pitch": null,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 60,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 64,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 69,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 71,
+      "duration": "eighth"
+    },
+    {
+      "pitch": null,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 64,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 72,
+      "duration": "sixteenth"
+    },
+    {
+      "pitch": 71,
+      "duration": "sixteenth"
+    }
+  ]
+}

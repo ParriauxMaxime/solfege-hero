@@ -121,7 +121,7 @@ function isBeamable(hero: HeroNote | undefined): hero is PitchedNote {
 }
 
 /** Consecutive eighths and sixteenths sharing one beat group (a beat, or a dotted quarter in compound time). */
-function beamRun(notes: readonly HeroNote[], index: number, beamUnit: number): PitchedNote[] {
+export function beamRun(notes: readonly HeroNote[], index: number, beamUnit: number): PitchedNote[] {
   const hero = notes[index]
   if (!isBeamable(hero)) return []
   const group = (candidate: HeroNote) => Math.floor(candidate.beat / beamUnit + GROUP_EPSILON)
@@ -190,7 +190,7 @@ function createNoteGroup(
   return group
 }
 
-function beamUnitOf(time: TimeSignature): number {
+export function beamUnitOf(time: TimeSignature): number {
   return barClicks(time)[1]?.offset ?? barLength(time)
 }
 
