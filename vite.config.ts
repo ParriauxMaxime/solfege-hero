@@ -13,7 +13,7 @@ export default defineConfig({
       // The glob below already picks the icons up; listing them twice duplicates precache entries.
       includeManifestIcons: false,
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2,musicxml,json}'],
       },
       manifest: {
         name: 'Solfège',

@@ -1,6 +1,7 @@
 import type { Score } from '../hero/types'
 import type { Clef } from '../music/notes'
 import { importScoreFile } from '../music/musicxml'
+import { catalogueUrl, fetchCatalogueIndex, withoutCatalogued, type CatalogueEntry } from '../storage/catalogue'
 import type { createScoreLibrary } from '../storage/scores'
 import { confirmOverlay } from './confirm'
 import { button, el } from './dom'
@@ -45,6 +46,7 @@ export function createLibrary({ library, onPlayHero, onPlaySeries }: LibraryOpti
   const list = el('div', 'library-list')
   const element = el('section', 'screen library', header, notice, list)
   let sharing = false
+  let catalogue: CatalogueEntry[] = []
 
   function showWarnings(warnings: string[]): void {
     notice.hidden = warnings.length === 0
@@ -116,16 +118,55 @@ export function createLibrary({ library, onPlayHero, onPlaySeries }: LibraryOpti
     )
   }
 
+  async function loadCatalogueScore(entry: CatalogueEntry): Promise<Score | null> {
+    try {
+      const response = await fetch(catalogueUrl(import.meta.env.BASE_URL, entry.file))
+      if (!response.ok) throw new Error(String(response.status))
+      const { score } = await importScoreFile(entry.file, await response.arrayBuffer())
+      return library.registerBuiltin(score)
+    } catch {
+      showToast('Partition indisponible pour le moment')
+      return null
+    }
+  }
+
+  function catalogueCard(entry: CatalogueEntry): HTMLElement {
+    const play = (start: (score: Score) => void) => async () => {
+      const score = await loadCatalogueScore(entry)
+      if (score) start(score)
+    }
+    return el(
+      'article',
+      'score-card',
+      el('div', 'score-main', el('h3', 'score-title', entry.title), el('span', 'badge', 'intégrée')),
+      el('div', 'score-meta', ...(entry.composer ? [el('span', 'chip', entry.composer)] : [])),
+      el(
+        'div',
+        'score-actions',
+        button('primary', 'Hero', () => void play(onPlayHero)()),
+        button('primary', 'Série', () => void play(onPlaySeries)()),
+      ),
+    )
+  }
+
   async function renderList(): Promise<void> {
     const scores = await library.list()
     const imported = scores.filter((score) => score.source !== 'builtin')
-    const builtin = scores.filter((score) => score.source === 'builtin')
+    const builtin = withoutCatalogued(
+      scores.filter((score) => score.source === 'builtin'),
+      catalogue,
+    )
     list.replaceChildren(
       ...(imported.length > 0 ? imported.map(scoreCard) : [el('p', 'library-empty', EMPTY_MESSAGE)]),
       ...builtin.map(scoreCard),
+      ...catalogue.map(catalogueCard),
     )
   }
 
   void renderList()
+  void fetchCatalogueIndex(import.meta.env.BASE_URL).then((entries) => {
+    catalogue = entries
+    if (entries.length > 0) void renderList()
+  })
   return element
 }

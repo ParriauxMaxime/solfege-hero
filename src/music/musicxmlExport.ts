@@ -3,7 +3,9 @@ import { DURATION_BEATS, type Duration, type NoteSpec, type Score } from '../her
 import { spellInKey } from './keySignature'
 import { spell, type Clef, type Note } from './notes'
 
-type ExportableScore = Pick<Score, 'name' | 'clef' | 'key' | 'tempo' | 'timeSignature' | 'notes'>
+type ExportableScore = Pick<Score, 'name' | 'clef' | 'key' | 'tempo' | 'timeSignature' | 'notes'> & {
+  composer?: string
+}
 
 const DIVISIONS = 24
 const EPSILON = 1e-6
@@ -143,6 +145,10 @@ function toPieces(notes: readonly NoteSpec[], bar: number): Piece[] {
   return pieces
 }
 
+function identification(composer: string | undefined): string {
+  return composer ? `<identification><creator type="composer">${escapeXml(composer)}</creator></identification>` : ''
+}
+
 export function toMusicXml(score: ExportableScore): string {
   const bar = barLength(score.timeSignature)
   const pieces = toPieces(score.notes, bar)
@@ -170,6 +176,7 @@ export function toMusicXml(score: ExportableScore): string {
     '<?xml version="1.0" encoding="UTF-8"?>' +
     '<score-partwise version="4.0">' +
     `<work><work-title>${escapeXml(score.name)}</work-title></work>` +
+    identification(score.composer) +
     '<part-list><score-part id="P1"><part-name>Mélodie</part-name></score-part></part-list>' +
     `<part id="P1">${body}</part></score-partwise>`
   )

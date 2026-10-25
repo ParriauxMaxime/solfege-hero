@@ -18,6 +18,8 @@ export interface ScoreLibrary {
   /** Keeps the existing entry when the same content is already stored. */
   add(score: NewScore, source: 'file' | 'link'): Promise<Score>
   remove(id: string): Promise<void>
+  /** Makes a catalogue score resolvable by id for this session; it is never stored. */
+  registerBuiltin(score: NewScore): Score
 }
 
 const MAX_NAME_LENGTH = 80
@@ -83,7 +85,8 @@ function sanitizeScore(raw: NewScore): NewScore {
   }
 }
 
-export function createScoreLibrary(backend: ScoreBackend, builtins: Score[]): ScoreLibrary {
+export function createScoreLibrary(backend: ScoreBackend, initialBuiltins: Score[]): ScoreLibrary {
+  const builtins = [...initialBuiltins]
   const isBuiltin = (id: string) => builtins.some((score) => score.id === id)
 
   async function list(): Promise<Score[]> {
@@ -109,6 +112,14 @@ export function createScoreLibrary(backend: ScoreBackend, builtins: Score[]): Sc
     async remove(id) {
       if (isBuiltin(id)) throw new Error('Les partitions intégrées ne peuvent pas être supprimées')
       await backend.delete(id)
+    },
+    registerBuiltin(raw) {
+      const clean = sanitizeScore(raw)
+      const existing = builtins.find((score) => score.id === clean.id)
+      if (existing) return existing
+      const score: Score = { ...clean, source: 'builtin', importedAt: 0 }
+      builtins.push(score)
+      return score
     },
   }
 }

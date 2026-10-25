@@ -24,6 +24,19 @@ const draft = (pitch = 60, overrides: Partial<NewScore> = {}): NewScore => {
   return { ...melody, id: scoreId(melody), name: 'Ma pièce', tempo: 90, ...overrides }
 }
 
+describe('registerBuiltin', () => {
+  it('makes a catalogue score listed, resolvable, unstored and undeletable', async () => {
+    const backend = memoryBackend()
+    const library = createScoreLibrary(backend, BUILTIN_SCORES)
+    const registered = library.registerBuiltin(draft(64))
+    expect(registered.source).toBe('builtin')
+    expect(library.registerBuiltin(draft(64))).toBe(registered)
+    expect(await library.get(registered.id)).toBe(registered)
+    expect(backend.stored.size).toBe(0)
+    await expect(library.remove(registered.id)).rejects.toThrow()
+  })
+})
+
 describe('BUILTIN_SCORES', () => {
   it('turns every melody into a builtin score with a content id and its time signature', () => {
     expect(BUILTIN_SCORES).toHaveLength(MELODIES.length)

@@ -7,3 +7,4 @@ scratch
 .claude/settings.local.json
 .env
 tailscale/state/
+public/scores/index.json
