@@ -188,6 +188,14 @@ describe('answerItem', () => {
     expect(run.index).toBe(items.length)
   })
 
+  it('counts the right pitch class in the wrong octave as a mistake in strict octave mode', () => {
+    const pitch = items[0]?.pitch ?? 0
+    const wrongOctave = answerItem(INITIAL_RUN, items, rightAnswer(0), pitch + 12)
+    expect(wrongOctave).toMatchObject({ correct: false })
+    expect(wrongOctave.run.mistakes[0]).toBe(1)
+    expect(answerItem(INITIAL_RUN, items, rightAnswer(0), pitch)).toMatchObject({ correct: true })
+  })
+
   it('does not mutate the previous run', () => {
     const run: SeriesRun = { index: 0, mistakes: [] }
     answerItem(run, items, wrongAnswer(0))

@@ -54,6 +54,7 @@ const SURVIVAL_DELAY_CHOICES: Choice<SurvivalDelay>[] = SURVIVAL_DELAYS.map((del
 const SERIES_DIFFICULTY_CHOICES: Choice<Difficulty>[] = SERIES_DIFFICULTIES.map((level) => ({ value: level, label: String(level) }))
 const EXPORT_FILE = 'solfege-progress.json'
 const ACTION_ROW = 'settings-row action-row'
+const STRICT_OCTAVE_HINT = 'La réponse doit être à la bonne octave. Clavier 2 octaves, paysage uniquement.'
 const KEY_NAMES_HINT = 'Désactivé : touches sans nom, pour les habitués'
 
 export function createSettingsScreen({ settings: initial, sound, getProgress, onChange, onReset, onImport, onBack }: SettingsOptions): HTMLElement {
@@ -203,6 +204,7 @@ export function createSettingsScreen({ settings: initial, sound, getProgress, on
           choiceControl(KEYBOARD_SPAN_CHOICES, (span) => span === settings.keyboardSpan, (keyboardSpan) => update({ keyboardSpan })),
           'En paysage seulement',
         ),
+        toggleRow('Octave stricte', 'strictOctave', STRICT_OCTAVE_HINT),
       ),
       section(
         'Affichage',

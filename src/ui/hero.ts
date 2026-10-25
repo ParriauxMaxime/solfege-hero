@@ -24,7 +24,8 @@ import { barClicks, barLength, type Click } from '../hero/meter'
 import { COMMON_TIME, type HeroNote, type Judgement, type Melody } from '../hero/types'
 import { promptId, recordAnswer } from '../game/sampler'
 import { multiplier } from '../game/scoring'
-import { noteName, pitchClass, type Clef, type Note } from '../music/notes'
+import { answerPitch, defaultWindowStart, isCorrectAnswer, recordExactPitch, type Answer } from '../game/strictOctave'
+import { noteName, type Clef, type Note } from '../music/notes'
 import { vibrate } from '../platform/haptics'
 import type { Progress, Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
@@ -120,6 +121,7 @@ export function createHero({
   let sessionMisses = 0
   let sessionPerfects = 0
   let frozenBeat: number | null = null
+  let frozenByRotation = false
   let over = false
   let introDone = false
   let frame = 0
@@ -155,7 +157,10 @@ export function createHero({
   )
   const countIn = el('div', 'count-in')
   const staffArea = el('div', 'hero-staff', staff.element, countIn)
-  const pad = createAnswerPad(tap, settings.naming, settings.keyboardSpan)
+  const pad = createAnswerPad(tap, settings.naming, settings.keyboardSpan, {
+    strictOctave: settings.strictOctave,
+    onBlockedChange: freezeWhileBlocked,
+  })
   const flash = el('div', 'flash')
   const effectsLayer = el('div', 'effects-layer')
   const element = el('section', 'screen game hero', hud, staffArea, pad.element, flash, effectsLayer)
@@ -221,18 +226,24 @@ export function createHero({
       scheduleClicks()
       for (const note of expiredNotes(notes, judged, nowBeat, clock)) judge(note, 'rate')
       if (isFinished()) finish(nowBeat)
+      if (settings.strictOctave) showKeyboardForNextNote()
     }
     renderCountIn(nowBeat)
     staff.render(notes, nowBeat, 0)
   }
 
-  function deadTap(chosen: number): void {
+  function showKeyboardForNextNote(): void {
+    const next = notes.find((note) => note.pitch !== null && !judged.has(note.id))
+    if (next?.pitch != null) pad.setTarget(clef, next.pitch)
+  }
+
+  function deadTap(chosen: Answer): void {
     const nowBeat = currentBeat()
     const nearest = notes
       .filter((note) => note.pitch !== null)
       .reduce<HeroNote | null>((best, note) => (!best || Math.abs(note.beat - nowBeat) < Math.abs(best.beat - nowBeat) ? note : best), null)
     pad.clear()
-    pad.flash(chosen, 'neutral')
+    pad.flash(answerPitch(chosen), 'neutral')
     window.setTimeout(() => pad.clear(), NEUTRAL_FLASH_MS)
     const zone = staff.element.querySelector('.hero-hit-zone') ?? staff.element
     const { x } = centerOf(zone)
@@ -240,7 +251,7 @@ export function createHero({
     floatText(effectsLayer, { x, y: top - DEAD_TAP_LABEL_GAP_PX }, nearest && nearest.beat < nowBeat ? 'Trop tard' : 'Trop tôt', 'neutral')
   }
 
-  function tap(chosen: number): void {
+  function tap(chosen: Answer): void {
     if (frozenBeat !== null) return
     const target = noteInWindow(notes, judged, currentBeat(), clock)
     if (!target || target.pitch === null) {
@@ -249,9 +260,9 @@ export function createHero({
     }
     const deltaMs = (sound.now() - clock.timeAt(target.beat)) * 1000
     pad.clear()
-    if (chosen !== pitchClass(target.pitch)) {
-      pad.flash(chosen, 'wrong')
-      pad.flash(pitchClass(target.pitch), 'reveal')
+    if (!isCorrectAnswer(target.pitch, chosen)) {
+      pad.flash(answerPitch(chosen), 'wrong')
+      pad.flash(target.pitch, 'reveal')
       judge(target, 'rate')
       return
     }
@@ -278,6 +289,7 @@ export function createHero({
     progress = {
       ...progress,
       notes: recordAnswer(progress.notes, promptId({ clef, pitch }), hit, null),
+      pitches: recordExactPitch(progress.pitches, pitch, hit, settings.strictOctave),
       bestStreak: Math.max(progress.bestStreak, score.bestStreak),
       totalAnswered: progress.totalAnswered + 1,
       hero: {
@@ -453,9 +465,21 @@ export function createHero({
     return melody ? [replay, home] : [replay, button('segment-button', 'Défier un ami', () => void share()), home]
   }
 
+  function freezeWhileBlocked(blocked: boolean): void {
+    if (blocked) {
+      if (frozenBeat !== null || over) return
+      frozenBeat = currentBeat()
+      frozenByRotation = true
+    } else if (frozenByRotation) {
+      frozenByRotation = false
+      resume()
+    }
+  }
+
   function pause(): void {
-    if (frozenBeat !== null) return
-    frozenBeat = currentBeat()
+    if (frozenBeat !== null && !frozenByRotation) return
+    frozenByRotation = false
+    frozenBeat ??= currentBeat()
     let quitArmed = false
     const quit = button('danger', 'Quitter', () => {
       if (quitArmed) {
@@ -507,6 +531,8 @@ export function createHero({
   }
 
   document.addEventListener('visibilitychange', onVisibilityChange)
+  pad.setTarget(clef, defaultWindowStart(clef))
+  if (pad.isBlocked()) freezeWhileBlocked(true)
   frame = requestAnimationFrame(tick)
   if (!sound.isRunning()) {
     void sound.whenRunning().then(() => {

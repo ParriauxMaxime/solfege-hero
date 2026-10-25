@@ -1,4 +1,5 @@
 import { accuracy, promptId } from '../game/sampler'
+import { mostMissedPitches, successRate } from '../game/strictOctave'
 import { CLEFS, PITCH_CLASS_NAMES, pitchClass, pitchesInRange, type Clef } from '../music/notes'
 import { dailyKey, dailyStreak } from '../series/daily'
 import { formatTenthsUp } from '../series/share'
@@ -14,6 +15,7 @@ export interface StatsOptions {
 
 const CLEF_TITLES: Record<Clef, string> = { treble: 'Clé de sol', bass: 'Clé de fa', alto: 'Clé d’ut 3' }
 const MAX_HUE = 130
+const MOST_MISSED_SHOWN = 8
 
 function hasData(progress: Progress, clef: Clef): boolean {
   return Object.keys(progress.notes).some((id) => id.startsWith(`${clef}:`))
@@ -104,6 +106,19 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
     )
   }
 
+  function strictOctaveSection(pitches: Progress['pitches']): HTMLElement {
+    const missed = mostMissedPitches(pitches, MOST_MISSED_SHOWN)
+    const rows = missed.map(({ label, record }) => {
+      const ratio = successRate(record)
+      const row = el('div', 'note-row', el('span', 'note-name', label))
+      row.style.setProperty('--tint', `hsl(${Math.round(ratio * MAX_HUE)} 60% 28%)`)
+      row.append(el('span', '', `${Math.round(ratio * 100)} %`), el('span', '', `${record.correct}/${record.attempts}`))
+      return row
+    })
+    const empty = Object.keys(pitches).length === 0 ? 'Active l’octave stricte dans les réglages et joue.' : 'Aucune hauteur ratée, bravo !'
+    return el('div', 'clef-section', el('h2', '', 'Octave stricte'), ...(rows.length > 0 ? rows : [el('p', 'result-best', empty)]))
+  }
+
   function pitchRow(progress: Progress, clef: Clef, pitch: number): HTMLElement {
     const record = progress.notes[promptId({ clef, pitch })]
     const ratio = accuracy(record)
@@ -140,6 +155,7 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
       dailySection(progress.daily),
       seriesSection(progress.series),
       survivalSection(progress.survival),
+      strictOctaveSection(progress.pitches),
       ...CLEFS.filter((clef) => hasData(progress, clef)).map((clef) => clefSection(progress, clef)),
       el(
         'div',

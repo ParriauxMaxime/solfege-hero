@@ -58,7 +58,7 @@ export function openInstrumentPicker({ sound, current, naming, onSelect, onClose
   }
 
   const pad = createAnswerPad(
-    (pitchClass) => {
+    ({ pitchClass }) => {
       sound.unlock()
       sound.preview(selected, C4 + pitchClass)
     },

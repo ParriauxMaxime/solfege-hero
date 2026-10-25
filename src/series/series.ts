@@ -1,9 +1,10 @@
 import { buildPool, type Prompt } from '../game/sampler'
+import { isCorrectAnswer } from '../game/strictOctave'
 import { hashText } from '../hash'
 import type { Melody } from '../hero/types'
 import { generateMelody, type Difficulty } from '../music/generator'
 import { chooseKey, spellInKey } from '../music/keySignature'
-import { pitchClass, spell, type Clef, type Note } from '../music/notes'
+import { spell, type Clef, type Note } from '../music/notes'
 import { seededRandom } from '../random'
 
 export const SERIES_LENGTH = 20
@@ -105,11 +106,12 @@ export function answerItem(
   run: SeriesRun,
   items: readonly SeriesItem[],
   chosenPitchClass: number,
+  chosenPitch: number | null = null,
 ): { run: SeriesRun; correct: boolean; finished: boolean } {
   const item = items[run.index]
   if (!item) return { run, correct: false, finished: true }
 
-  if (pitchClass(item.pitch) !== chosenPitchClass) {
+  if (!isCorrectAnswer(item.pitch, { pitchClass: chosenPitchClass, pitch: chosenPitch })) {
     const mistakes = Array.from({ length: items.length }, (_, i) => run.mistakes[i] ?? 0)
     mistakes[run.index] = (mistakes[run.index] ?? 0) + 1
     return { run: { index: run.index, mistakes }, correct: false, finished: false }

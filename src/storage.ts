@@ -1,5 +1,6 @@
 import { INSTRUMENTS, type Instrument } from './audio/instruments'
 import type { NoteRecord, NoteStats } from './game/sampler'
+import type { PitchRecord, PitchStats } from './game/strictOctave'
 import { START_BPM_MAX, START_BPM_MIN } from './hero/tempo'
 import { CLEFS, type Clef, type Naming } from './music/notes'
 import type { Difficulty } from './music/generator'
@@ -35,6 +36,7 @@ export interface Settings {
   instrument: Instrument
   survivalDelayS: SurvivalDelay
   seriesDifficulty: Difficulty
+  strictOctave: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -57,6 +59,7 @@ export const DEFAULT_SETTINGS: Settings = {
   instrument: 'piano',
   survivalDelayS: DEFAULT_SURVIVAL_DELAY,
   seriesDifficulty: DEFAULT_SERIES_DIFFICULTY,
+  strictOctave: false,
 }
 
 export interface HeroProgress {
@@ -101,6 +104,8 @@ export interface DailyProgress {
 
 export interface Progress {
   notes: NoteStats
+  /** Answers per exact pitch (`Do4`), recorded in strict octave mode only. */
+  pitches: PitchStats
   bestStreak: number
   totalAnswered: number
   bestTimed: number
@@ -143,6 +148,7 @@ export const EMPTY_HERO_PROGRESS: HeroProgress = {
 
 export const EMPTY_PROGRESS: Progress = {
   notes: {},
+  pitches: {},
   bestStreak: 0,
   totalAnswered: 0,
   bestTimed: 0,
@@ -199,6 +205,7 @@ export function sanitizeSettings(raw: unknown): Settings {
     instrument: oneOf(INSTRUMENTS, stored.instrument, DEFAULT_SETTINGS.instrument),
     survivalDelayS: SURVIVAL_DELAYS.find((delay) => delay === stored.survivalDelayS) ?? DEFAULT_SETTINGS.survivalDelayS,
     seriesDifficulty: SERIES_DIFFICULTIES.find((level) => level === stored.seriesDifficulty) ?? DEFAULT_SERIES_DIFFICULTY,
+    strictOctave: booleanOr(stored.strictOctave, DEFAULT_SETTINGS.strictOctave),
   }
 }
 
@@ -235,6 +242,22 @@ function sanitizeNoteRecord(raw: unknown): NoteRecord | null {
   if (!isNonNegative(attempts) || !isNonNegative(correct) || correct > attempts) return null
   if (!isNonNegative(misses) || !isNonNegative(avgMs)) return null
   return { attempts, correct, misses, avgMs }
+}
+
+function sanitizePitchRecord(raw: unknown): PitchRecord | null {
+  const { attempts, correct } = asObject(raw)
+  if (!isNonNegative(attempts) || !isNonNegative(correct) || correct > attempts) return null
+  return { attempts, correct }
+}
+
+function sanitizePitches(raw: unknown): PitchStats {
+  const pitches: PitchStats = {}
+  const entries = Array.isArray(raw) ? [] : Object.entries(asObject(raw))
+  for (const [label, record] of entries) {
+    const sanitized = sanitizePitchRecord(record)
+    if (sanitized) pitches[label] = sanitized
+  }
+  return pitches
 }
 
 function sanitizeSeriesProgress(raw: unknown): SeriesProgress {
@@ -333,6 +356,7 @@ export function sanitizeProgress(raw: unknown): Progress {
   }
   return {
     notes,
+    pitches: sanitizePitches(stored.pitches),
     bestStreak: nonNegativeOr(stored.bestStreak, 0),
     totalAnswered: nonNegativeOr(stored.totalAnswered, 0),
     bestTimed: nonNegativeOr(stored.bestTimed, 0),
@@ -385,6 +409,7 @@ export function resetProgress(): Progress {
   return {
     ...EMPTY_PROGRESS,
     notes: {},
+    pitches: {},
     hero: { ...EMPTY_HERO_PROGRESS },
     series: { ...EMPTY_SERIES_PROGRESS },
     daily: { attempts: {}, bestMs: 0 },

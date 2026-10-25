@@ -61,7 +61,7 @@ The Tailscale node needs `.env` with `TS_AUTHKEY` (copied from the `maisons` rep
 4. **Hero challenges**: from the hero result screen (or "Terminer" in pause), share a link with generation seed, clef, armures, start tempo, fixed difficulty, length in bars (e.g. 16) and the sender's stats (`&p=<success %>&s=<score>`). A hero challenge lasts exactly those bars with adaptive tempo off; end screen compares success percentage, then points.
 5. **Séries difficulty setting** 1–5, carried in the challenge link.
 6. **Score catalogue in the repo**: `public/scores/` with community PRs, index generated at build, shown in the library as built-in.
-7. **Octave-strict mode**: answer must be in the right octave, forces the 2-octave keyboard, stats per exact pitch.
+7. ~~Octave-strict mode~~ done: setting `strictOctave`, pure logic in `src/game/strictOctave.ts`. Landscape forces 2 octaves, the window (Do4, Do2, Do3 per clef) follows the note and shifts by octaves when needed; portrait shows a rotation notice and freezes the game. Computer keys answer in the window octave nearest the note. Exact-pitch stats in `progress.pitches`.
 8. **Demo video in the README**: `scripts/demo.mjs` records a ~20 s hero session at 844x390 with playwright (correct answers driven from the seed), ffmpeg makes `docs/demo.gif` (< 8 MB) and `docs/demo.mp4`, GIF at the top of the README with a home screenshot `docs/home.png`.
 9. **Known small fixes**: Apprendre 60 s chrono keeps running during the "Abandonner ?" prompt; challenge links leave an extra history entry; Volume and Données rows stack oddly in portrait settings; hero portrait staff still small (3 beats ahead).
 

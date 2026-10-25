@@ -62,6 +62,7 @@ describe('sanitizeSettings', () => {
       instrument: 'organ',
       survivalDelayS: 3,
       seriesDifficulty: 4,
+      strictOctave: true,
     }
     expect(sanitizeSettings(JSON.parse(JSON.stringify(settings)))).toEqual(settings)
   })
@@ -128,6 +129,7 @@ describe('sanitizeProgress', () => {
   it('round-trips valid progress', () => {
     const progress: Progress = {
       notes: { 'treble:C4': { attempts: 5, correct: 3, misses: 1.5, avgMs: 1200 } },
+      pitches: { Do4: { attempts: 6, correct: 4 }, 'Sol#3': { attempts: 2, correct: 0 } },
       bestStreak: 12,
       totalAnswered: 80,
       bestTimed: 340,
@@ -151,6 +153,24 @@ describe('sanitizeProgress', () => {
     expect(sanitizeSettings({ seriesDifficulty: 5 }).seriesDifficulty).toBe(5)
     expect(sanitizeSettings({ seriesDifficulty: 6 }).seriesDifficulty).toBe(2)
     expect(sanitizeSettings({ seriesDifficulty: '3' }).seriesDifficulty).toBe(2)
+  })
+
+  it('defaults strict octave to off and ignores non-boolean values', () => {
+    expect(DEFAULT_SETTINGS.strictOctave).toBe(false)
+    expect(sanitizeSettings({ strictOctave: true }).strictOctave).toBe(true)
+    expect(sanitizeSettings({ strictOctave: 'yes' }).strictOctave).toBe(false)
+  })
+
+  it('loads progress saved before exact pitch stats existed', () => {
+    expect(sanitizeProgress({ bestStreak: 4 }).pitches).toEqual({})
+  })
+
+  it('sanitizes exact pitch stats entry by entry', () => {
+    const { pitches } = sanitizeProgress({
+      pitches: { Do4: { attempts: 3, correct: 2 }, Re4: { attempts: 1, correct: 2 }, Mi4: 'x', Fa4: { attempts: -1, correct: 0 } },
+    })
+    expect(pitches).toEqual({ Do4: { attempts: 3, correct: 2 } })
+    expect(sanitizeProgress({ pitches: [1, 2] }).pitches).toEqual({})
   })
 
   it('loads progress saved before Survie existed', () => {

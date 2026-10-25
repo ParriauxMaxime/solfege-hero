@@ -184,6 +184,35 @@
   }
 }
 
+.answers.blocked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rotate-notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 24px 20px;
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: var(--card-shadow);
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.rotate-notice svg {
+  width: 44px;
+  height: 44px;
+  color: var(--accent);
+}
+
 @media (orientation: landscape) {
   .game {
     max-width: none;

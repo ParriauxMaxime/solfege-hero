@@ -1,6 +1,7 @@
 import type { Sound } from '../audio/sound'
 import { promptId, recordAnswer } from '../game/sampler'
-import { pitchClass, spell } from '../music/notes'
+import { answerPitch, isCorrectAnswer, recordExactPitch, type Answer } from '../game/strictOctave'
+import { spell } from '../music/notes'
 import { motionReduced } from '../platform/appearance'
 import { confirmOverlay } from './confirm'
 import { vibrate } from '../platform/haptics'
@@ -82,6 +83,8 @@ export function createSurvival({
   let over = false
   let shownAt = 0
   let heldAt: number | null = null
+  let holds = 0
+  let releaseRotation: (() => void) | null = null
   let frame = 0
   let timer = 0
   let pending: (() => void) | null = null
@@ -105,7 +108,10 @@ export function createSurvival({
   const staffCard = el('div', 'staff-card')
   const fill = el('div', 'survival-bar-fill')
   const bar = el('div', 'survival-bar', fill)
-  const pad = createAnswerPad(submitAnswer, settings.naming, settings.keyboardSpan)
+  const pad = createAnswerPad(submitAnswer, settings.naming, settings.keyboardSpan, {
+    strictOctave: settings.strictOctave,
+    onBlockedChange: holdWhileBlocked,
+  })
   const flash = el('div', 'flash')
   const effectsLayer = el('div', 'effects-layer')
   const element = el('section', 'screen game survival', hud, staffCard, bar, pad.element, flash, effectsLayer)
@@ -124,15 +130,28 @@ export function createSurvival({
   }
 
   function hold(): () => void {
-    if (heldAt !== null) return () => {}
-    heldAt = performance.now()
-    window.clearTimeout(timer)
+    if (holds++ === 0) {
+      heldAt = performance.now()
+      window.clearTimeout(timer)
+    }
+    let released = false
     return () => {
-      if (heldAt === null) return
+      if (released) return
+      released = true
+      if (--holds > 0 || heldAt === null) return
       shownAt += performance.now() - heldAt
       heldAt = null
       if (pending) schedule(pending, NEXT_DELAY_MS)
     }
+  }
+
+  function holdWhileBlocked(blocked: boolean): void {
+    if (blocked) {
+      releaseRotation ??= hold()
+      return
+    }
+    releaseRotation?.()
+    releaseRotation = null
   }
 
   function renderBar(): void {
@@ -153,19 +172,21 @@ export function createSurvival({
     item = sequence.noteAt(state.played)
     staffCard.replaceChildren(renderStaff(item.clef, item.note, item.fifths))
     level.textContent = `Niveau ${difficultyFor(state.played)}`
+    pad.setTarget(item.clef, item.pitch)
     pad.clear()
     shownAt = performance.now()
     renderBar()
     locked = false
   }
 
-  function submitAnswer(chosen: number): void {
+  function submitAnswer(chosen: Answer): void {
     if (locked || heldAt !== null || !item) return
-    const correct = pitchClass(item.pitch) === chosen
+    const correct = isCorrectAnswer(item.pitch, chosen)
     const answeredInMs = elapsedMs()
     progress = {
       ...progress,
       notes: recordAnswer(progress.notes, promptId({ clef: item.clef, pitch: item.pitch }), correct, answeredInMs),
+      pitches: recordExactPitch(progress.pitches, item.pitch, correct, settings.strictOctave),
       totalAnswered: progress.totalAnswered + 1,
     }
     state = resolveNote(state, correct)
@@ -187,7 +208,7 @@ export function createSurvival({
     sound.correct(streak)
     sound.playNote(spell(pitch, fifths < 0))
     vibrate(15)
-    pad.flash(pitchClass(pitch), 'correct')
+    pad.flash(pitch, 'correct')
     restartAnimation(flash, 'flash-ok')
     const noteHead = staffCard.querySelector('.staff-note')
     if (noteHead) {
@@ -197,14 +218,14 @@ export function createSurvival({
     schedule(showNote, NEXT_DELAY_MS)
   }
 
-  function onMiss(chosen: number | null, label: string): void {
+  function onMiss(chosen: Answer | null, label: string): void {
     locked = true
     streak = 0
     renderBar()
     sound.wrong()
     vibrate([40, 30, 40])
-    if (chosen !== null) pad.flash(chosen, 'wrong')
-    if (item) pad.flash(pitchClass(item.pitch), 'reveal')
+    if (chosen !== null) pad.flash(answerPitch(chosen), 'wrong')
+    if (item) pad.flash(item.pitch, 'reveal')
     hearts.breakAt(state.lives)
     restartAnimation(staffCard, 'shake')
     restartAnimation(flash, 'flash-bad')
@@ -339,6 +360,7 @@ export function createSurvival({
   })
   showNote()
   frame = requestAnimationFrame(tick)
+  if (pad.isBlocked()) holdWhileBlocked(true)
 
   return {
     element,

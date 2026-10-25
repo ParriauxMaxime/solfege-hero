@@ -1,7 +1,8 @@
 import type { Sound } from '../audio/sound'
 import { promptId, recordAnswer } from '../game/sampler'
+import { answerPitch, recordExactPitch, type Answer } from '../game/strictOctave'
 import { motionReduced } from '../platform/appearance'
-import { pitchClass, spell } from '../music/notes'
+import { spell } from '../music/notes'
 import { vibrate } from '../platform/haptics'
 import type { Score } from '../hero/types'
 import { scoreLink } from './sharing'
@@ -122,26 +123,43 @@ export function createSeries({
     el('div', 'progress', bar),
   )
   const staffCard = el('div', 'staff-card')
-  const pad = createAnswerPad(submitAnswer, settings.naming, settings.keyboardSpan)
+  const pad = createAnswerPad(submitAnswer, settings.naming, settings.keyboardSpan, {
+    strictOctave: settings.strictOctave,
+    onBlockedChange: holdWhileBlocked,
+  })
   const flash = el('div', 'flash')
   const effectsLayer = el('div', 'effects-layer')
   const element = el('section', 'screen game series', hud, staffCard, pad.element, flash, effectsLayer)
 
   let heldAt: number | null = null
+  let holds = 0
+  let releaseRotation: (() => void) | null = null
 
   function elapsedMs(): number {
     return (heldAt ?? performance.now()) - startedAt
   }
 
   function hold(): () => void {
-    heldAt = performance.now()
+    if (holds++ === 0) heldAt = performance.now()
+    let released = false
     return () => {
-      if (heldAt === null) return
+      if (released) return
+      released = true
+      if (--holds > 0 || heldAt === null) return
       const heldMs = performance.now() - heldAt
       startedAt += heldMs
       shownAt += heldMs
       heldAt = null
     }
+  }
+
+  function holdWhileBlocked(blocked: boolean): void {
+    if (blocked) {
+      releaseRotation ??= hold()
+      return
+    }
+    releaseRotation?.()
+    releaseRotation = null
   }
 
   function renderTimer(): void {
@@ -160,18 +178,19 @@ export function createSeries({
     staffCard.replaceChildren(renderStaff(item.clef, item.note, item.fifths))
     counter.textContent = `${index + 1}/${items.length}`
     bar.style.width = `${(index / items.length) * 100}%`
+    pad.setTarget(item.clef, item.pitch)
     pad.clear()
     missedCurrent = false
     shownAt = performance.now()
     locked = false
   }
 
-  function submitAnswer(chosen: number): void {
+  function submitAnswer(chosen: Answer): void {
     const item = items[index]
     if (locked || !item) return
     window.clearTimeout(wrongTimeout)
     pad.clear()
-    const answered = answerItem(run, items, chosen)
+    const answered = answerItem(run, items, chosen.pitchClass, chosen.pitch)
     run = answered.run
     if (!answered.correct) {
       onWrong(chosen)
@@ -181,6 +200,7 @@ export function createSeries({
     progress = {
       ...progress,
       notes: recordAnswer(progress.notes, promptId({ clef: item.clef, pitch: item.pitch }), !missedCurrent, performance.now() - shownAt),
+      pitches: recordExactPitch(progress.pitches, item.pitch, !missedCurrent, settings.strictOctave),
       totalAnswered: progress.totalAnswered + 1,
     }
     streak = missedCurrent ? 0 : streak + 1
@@ -190,12 +210,12 @@ export function createSeries({
     else nextTimeout = window.setTimeout(showItem, NEXT_DELAY_MS)
   }
 
-  function onWrong(chosen: number): void {
+  function onWrong(chosen: Answer): void {
     missedCurrent = true
     streak = 0
     sound.wrong()
     vibrate([40, 30, 40])
-    pad.flash(chosen, 'wrong')
+    pad.flash(answerPitch(chosen), 'wrong')
     wrongTimeout = window.setTimeout(() => pad.clear(), WRONG_FLASH_MS)
     restartAnimation(timerValue, 'shake')
     floatText(effectsLayer, centerOf(timerValue), `+${PENALTY_MS / 1000} s`, 'bad')
@@ -206,7 +226,7 @@ export function createSeries({
     sound.correct(streak)
     sound.playNote(spell(pitch, fifths < 0))
     vibrate(15)
-    pad.flash(pitchClass(pitch), 'correct')
+    pad.flash(pitch, 'correct')
     restartAnimation(flash, 'flash-ok')
     const noteHead = staffCard.querySelector('.staff-note')
     if (noteHead) {
@@ -410,6 +430,7 @@ export function createSeries({
   startedAt = performance.now()
   showItem()
   frame = requestAnimationFrame(tick)
+  if (pad.isBlocked()) holdWhileBlocked(true)
 
   return {
     element,

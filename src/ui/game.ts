@@ -1,8 +1,9 @@
 import type { Sound } from '../audio/sound'
 import { INITIAL_SCORE, applyAnswer, multiplier, type AnswerOutcome, type ScoreState } from '../game/scoring'
 import { buildPool, pickPrompt, promptId, recordAnswer, type Prompt } from '../game/sampler'
+import { answerPitch, isCorrectAnswer, recordExactPitch, type Answer } from '../game/strictOctave'
 import { chooseKey } from '../music/keySignature'
-import { midi, noteName, pitchClass, spell, type Note } from '../music/notes'
+import { midi, noteName, spell, type Note } from '../music/notes'
 import { vibrate } from '../platform/haptics'
 import type { Progress, Settings } from '../storage'
 import { button, el } from './dom'
@@ -46,6 +47,8 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
   let nextTimeout = 0
   let ticker = 0
   let heldAt: number | null = null
+  let holds = 0
+  let releaseRotation: (() => void) | null = null
 
   const scoreValue = el('span', 'hud-value', '0')
   const streakValue = el('span', 'streak-value', '0')
@@ -57,7 +60,10 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
 
   const staffCard = el('div', 'staff-card')
   const feedback = el('div', 'feedback')
-  const pad = createAnswerPad(submitAnswer, settings.naming, settings.keyboardSpan)
+  const pad = createAnswerPad(submitAnswer, settings.naming, settings.keyboardSpan, {
+    strictOctave: settings.strictOctave,
+    onBlockedChange: holdWhileBlocked,
+  })
   const flash = el('div', 'flash')
   const effectsLayer = el('div', 'effects-layer')
   const element = el('section', 'screen game', hud, staffCard, feedback, pad.element, flash, effectsLayer)
@@ -72,6 +78,7 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
     staffCard.replaceChildren(renderStaff(prompt.clef, note, fifths))
     feedback.textContent = ''
     feedback.className = 'feedback'
+    pad.setTarget(prompt.clef, prompt.pitch)
     pad.clear()
     shownAt = clockMs()
     locked = false
@@ -82,14 +89,26 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
   }
 
   function hold(): () => void {
-    heldAt = performance.now()
+    if (holds++ === 0) heldAt = performance.now()
+    let released = false
     return () => {
-      if (heldAt === null) return
+      if (released) return
+      released = true
+      if (--holds > 0 || heldAt === null) return
       const heldMs = performance.now() - heldAt
       shownAt += heldMs
       if (deadline !== null) deadline += heldMs
       heldAt = null
     }
+  }
+
+  function holdWhileBlocked(blocked: boolean): void {
+    if (blocked) {
+      releaseRotation ??= hold()
+      return
+    }
+    releaseRotation?.()
+    releaseRotation = null
   }
 
   function startRound(): void {
@@ -154,17 +173,18 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
     onProgress(progress)
   }
 
-  function submitAnswer(chosen: number): void {
+  function submitAnswer(chosen: Answer): void {
     if (locked || !shown) return
     locked = true
     if (settings.timed && deadline === null) startTimer()
     const answered = shown
-    const correct = chosen === pitchClass(answered.prompt.pitch)
+    const correct = isCorrectAnswer(answered.prompt.pitch, chosen)
     const elapsed = clockMs() - shownAt
     const result = applyAnswer(score, correct, elapsed)
     score = result.state
     updateProgress({
       notes: recordAnswer(progress.notes, promptId(answered.prompt), correct, elapsed),
+      pitches: recordExactPitch(progress.pitches, answered.prompt.pitch, correct, settings.strictOctave),
       bestStreak: Math.max(progress.bestStreak, score.bestStreak),
       totalAnswered: progress.totalAnswered + 1,
     })
@@ -178,7 +198,7 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
     sound.correct(score.streak)
     sound.playNote(note)
     vibrate(15)
-    pad.flash(pitchClass(midi(note)), 'correct')
+    pad.flash(midi(note), 'correct')
     feedback.textContent = noteName(note, settings.naming)
     feedback.className = 'feedback ok'
     restartAnimation(flash, 'flash-ok')
@@ -197,11 +217,11 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
     }
   }
 
-  function onWrong(chosen: number, note: Note, brokenStreak: number): void {
+  function onWrong(chosen: Answer, note: Note, brokenStreak: number): void {
     sound.wrong()
     vibrate([40, 30, 40])
-    pad.flash(chosen, 'wrong')
-    pad.flash(pitchClass(midi(note)), 'reveal')
+    pad.flash(answerPitch(chosen), 'wrong')
+    pad.flash(midi(note), 'reveal')
     feedback.textContent = `C’était ${noteName(note, settings.naming)}`
     feedback.className = 'feedback bad'
     restartAnimation(flash, 'flash-bad')
@@ -218,6 +238,7 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
     if (deadline !== null) deadline += hiddenMs
   })
   startRound()
+  if (pad.isBlocked()) holdWhileBlocked(true)
 
   return {
     element,
