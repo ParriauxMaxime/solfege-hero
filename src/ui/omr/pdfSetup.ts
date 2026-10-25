@@ -36,11 +36,14 @@ export function createPdfSetup({ pageCount, preview, initialPreview, staffIndex,
     page = wanted
     refresh()
     canvas.classList.add('loading')
-    void preview(wanted).then((bitmap) => {
-      if (wanted !== page) return
-      draw(bitmap)
-      canvas.classList.remove('loading')
-    })
+    void preview(wanted).then(
+      (bitmap) => {
+        if (wanted !== page) return
+        draw(bitmap)
+        canvas.classList.remove('loading')
+      },
+      () => canvas.classList.remove('loading'),
+    )
   }
 
   draw(initialPreview)

@@ -28,6 +28,13 @@ function toGray(image: ImageData | ImageBitmap): GrayImage {
   return rgbaToGray(pixels.data, pixels.width, pixels.height)
 }
 
+function describe(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+self.addEventListener('unhandledrejection', (event) => scope.postMessage({ type: 'error', message: describe((event as PromiseRejectionEvent).reason) }))
+self.addEventListener('messageerror', () => scope.postMessage({ type: 'error', message: 'image illisible par le worker' }))
+
 scope.onmessage = ({ data }) => {
   try {
     const gray = toGray(data.image)
@@ -41,6 +48,6 @@ scope.onmessage = ({ data }) => {
     })
     scope.postMessage({ type: 'done', result })
   } catch (error) {
-    scope.postMessage({ type: 'error', message: error instanceof Error ? error.message : String(error) })
+    scope.postMessage({ type: 'error', message: describe(error) })
   }
 }

@@ -1,3 +1,4 @@
+import { RECOGNITION_TIMEOUT_MS, withDeadline } from '../../omr/deadline'
 import type { OmrResult, OmrStage, OmrWorkerMessage, OmrWorkerRequest } from '../../omr/types'
 
 export interface Recognition {
@@ -23,7 +24,8 @@ export function startRecognition(source: ImageBitmap, staffIndexInSystem: number
       else if (data.type === 'done') resolve(data.result)
       else fail(new Error(data.message))
     }
-    worker.onerror = (event) => fail(new Error(event.message || 'La lecture a échoué'))
+    worker.onerror = (event) => fail(new Error(event.message || 'le worker de lecture n’a pas démarré'))
+    worker.onmessageerror = () => fail(new Error('réponse illisible du worker de lecture'))
     void createImageBitmap(source).then((copy) => {
       if (cancelled) return copy.close()
       const request: OmrWorkerRequest = { image: copy, staffIndexInSystem }
@@ -31,9 +33,10 @@ export function startRecognition(source: ImageBitmap, staffIndexInSystem: number
     }, fail)
   })
   const finish = () => worker.terminate()
-  void result.then(finish, finish)
+  const limited = withDeadline(result, RECOGNITION_TIMEOUT_MS, finish)
+  void limited.then(finish, finish)
   return {
-    result,
+    result: limited,
     cancel() {
       cancelled = true
       worker.terminate()
