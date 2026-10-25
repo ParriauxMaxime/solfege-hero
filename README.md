@@ -1,4 +1,9 @@
-# Solfège
+# Solfège hero
+
+**Play now: <https://parriauxmaxime.github.io/solfege-hero/>** (free, no account, works offline once installed)
+
+[![Deploy](https://github.com/ParriauxMaxime/solfege-hero/actions/workflows/deploy.yml/badge.svg)](https://github.com/ParriauxMaxime/solfege-hero/actions/workflows/deploy.yml)
+[![Play](https://img.shields.io/badge/play-solfege--hero-7c6cff)](https://parriauxmaxime.github.io/solfege-hero/)
 
 ![Solfège hero demo](docs/demo.gif)
 
@@ -8,7 +13,11 @@ Solfège hero mode: notes scroll to a hit zone over a metronome ([MP4 version](d
 
 A note-reading trainer for phones. French UI, installable, works offline.
 
-- **Une note**: a note appears on the staff, tap its name as fast as you can.
+- **Apprendre**: a note appears on the staff, tap its name as fast as you can.
+- **Armures**: read a key signature, name the key.
+- **Séries**: 20 notes against the clock, +5 s per mistake, share a challenge link.
+- **Survie**: 3 lives, a few seconds per note, how far can you go.
+- **Défi du jour**: the same 20 notes for everyone, once a day.
 - **Solfège hero**: notes in real rhythms scroll toward a hit zone over a metronome; tap each one on the beat.
   Random bars or built-in tunes, with a tempo that adapts to how well you play.
 
