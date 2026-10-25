@@ -14,8 +14,8 @@ import {
   svgElement,
 } from './glyphs'
 
-const VIEW_TOP = 4
-const VIEW_HEIGHT = 176
+const VIEW_TOP = 20
+const VIEW_HEIGHT = 158
 const VIEW_PADDING = 4
 const STAFF_LEFT = 12
 const NOTE_TRAILING_SPACE = 34
