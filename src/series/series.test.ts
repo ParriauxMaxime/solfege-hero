@@ -24,6 +24,7 @@ const config: RandomSeriesConfig = {
   seed: 4821,
   clefs: ['treble', 'bass'],
   armures: true,
+  difficulty: 2,
 }
 
 const V1_GOLDEN_PITCHES = [68, 72, 47, 66, 36, 76, 58, 61, 45, 39, 75, 62, 68, 60, 82, 64, 40, 60, 64, 61]
@@ -109,7 +110,7 @@ describe('generateSeries', () => {
   it('only uses pitches of the chosen clefs', () => {
     for (const seed of [1000, 2345, 9999]) {
       for (const armures of [true, false]) {
-        const settings: RandomSeriesConfig = { kind: 'random', version: 1, seed, clefs: ['treble', 'alto'], armures }
+        const settings: RandomSeriesConfig = { kind: 'random', version: 1, seed, clefs: ['treble', 'alto'], armures, difficulty: 2 }
         const pool = new Set(buildPool(settings.clefs, armures).map((p) => `${p.clef}:${p.pitch}`))
         for (const item of generateSeries(settings)) {
           expect(pool.has(`${item.clef}:${item.pitch}`)).toBe(true)

@@ -215,7 +215,14 @@ export function startApp(root: HTMLElement): void {
   }
 
   function freshSeriesConfig(): RandomSeriesConfig {
-    return { kind: 'random', version: 2, seed: newSeed(), clefs: settings.clefs, armures: settings.accidentals }
+    return {
+      kind: 'random',
+      version: 2,
+      seed: newSeed(),
+      clefs: settings.clefs,
+      armures: settings.accidentals,
+      difficulty: settings.seriesDifficulty,
+    }
   }
 
   function freshSurvivalConfig(): SurvivalConfig {

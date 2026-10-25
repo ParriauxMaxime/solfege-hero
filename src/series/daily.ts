@@ -1,4 +1,4 @@
-import type { RandomSeriesConfig } from './series'
+import { DEFAULT_SERIES_DIFFICULTY, type RandomSeriesConfig } from './series'
 
 /** A calendar day in Paris, written "YYYYMMDD". */
 export type DailyKey = string
@@ -38,7 +38,7 @@ export function dailyLabel(key: DailyKey): string {
 }
 
 export function dailyConfig(key: DailyKey): RandomSeriesConfig {
-  return { kind: 'random', version: 2, seed: Number(key), clefs: ['treble'], armures: true }
+  return { kind: 'random', version: 2, seed: Number(key), clefs: ['treble'], armures: true, difficulty: DEFAULT_SERIES_DIFFICULTY }
 }
 
 export function encodeDailyHash(key: DailyKey): string {

@@ -13,7 +13,11 @@ export interface ChallengeIntroOptions {
 export function createChallengeIntro({ challenge, onStart }: ChallengeIntroOptions): HTMLElement {
   const { config, timeS } = challenge
   const headline = timeS === null ? 'Relève le défi !' : `Ton ami a fait ${formatTenths(timeS * 1000)}, à toi !`
-  const chips = [...config.clefs.map((clef) => CLEF_LABELS[clef]), config.armures ? 'Armures' : 'Sans armure']
+  const chips = [
+    ...config.clefs.map((clef) => CLEF_LABELS[clef]),
+    config.armures ? 'Armures' : 'Sans armure',
+    ...(config.version === 2 ? [`Difficulté ${config.difficulty}`] : []),
+  ]
   return el(
     'section',
     'screen panel challenge-intro',

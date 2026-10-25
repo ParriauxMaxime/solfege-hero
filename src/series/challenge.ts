@@ -1,5 +1,5 @@
 import { CLEFS, type Clef } from '../music/notes'
-import type { RandomSeriesConfig } from './series'
+import { DEFAULT_SERIES_DIFFICULTY, SERIES_DIFFICULTIES, type RandomSeriesConfig } from './series'
 import { ceilToTenth } from './share'
 
 export interface Challenge {
@@ -47,6 +47,7 @@ export function encodeChallenge({ config, timeS }: Challenge): string {
     k: config.armures ? '1' : '0',
   })
   if (config.version === 2) params.set('v', '2')
+  if (config.difficulty !== DEFAULT_SERIES_DIFFICULTY) params.set('d', String(config.difficulty))
   if (timeS !== null) params.set('t', String(Math.round(timeS * 10) / 10))
   return params.toString()
 }
@@ -67,6 +68,7 @@ export function parseChallenge(hash: string): Challenge | null {
       seed: Number(seed),
       clefs,
       armures: params.get('k') === '1',
+      difficulty: SERIES_DIFFICULTIES.find((level) => String(level) === params.get('d')) ?? DEFAULT_SERIES_DIFFICULTY,
     },
     timeS: parseTimeS(params.get('t') ?? ''),
   }

@@ -1,6 +1,8 @@
 import { INSTRUMENT_LABELS } from '../audio/instruments'
 import type { Sound } from '../audio/sound'
 import { CLEFS, type Clef } from '../music/notes'
+import type { Difficulty } from '../music/generator'
+import { SERIES_DIFFICULTIES } from '../series/series'
 import { SURVIVAL_DELAYS, type SurvivalDelay } from '../survival/game'
 import { exportData, importData, type KeySize, type Progress, type Settings, type Theme } from '../storage'
 import { button, el } from './dom'
@@ -49,6 +51,7 @@ const KEYBOARD_SPAN_CHOICES: Choice<KeyboardSpan>[] = [
   { value: 2, label: '2 octaves' },
 ]
 const SURVIVAL_DELAY_CHOICES: Choice<SurvivalDelay>[] = SURVIVAL_DELAYS.map((delay) => ({ value: delay, label: `${delay} s` }))
+const SERIES_DIFFICULTY_CHOICES: Choice<Difficulty>[] = SERIES_DIFFICULTIES.map((level) => ({ value: level, label: String(level) }))
 const EXPORT_FILE = 'solfege-progress.json'
 const ACTION_ROW = 'settings-row action-row'
 const KEY_NAMES_HINT = 'Désactivé : touches sans nom, pour les habitués'
@@ -193,6 +196,7 @@ export function createSettingsScreen({ settings: initial, sound, getProgress, on
         toggleRow('Armures', 'accidentals'),
         row('Noms sur les touches', toggle(settings.keyNames, toggleKeyNames), KEY_NAMES_HINT),
         choiceRow('Notation', NAMINGS, settings.naming, (naming) => update({ naming })),
+        choiceRow('Séries : difficulté', SERIES_DIFFICULTY_CHOICES, settings.seriesDifficulty, (seriesDifficulty) => update({ seriesDifficulty })),
         choiceRow('Survie : temps par note', SURVIVAL_DELAY_CHOICES, settings.survivalDelayS, (survivalDelayS) => update({ survivalDelayS })),
         row(
           'Clavier',

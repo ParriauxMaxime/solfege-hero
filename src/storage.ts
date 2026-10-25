@@ -2,7 +2,9 @@ import { INSTRUMENTS, type Instrument } from './audio/instruments'
 import type { NoteRecord, NoteStats } from './game/sampler'
 import { START_BPM_MAX, START_BPM_MIN } from './hero/tempo'
 import { CLEFS, type Clef, type Naming } from './music/notes'
+import type { Difficulty } from './music/generator'
 import { isDailyKey, type DailyKey } from './series/daily'
+import { DEFAULT_SERIES_DIFFICULTY, SERIES_DIFFICULTIES } from './series/series'
 import { DEFAULT_SURVIVAL_DELAY, SURVIVAL_DELAYS, type SurvivalDelay } from './survival/game'
 import { KEYBOARD_SPANS, type KeyboardSpan } from './ui/keyboardLayout'
 
@@ -32,6 +34,7 @@ export interface Settings {
   volume: number
   instrument: Instrument
   survivalDelayS: SurvivalDelay
+  seriesDifficulty: Difficulty
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -53,6 +56,7 @@ export const DEFAULT_SETTINGS: Settings = {
   volume: 0.8,
   instrument: 'piano',
   survivalDelayS: DEFAULT_SURVIVAL_DELAY,
+  seriesDifficulty: DEFAULT_SERIES_DIFFICULTY,
 }
 
 export interface HeroProgress {
@@ -194,6 +198,7 @@ export function sanitizeSettings(raw: unknown): Settings {
     volume: sanitizeVolume(stored.volume),
     instrument: oneOf(INSTRUMENTS, stored.instrument, DEFAULT_SETTINGS.instrument),
     survivalDelayS: SURVIVAL_DELAYS.find((delay) => delay === stored.survivalDelayS) ?? DEFAULT_SETTINGS.survivalDelayS,
+    seriesDifficulty: SERIES_DIFFICULTIES.find((level) => level === stored.seriesDifficulty) ?? DEFAULT_SERIES_DIFFICULTY,
   }
 }
 

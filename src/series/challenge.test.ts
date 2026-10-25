@@ -9,9 +9,35 @@ import {
 } from './challenge'
 
 const challenge: Challenge = {
-  config: { kind: 'random', version: 1, seed: 4821, clefs: ['treble', 'bass'], armures: true },
+  config: { kind: 'random', version: 1, seed: 4821, clefs: ['treble', 'bass'], armures: true, difficulty: 2 },
   timeS: 47,
 }
+
+describe('series difficulty', () => {
+  const hard: Challenge = { ...challenge, config: { ...challenge.config, version: 2, difficulty: 4 } }
+
+  it('writes d only when it differs from the default of 2', () => {
+    expect(encodeChallenge(hard)).toBe('s=4821&c=sol-fa&k=1&v=2&d=4&t=47')
+    expect(encodeChallenge(challenge)).not.toContain('d=')
+  })
+
+  it('round-trips every level', () => {
+    for (const difficulty of [1, 2, 3, 4, 5] as const) {
+      const level: Challenge = { ...hard, config: { ...hard.config, difficulty } }
+      expect(parseChallenge(encodeChallenge(level))).toEqual(level)
+    }
+  })
+
+  it('reads old links without d as difficulty 2', () => {
+    expect(parseChallenge('s=4821&c=sol&k=1&v=2&t=47')?.config.difficulty).toBe(2)
+  })
+
+  it('falls back to 2 on an invalid d', () => {
+    for (const d of ['0', '6', 'x', '', '2.5', '-1']) {
+      expect(parseChallenge(`s=4821&c=sol&k=1&v=2&d=${d}`)?.config.difficulty).toBe(2)
+    }
+  })
+})
 
 describe('series version', () => {
   const v2: Challenge = { ...challenge, config: { ...challenge.config, version: 2 } }
@@ -42,7 +68,7 @@ describe('encodeChallenge', () => {
 
   it('writes clefs in clef order with ut for alto and k=0 without armures', () => {
     const encoded = encodeChallenge({
-      config: { kind: 'random', version: 1, seed: 1234, clefs: ['alto', 'treble'], armures: false },
+      config: { kind: 'random', version: 1, seed: 1234, clefs: ['alto', 'treble'], armures: false, difficulty: 2 },
       timeS: null,
     })
     expect(encoded).toBe('s=1234&c=sol-ut&k=0')
@@ -77,7 +103,7 @@ describe('parseChallenge', () => {
 
   it('ignores a malformed time and treats unknown armures as off', () => {
     expect(parseChallenge('s=1234&c=sol&k=yes&t=fast')).toEqual({
-      config: { kind: 'random', version: 1, seed: 1234, clefs: ['treble'], armures: false },
+      config: { kind: 'random', version: 1, seed: 1234, clefs: ['treble'], armures: false, difficulty: 2 },
       timeS: null,
     })
   })
@@ -106,7 +132,7 @@ describe('challenge time', () => {
   it('drops out-of-range or malformed times but keeps the challenge', () => {
     for (const t of ['0', '0.0', '6000', '99999999999', '1.25', '-3', '1e3', 'NaN', '']) {
       expect(parseChallenge(`s=1234&c=sol&t=${t}`)).toEqual({
-        config: { kind: 'random', version: 1, seed: 1234, clefs: ['treble'], armures: false },
+        config: { kind: 'random', version: 1, seed: 1234, clefs: ['treble'], armures: false, difficulty: 2 },
         timeS: null,
       })
     }

@@ -61,6 +61,7 @@ describe('sanitizeSettings', () => {
       volume: 0.35,
       instrument: 'organ',
       survivalDelayS: 3,
+      seriesDifficulty: 4,
     }
     expect(sanitizeSettings(JSON.parse(JSON.stringify(settings)))).toEqual(settings)
   })
@@ -146,6 +147,10 @@ describe('sanitizeProgress', () => {
     expect(sanitizeSettings({ survivalDelayS: 3 }).survivalDelayS).toBe(3)
     expect(sanitizeSettings({ survivalDelayS: 4 }).survivalDelayS).toBe(5)
     expect(sanitizeSettings({ survivalDelayS: '3' }).survivalDelayS).toBe(5)
+    expect(DEFAULT_SETTINGS.seriesDifficulty).toBe(2)
+    expect(sanitizeSettings({ seriesDifficulty: 5 }).seriesDifficulty).toBe(5)
+    expect(sanitizeSettings({ seriesDifficulty: 6 }).seriesDifficulty).toBe(2)
+    expect(sanitizeSettings({ seriesDifficulty: '3' }).seriesDifficulty).toBe(2)
   })
 
   it('loads progress saved before Survie existed', () => {

@@ -1,7 +1,7 @@
 import { buildPool, type Prompt } from '../game/sampler'
 import { hashText } from '../hash'
 import type { Melody } from '../hero/types'
-import { generateMelody } from '../music/generator'
+import { generateMelody, type Difficulty } from '../music/generator'
 import { chooseKey, spellInKey } from '../music/keySignature'
 import { pitchClass, spell, type Clef, type Note } from '../music/notes'
 import { seededRandom } from '../random'
@@ -16,7 +16,7 @@ const SEED_COUNT = 9000
 export type SeriesVersion = 1 | 2
 
 export type SeriesConfig =
-  | { kind: 'random'; version: SeriesVersion; seed: number; clefs: Clef[]; armures: boolean }
+  | { kind: 'random'; version: SeriesVersion; seed: number; clefs: Clef[]; armures: boolean; difficulty: Difficulty }
   | { kind: 'score'; scoreId: string }
 
 export type RandomSeriesConfig = Extract<SeriesConfig, { kind: 'random' }>
@@ -53,17 +53,18 @@ export function scoreSeries(score: Pick<Melody, 'clef' | 'key' | 'notes'>): Seri
   )
 }
 
-const MELODY_SERIES_DIFFICULTY = 2
+export const DEFAULT_SERIES_DIFFICULTY: Difficulty = 2
+export const SERIES_DIFFICULTIES: readonly Difficulty[] = [1, 2, 3, 4, 5]
 const MELODY_SERIES_BARS = 16
 
-function generateMelodySeries({ seed, clefs, armures }: RandomSeriesConfig): SeriesItem[] {
+function generateMelodySeries({ seed, clefs, armures, difficulty }: RandomSeriesConfig): SeriesItem[] {
   const clef = clefs[seed % clefs.length]
   if (!clef) throw new Error('Cannot generate a series without a clef')
 
   const melody = generateMelody(seed, {
     clef,
     armures,
-    difficulty: MELODY_SERIES_DIFFICULTY,
+    difficulty,
     bars: MELODY_SERIES_BARS,
   })
   return scoreSeries(melody).slice(0, SERIES_LENGTH)
