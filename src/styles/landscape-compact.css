@@ -1,0 +1,173 @@
+@media (orientation: landscape) and (max-height: 500px) {
+  .app:has(.game) {
+    position: relative;
+  }
+
+  .app:has(.game) .top-bar {
+    position: absolute;
+    inset: env(safe-area-inset-top) env(safe-area-inset-right) auto env(safe-area-inset-left);
+    z-index: 11;
+    height: 44px;
+    padding: 2px 6px;
+    box-sizing: border-box;
+    pointer-events: none;
+  }
+
+  .app:has(.game) .top-bar > * {
+    pointer-events: auto;
+  }
+
+  .app:has(.game) .top-bar .spacer {
+    pointer-events: none;
+  }
+
+  .app:has(.game) .icon-button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .app:has(.game) .icon-button svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .game {
+    gap: 4px 10px;
+    padding: 0 8px 6px;
+  }
+
+  .game .hud {
+    box-sizing: border-box;
+    height: 44px;
+    min-height: 0;
+    padding: 0;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  .app:has(.top-bar:not([hidden])) .game .hud {
+    padding: 0 52px;
+  }
+
+  .game .hud-score {
+    min-width: 3ch;
+    font-size: 1.2rem;
+  }
+
+  .game .hud-streak {
+    font-size: 1.1rem;
+  }
+
+  .game .flame {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+
+  .game .multiplier {
+    padding: 1px 8px;
+    font-size: 0.9rem;
+  }
+
+  .game .timer {
+    font-size: 1.1rem;
+  }
+
+  .game .series-timer {
+    font-size: 1.3rem;
+  }
+
+  .game .series-count,
+  .game .series-count-balance {
+    min-width: 4ch;
+    font-size: 0.9rem;
+  }
+
+  .game .series-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.85rem;
+  }
+
+  .game .progress {
+    flex: 1 1 60px;
+    min-width: 40px;
+  }
+
+  .game .survival-score-value {
+    font-size: 1.3rem;
+  }
+
+  .game .survival-level {
+    padding: 2px 8px;
+    font-size: 0.75rem;
+  }
+
+  .game .heart {
+    width: 20px;
+    height: 20px;
+  }
+
+  .game .staff-card {
+    min-height: 120px;
+    padding: 4px;
+    border-radius: 14px;
+  }
+
+  .game .feedback {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 104px;
+    height: auto;
+    font-size: 1rem;
+    pointer-events: none;
+  }
+
+  .game:not(:has(.answers.wide)) .feedback {
+    left: 8px;
+    right: auto;
+    bottom: 10px;
+    width: calc(100% - 502px);
+  }
+
+  .game .answers {
+    gap: 4px;
+  }
+
+  .game .answers .answer {
+    min-height: 52px;
+    border-radius: 8px;
+    font-size: min(var(--key-font), 0.9rem);
+  }
+
+  .game .answers .answer.altered {
+    min-height: 40px;
+    font-size: min(var(--key-font-alt), 0.65rem);
+  }
+
+  .game:has(.answers.wide) {
+    grid-template-rows: 44px minmax(0, 1fr) auto;
+    grid-template-areas:
+      'hud'
+      'staff'
+      'pad';
+  }
+
+  .game .answers.wide {
+    grid-template-rows: 40px 52px;
+  }
+
+  .game.hero .answers {
+    height: auto;
+  }
+
+  .game.survival .survival-bar {
+    position: absolute;
+    top: 40px;
+    left: 8px;
+    right: 8px;
+    height: 3px;
+  }
+}
