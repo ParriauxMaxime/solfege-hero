@@ -19,6 +19,11 @@ export function formatTenths(ms: number): string {
   return `${formatTime(ms)}.${tenths % 10}`
 }
 
+/** A player's own time as shared: same rounding as the link and the share text. */
+export function formatTenthsUp(ms: number): string {
+  return formatTenths(ceilToTenth(ms))
+}
+
 export interface ShareSquares {
   ok: string
   bad: string
@@ -45,7 +50,7 @@ export function shareText(input: {
   return [
     `Solfège hero · ${input.title}`,
     input.results.map((result) => (result ? ok : bad)).join(''),
-    `⏱ ${formatTenths(ceilToTenth(input.totalMs))}${penalty} · ${firstTry}/${input.results.length}`,
+    `⏱ ${formatTenthsUp(input.totalMs)}${penalty} · ${firstTry}/${input.results.length}`,
     `${input.callToAction ?? 'Bats-moi'} : ${input.url}`,
   ].join('\n')
 }

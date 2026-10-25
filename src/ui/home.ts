@@ -1,4 +1,4 @@
-import { formatTenths } from '../series/share'
+import { formatTenthsUp } from '../series/share'
 import { button, el, iconButton } from './dom'
 import { icon as glyph } from './icons'
 import { clefGlyph, inkGroup, noteHead, staffLines, stem, svgElement } from './glyphs'
@@ -124,7 +124,7 @@ function dailyCard(daily: DailyStatus): CardSpec {
   const status =
     daily.attemptMs === null
       ? daily.label
-      : el('span', 'inline-icon', `${daily.label} · `, glyph('check'), formatTenths(daily.attemptMs))
+      : el('span', 'inline-icon', `${daily.label} · `, glyph('check'), formatTenthsUp(daily.attemptMs))
   return {
     choice: 'daily',
     accent: 'gold',

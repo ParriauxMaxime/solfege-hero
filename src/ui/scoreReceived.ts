@@ -3,7 +3,7 @@ import type { Clef } from '../music/notes'
 import { formatTenths } from '../series/share'
 import { button, el } from './dom'
 
-const CLEF_LABELS: Record<Clef, string> = { treble: 'Clé de sol', bass: 'Clé de fa', alto: "Clé d'ut 3" }
+const CLEF_LABELS: Record<Clef, string> = { treble: 'Clé de sol', bass: 'Clé de fa', alto: 'Clé d’ut 3' }
 
 type ReceivedScore = Pick<Score, 'name' | 'clef' | 'key' | 'timeSignature' | 'notes'>
 

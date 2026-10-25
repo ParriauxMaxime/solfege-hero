@@ -173,8 +173,8 @@
 }
 
 .settings-label {
-  flex: 1 1 12rem;
-  min-width: 0;
+  flex: 1 1 0;
+  min-width: 8rem;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -188,21 +188,52 @@
 }
 
 .settings-row .segmented {
-  flex: none;
+  flex: 0 1 auto;
+  max-width: 100%;
   padding: 3px;
   background: var(--card-raised);
   box-shadow: none;
 }
 
 .settings-row .segment {
-  flex: 1 0 auto;
-  min-width: 56px;
+  flex: 1 1 auto;
+  min-width: 44px;
   padding: 0 12px;
   white-space: nowrap;
 }
 
 .settings-row .slider {
   flex: 0 1 180px;
+}
+
+.settings-row.action-row .segment-button,
+.settings-row.action-row .danger {
+  min-width: 10rem;
+}
+
+.settings-actions {
+  display: flex;
+}
+
+@media (orientation: portrait) {
+  .settings-row:has(> .segmented),
+  .settings-row:has(> .slider) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 10px 0;
+  }
+
+  .settings-row > .segmented,
+  .settings-row > .slider {
+    flex: none;
+    margin-left: 0;
+  }
+
+  .settings-row > .segmented .segment {
+    min-width: 0;
+    padding: 0 6px;
+  }
 }
 
 .panel-header {

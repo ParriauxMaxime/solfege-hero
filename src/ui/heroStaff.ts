@@ -47,10 +47,11 @@ interface Density {
   beatsAhead: number
   minPxPerBeat: number
   hitDistanceFromClip: number
+  signatureX: number
 }
 
-const LANDSCAPE_DENSITY: Density = { beatsAhead: 6, minPxPerBeat: 80, hitDistanceFromClip: 32 }
-const PORTRAIT_DENSITY: Density = { beatsAhead: 3, minPxPerBeat: 60, hitDistanceFromClip: 26 }
+const LANDSCAPE_DENSITY: Density = { beatsAhead: 6, minPxPerBeat: 80, hitDistanceFromClip: 32, signatureX: 90 }
+const PORTRAIT_DENSITY: Density = { beatsAhead: 2.75, minPxPerBeat: 48, hitDistanceFromClip: 22, signatureX: 78 }
 const PORTRAIT_ASPECT = 0.8
 // Tighter than the single-note staff so an accidental never reaches back into the previous eighth.
 const ACCIDENTAL_OFFSET = -20
@@ -60,8 +61,7 @@ const BEAM_STUB = 10
 const FLAG_PITCH = 8
 const REST_DOT_X = 10
 const REST_DOT_STEP = 5
-const SIGNATURE_X = 90
-const CLIP_LEFT_WITHOUT_SIGNATURE = 92
+const CLIP_GAP_AFTER_SIGNATURE_START = 2
 const STAFF_LEFT = 8
 const OFFSCREEN_MARGIN = 40
 const HIT_BAND_HALF_WIDTH = 20
@@ -203,7 +203,7 @@ export function createScrollingStaff(
   let fifths = initialFifths
   let time = initialTime
   let density = LANDSCAPE_DENSITY
-  let clipLeft = CLIP_LEFT_WITHOUT_SIGNATURE
+  let clipLeft = density.signatureX + CLIP_GAP_AFTER_SIGNATURE_START
   let hitX = clipLeft + density.hitDistanceFromClip
   let viewWidth = hitX + density.beatsAhead * density.minPxPerBeat
   let pxPerBeat = density.minPxPerBeat
@@ -239,15 +239,21 @@ export function createScrollingStaff(
   const notes = createKeyedLayer(noteGroup)
 
   function placeHitZone(): void {
-    clipLeft = CLIP_LEFT_WITHOUT_SIGNATURE + keySignatureWidth(fifths) + (time ? timeSignatureWidth(time) : 0)
+    clipLeft = density.signatureX + CLIP_GAP_AFTER_SIGNATURE_START + keySignatureWidth(fifths) + (time ? timeSignatureWidth(time) : 0)
     hitX = clipLeft + density.hitDistanceFromClip
     clipRect.setAttribute('x', String(clipLeft))
     hitZone.setAttribute('x', String(hitX - HIT_BAND_HALF_WIDTH))
     missLabel.setAttribute('x', String(hitX))
   }
 
+  function drawSignature(): void {
+    clefHolder.replaceChildren(clefGlyph(clef), keySignatureGlyph(clef, fifths, density.signatureX))
+    if (time) clefHolder.append(timeSignatureGlyph(time, density.signatureX + keySignatureWidth(fifths)))
+  }
+
   function layout(width: number, height: number): void {
     density = height > width * PORTRAIT_ASPECT ? PORTRAIT_DENSITY : LANDSCAPE_DENSITY
+    drawSignature()
     placeHitZone()
     const scale = Math.min(height / CONTENT_HEIGHT, width / (hitX + density.beatsAhead * density.minPxPerBeat))
     viewWidth = width / scale
@@ -277,8 +283,7 @@ export function createScrollingStaff(
     clef = value
     fifths = signature
     time = timeSignature
-    clefHolder.replaceChildren(clefGlyph(clef), keySignatureGlyph(clef, fifths, SIGNATURE_X))
-    if (time) clefHolder.append(timeSignatureGlyph(time, SIGNATURE_X + keySignatureWidth(fifths)))
+    drawSignature()
     placeHitZone()
     notes.clear()
     if (size && size.width > 0 && size.height > 0) layout(size.width, size.height)

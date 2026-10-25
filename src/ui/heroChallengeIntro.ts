@@ -2,7 +2,7 @@ import type { HeroChallenge } from '../hero/challenge'
 import type { Clef } from '../music/notes'
 import { button, el } from './dom'
 
-const CLEF_LABELS: Record<Clef, string> = { treble: 'Clé de sol', bass: 'Clé de fa', alto: "Clé d'ut 3" }
+const CLEF_LABELS: Record<Clef, string> = { treble: 'Clé de sol', bass: 'Clé de fa', alto: 'Clé d’ut 3' }
 const NBSP = ' '
 
 export interface HeroChallengeIntroOptions {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { challengeTimeS } from './challenge'
-import { COLORBLIND_SQUARES, formatTenths, formatTime, shareText } from './share'
+import { COLORBLIND_SQUARES, formatTenths, formatTenthsUp, formatTime, shareText } from './share'
 
 describe('formatTime', () => {
   it('shows minutes and zero-padded seconds', () => {
@@ -21,6 +21,15 @@ describe('formatTenths', () => {
     expect(formatTenths(65_040)).toBe('1:05.0')
     expect(formatTenths(59_999)).toBe('0:59.9')
     expect(formatTenths(0)).toBe('0:00.0')
+  })
+})
+
+describe('formatTenthsUp', () => {
+  it('rounds up to the tenth like the challenge link', () => {
+    expect(formatTenthsUp(12_901)).toBe('0:13.0')
+    expect(formatTenthsUp(47_340)).toBe('0:47.4')
+    expect(formatTenthsUp(47_300)).toBe('0:47.3')
+    expect(formatTenthsUp(47_340)).toBe(formatTenths(challengeTimeS(47_340) * 1000))
   })
 })
 

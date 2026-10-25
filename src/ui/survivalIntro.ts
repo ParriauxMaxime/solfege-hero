@@ -3,7 +3,7 @@ import type { SurvivalChallenge } from '../survival/challenge'
 import { noteCount } from '../survival/share'
 import { button, el } from './dom'
 
-const CLEF_LABELS: Record<Clef, string> = { treble: 'Clé de sol', bass: 'Clé de fa', alto: "Clé d'ut 3" }
+const CLEF_LABELS: Record<Clef, string> = { treble: 'Clé de sol', bass: 'Clé de fa', alto: 'Clé d’ut 3' }
 
 export interface SurvivalIntroOptions {
   challenge: SurvivalChallenge

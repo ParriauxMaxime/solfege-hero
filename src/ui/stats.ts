@@ -1,7 +1,7 @@
 import { accuracy, promptId } from '../game/sampler'
 import { CLEFS, PITCH_CLASS_NAMES, pitchClass, pitchesInRange, type Clef } from '../music/notes'
 import { dailyKey, dailyStreak } from '../series/daily'
-import { formatTenths } from '../series/share'
+import { formatTenthsUp } from '../series/share'
 import type { Progress } from '../storage'
 import { button, el } from './dom'
 import { icon } from './icons'
@@ -60,7 +60,7 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
       el(
         'div',
         'summary',
-        summary('meilleur temps', series.bestMs > 0 ? formatTenths(series.bestMs) : '–'),
+        summary('meilleur temps', series.bestMs > 0 ? formatTenthsUp(series.bestMs) : '–'),
         summary('séries jouées', series.played),
         summary('défis gagnés', series.won),
         summary('défis perdus', series.lost),
@@ -97,9 +97,9 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
         'div',
         'summary',
         summary(streak > 1 ? 'jours d’affilée' : 'jour d’affilée', streak),
-        summary('meilleur temps', daily.bestMs > 0 ? formatTenths(daily.bestMs) : '–'),
+        summary('meilleur temps', daily.bestMs > 0 ? formatTenthsUp(daily.bestMs) : '–'),
         summary(played > 1 ? 'jours joués' : 'jour joué', played),
-        summary('aujourd’hui', todayAttempt ? checked(formatTenths(todayAttempt.totalMs)) : 'à jouer'),
+        summary('aujourd’hui', todayAttempt ? checked(formatTenthsUp(todayAttempt.totalMs)) : 'à jouer'),
       ),
     )
   }

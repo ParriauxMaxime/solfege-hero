@@ -18,7 +18,7 @@ import {
   type SeriesItem,
   type SeriesRun,
 } from '../series/series'
-import { COLORBLIND_SQUARES, formatTenths, formatTime, shareText } from '../series/share'
+import { COLORBLIND_SQUARES, ceilToTenth, formatTenths, formatTenthsUp, formatTime, shareText } from '../series/share'
 import { type DailyKey, dailyLabel, dailyStreak, encodeDailyHash } from '../series/daily'
 import { recordDaily, recordScoreBest, type Progress, type Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
@@ -301,13 +301,13 @@ export function createSeries({
 
   function countUp(target: HTMLElement, totalMs: number): void {
     if (motionReduced()) {
-      target.textContent = formatTenths(totalMs)
+      target.textContent = formatTenthsUp(totalMs)
       return
     }
     const start = performance.now()
     const step = (now: number) => {
       const progressRatio = Math.min(1, (now - start) / COUNT_UP_MS)
-      target.textContent = formatTenths(totalMs * progressRatio)
+      target.textContent = formatTenthsUp(totalMs * progressRatio)
       if (progressRatio < 1) countUpFrame = requestAnimationFrame(step)
     }
     countUpFrame = requestAnimationFrame(step)
@@ -320,7 +320,7 @@ export function createSeries({
       burstConfetti(effectsLayer)
       return el('p', 'verdict win', 'Gagné !')
     }
-    return el('p', 'verdict lose', `Perdu… à ${formatTenths(outcome.totalMs - challenge.timeS * 1000)} près`)
+    return el('p', 'verdict lose', `Perdu… à ${formatTenths(ceilToTenth(outcome.totalMs) - Math.round(challenge.timeS * 1000))} près`)
   }
 
   function versus(outcome: Outcome): HTMLElement | string {
@@ -328,7 +328,7 @@ export function createSeries({
     return el(
       'div',
       'versus',
-      el('span', 'versus-you', `Toi ${formatTenths(outcome.totalMs)}`),
+      el('span', 'versus-you', `Toi ${formatTenthsUp(outcome.totalMs)}`),
       el('span', 'versus-friend', `Ami ${formatTenths(challenge.timeS * 1000)}`),
     )
   }
@@ -336,7 +336,7 @@ export function createSeries({
   function recordLine(outcome: Outcome, beaten: boolean | null): HTMLElement {
     const subject = config.kind === 'score' ? ' pour cette partition' : ''
     if (outcome.record && beaten !== false) return el('p', 'result-record', `Nouveau record${subject} !`)
-    return el('p', 'result-best', `Record${subject} : ${formatTenths(outcome.best)}`)
+    return el('p', 'result-best', `Record${subject} : ${formatTenthsUp(outcome.best)}`)
   }
 
   function dailyHeadline(outcome: Outcome): string {
@@ -347,12 +347,12 @@ export function createSeries({
     if (!ranked) return [el('p', 'result-best', `Défi du ${dailyLabel(key)} (hors délai)`)]
     if (!outcome.dailyCounted) {
       const counted = progress.daily.attempts[key]
-      return counted ? [el('p', 'result-best', `Ton score du jour : ${formatTenths(counted.totalMs)}`)] : []
+      return counted ? [el('p', 'result-best', `Ton score du jour : ${formatTenthsUp(counted.totalMs)}`)] : []
     }
     const days = dailyStreak(Object.keys(progress.daily.attempts), key)
     return [
       el('p', 'result-record inline-icon', icon('flame'), `${days} jour${days > 1 ? 's' : ''} d’affilée`),
-      el('p', 'result-best', `Meilleur défi : ${formatTenths(progress.daily.bestMs)}`),
+      el('p', 'result-best', `Meilleur défi : ${formatTenthsUp(progress.daily.bestMs)}`),
     ]
   }
 

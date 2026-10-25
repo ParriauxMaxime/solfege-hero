@@ -25,6 +25,8 @@ export interface GameOptions {
 export interface Game {
   element: HTMLElement
   destroy: () => void
+  /** Freezes the chrono and the answer timing; the returned function resumes them. */
+  hold: () => () => void
 }
 
 interface ShownPrompt {
@@ -43,6 +45,7 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
   let deadline: number | null = null
   let nextTimeout = 0
   let ticker = 0
+  let heldAt: number | null = null
 
   const scoreValue = el('span', 'hud-value', '0')
   const streakValue = el('span', 'streak-value', '0')
@@ -70,8 +73,23 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
     feedback.textContent = ''
     feedback.className = 'feedback'
     pad.clear()
-    shownAt = performance.now()
+    shownAt = clockMs()
     locked = false
+  }
+
+  function clockMs(): number {
+    return heldAt ?? performance.now()
+  }
+
+  function hold(): () => void {
+    heldAt = performance.now()
+    return () => {
+      if (heldAt === null) return
+      const heldMs = performance.now() - heldAt
+      shownAt += heldMs
+      if (deadline !== null) deadline += heldMs
+      heldAt = null
+    }
   }
 
   function startRound(): void {
@@ -91,12 +109,12 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
   }
 
   function startTimer(): void {
-    deadline = performance.now() + TIMED_SECONDS * 1000
+    deadline = clockMs() + TIMED_SECONDS * 1000
     ticker = window.setInterval(tick, 100)
   }
 
   function tick(): void {
-    const remaining = (deadline ?? 0) - performance.now()
+    const remaining = (deadline ?? 0) - clockMs()
     timerValue.textContent = String(Math.max(0, Math.ceil(remaining / 1000)))
     timerValue.classList.toggle('urgent', remaining <= 10_000)
     if (remaining <= 0) finishTimed()
@@ -142,7 +160,7 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
     if (settings.timed && deadline === null) startTimer()
     const answered = shown
     const correct = chosen === pitchClass(answered.prompt.pitch)
-    const elapsed = performance.now() - shownAt
+    const elapsed = clockMs() - shownAt
     const result = applyAnswer(score, correct, elapsed)
     score = result.state
     updateProgress({
@@ -184,7 +202,7 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
     vibrate([40, 30, 40])
     pad.flash(chosen, 'wrong')
     pad.flash(pitchClass(midi(note)), 'reveal')
-    feedback.textContent = `C'était ${noteName(note, settings.naming)}`
+    feedback.textContent = `C’était ${noteName(note, settings.naming)}`
     feedback.className = 'feedback bad'
     restartAnimation(flash, 'flash-bad')
     restartAnimation(staffCard, 'shake')
@@ -203,6 +221,7 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
 
   return {
     element,
+    hold,
     destroy() {
       stopTrackingHiddenTime()
       pad.destroy()

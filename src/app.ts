@@ -21,7 +21,7 @@ import { createChallengeIntro } from './ui/challengeIntro'
 import { createScoreChallengeIntro, createScoreReceived } from './ui/scoreReceived'
 import { confirmOverlay } from './ui/confirm'
 import { el, iconButton, setIcon } from './ui/dom'
-import { createGame } from './ui/game'
+import { createGame, type Game } from './ui/game'
 import { createHero, type Hero, type HeroOptions } from './ui/hero'
 import { createHeroStart } from './ui/heroStart'
 import { createHome, type HomeChoice } from './ui/home'
@@ -52,6 +52,8 @@ export function startApp(root: HTMLElement): void {
   let progress = loadProgress()
   let running: Destroyable | null = null
   let pushed = false
+  let collapsingLinkEntry = false
+  let activeGame: Game | null = null
   let activeHero: Hero | null = null
   let activeSeries: Series | null = null
   let activeSurvival: Survival | null = null
@@ -70,9 +72,9 @@ export function startApp(root: HTMLElement): void {
   root.replaceChildren(el('div', 'app', topBar, screen))
   applySettings()
 
-  window.addEventListener('hashchange', openLaunchChallenge)
+  window.addEventListener('hashchange', () => openLaunchChallenge(true))
   window.addEventListener('popstate', onPopState)
-  if (!openLaunchChallenge()) renderHome()
+  if (!openLaunchChallenge(false)) renderHome()
 
   function enterFromHome(open: () => void): void {
     if (!pushed) {
@@ -87,7 +89,28 @@ export function startApp(root: HTMLElement): void {
     else renderHome()
   }
 
+  function dropLinkEntry(): Promise<void> {
+    if (!pushed) {
+      history.replaceState({ screen: 'inside' }, '', location.pathname + location.search)
+      pushed = true
+      return Promise.resolve()
+    }
+    return new Promise((resolve) => {
+      collapsingLinkEntry = true
+      window.addEventListener(
+        'popstate',
+        () => {
+          collapsingLinkEntry = false
+          resolve()
+        },
+        { once: true },
+      )
+      history.back()
+    })
+  }
+
   function onPopState(): void {
+    if (collapsingLinkEntry) return
     if (isInstrumentPickerOpen()) return
     if (isLaunchLink(location.hash)) return
     pushed = false
@@ -115,14 +138,13 @@ export function startApp(root: HTMLElement): void {
     )
   }
 
-  function openLaunchChallenge(): boolean {
+  function openLaunchChallenge(fromHashChange: boolean): boolean {
     const heroLink = parseHeroChallenge(location.hash)
     const challenge = heroLink ? null : parseChallenge(location.hash)
     const scoreLink = heroLink || challenge ? null : parseScoreHash(location.hash)
     const dailyLink = heroLink || challenge || scoreLink ? null : parseDailyHash(location.hash)
     const survivalLink = heroLink || challenge || scoreLink || dailyLink ? null : parseSurvivalChallenge(location.hash)
     if (!heroLink && !challenge && !scoreLink && !dailyLink && !survivalLink) return false
-    history.replaceState(null, '', location.pathname + location.search)
     const open = () =>
       enterFromHome(() => {
         if (heroLink) showHeroChallengeIntro(heroLink)
@@ -131,17 +153,26 @@ export function startApp(root: HTMLElement): void {
         else if (dailyLink) showDailyIntro(dailyLink)
         else if (survivalLink) showSurvivalIntro(survivalLink)
       })
+    const ready = fromHashChange ? dropLinkEntry() : Promise.resolve(clearLaunchHash())
+    void ready.then(() => confirmAbandonOrOpen(open))
+    return true
+  }
+
+  function clearLaunchHash(): void {
+    history.replaceState(null, '', location.pathname + location.search)
+  }
+
+  function confirmAbandonOrOpen(open: () => void): void {
     if (!running) {
       open()
-      return true
+      return
     }
     activeHero?.pause()
-    const releaseClock = (activeSeries ?? activeSurvival)?.hold()
+    const releaseClock = (activeSeries ?? activeSurvival ?? activeGame)?.hold()
     void confirmOverlay(root, 'Abandonner la partie en cours ?', 'Abandonner', 'Continuer').then((abandon) => {
       if (abandon) open()
       else releaseClock?.()
     })
-    return true
   }
 
   function unlockSoundOnGesture(): void {
@@ -210,6 +241,7 @@ export function startApp(root: HTMLElement): void {
     activeHero = null
     activeSeries = null
     activeSurvival = null
+    activeGame = null
     topBar.hidden = !withTopBar
     swapScreen(content)
   }
@@ -271,6 +303,7 @@ export function startApp(root: HTMLElement): void {
   function showLearn(): void {
     const game = createGame({ settings, progress, sound, onProgress: changeProgress })
     show(game.element, true, game)
+    activeGame = game
   }
 
   function showHeroStart(): void {

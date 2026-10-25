@@ -23,7 +23,7 @@ const MIN_NOTE_X = 170
 const SIGNATURE_X = 92
 const NOTE_CLEARANCE = 60
 
-const CLEF_LABELS: Record<Clef, string> = { treble: 'de sol', bass: 'de fa', alto: "d'ut" }
+const CLEF_LABELS: Record<Clef, string> = { treble: 'de sol', bass: 'de fa', alto: 'd’ut' }
 
 function renderNote(note: Note, step: number, fifths: number, noteX: number): SVGGElement {
   const group = inkGroup({ class: 'staff-note', style: 'transform-box: fill-box; transform-origin: center' })
