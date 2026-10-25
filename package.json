@@ -5,10 +5,12 @@
   "scripts": {
     "test": "vitest run",
     "dev": "node scripts/build-score-index.mjs && vite --host 0.0.0.0 --port 5173 --strictPort",
-    "build": "node scripts/build-score-index.mjs && tsc --noEmit && vite build",
+    "build": "node scripts/build-score-index.mjs && node scripts/og-images.mjs && tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "typecheck": "tsc --noEmit",
     "icons": "node scripts/generate-icons.mjs",
+    "og": "node scripts/og-images.mjs --force",
+    "check:og": "node scripts/check-og.mjs",
     "demo": "node scripts/demo.mjs"
   },
   "type": "module",
