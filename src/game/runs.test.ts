@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { inlineAccidental } from '../music/keySignature'
 import { pitchClass } from '../music/notes'
 import { seededRandom } from '../random'
 import { createLearnSampler, runLength } from './runs'
@@ -74,5 +75,58 @@ describe('createLearnSampler', () => {
     const sampler = createLearnSampler(['treble'], false, seededRandom(1))
     const pool = buildPool(['treble'], false)
     for (let i = 0; i < 50; i++) expect(sampler.next(pool, {}).fifths).toBe(0)
+  })
+
+  it('fixed mode keeps one key, only diatonic notes, no repeated pitch class', () => {
+    const clefs = ['treble', 'bass', 'alto'] as const
+    const pool = buildPool(clefs, true)
+    for (const fifths of [-7, -3, 0, 4, 7]) {
+      const sampler = createLearnSampler(clefs, true, seededRandom(5), { mode: 'fixed', fifths })
+      let previous = -1
+      for (let i = 0; i < 300; i++) {
+        const result = sampler.next(pool, {})
+        expect(result.fifths).toBe(fifths)
+        expect(result.keyChanged).toBe(false)
+        expect(inlineAccidental(result.note, fifths)).toBeNull()
+        expect(pitchClass(result.prompt.pitch)).not.toBe(previous)
+        previous = pitchClass(result.prompt.pitch)
+      }
+    }
+  })
+
+  it('fixed mode ignores the armures setting', () => {
+    const sampler = createLearnSampler(['treble'], false, seededRandom(2), { mode: 'fixed', fifths: 2 })
+    const pool = buildPool(['treble'], false)
+    expect(sampler.next(pool, {}).fifths).toBe(2)
+  })
+
+  it.each([10, 20])('random mode with run length %i changes key every that many prompts while clefs still rotate', (length) => {
+    const clefs = ['treble', 'bass'] as const
+    const sampler = createLearnSampler(clefs, true, seededRandom(9), { mode: 'random', runLength: length })
+    const pool = buildPool(clefs, true)
+    const runs: number[] = []
+    const seenClefs = new Set<string>()
+    let current: number | null = null
+    let count = 0
+    for (let i = 0; i < length * 8; i++) {
+      const { fifths, prompt } = sampler.next(pool, {})
+      seenClefs.add(prompt.clef)
+      if (fifths === current) count++
+      else {
+        if (current !== null) runs.push(count)
+        current = fifths
+        count = 1
+      }
+    }
+    expect(runs.length).toBeGreaterThan(3)
+    expect(runs.every((run) => run === length)).toBe(true)
+    expect(seenClefs.size).toBe(2)
+  })
+
+  it('infinite run length never changes the key', () => {
+    const sampler = createLearnSampler(['treble'], true, seededRandom(4), { mode: 'random', runLength: Infinity })
+    const pool = buildPool(['treble'], true)
+    const first = sampler.next(pool, {}).fifths
+    for (let i = 0; i < 100; i++) expect(sampler.next(pool, {}).fifths).toBe(first)
   })
 })

@@ -1,5 +1,6 @@
 import { INSTRUMENTS, type Instrument } from './audio/instruments'
 import { KEYS_MODES, type KeysMode } from './game/keysSampler'
+import { LEARN_KEY_CHANGES, LEARN_KEY_MODES, type LearnKeyChange, type LearnKeyMode } from './game/learnKey'
 import type { NoteRecord, NoteStats } from './game/sampler'
 import type { PitchRecord, PitchStats } from './game/strictOctave'
 import { START_BPM_MAX, START_BPM_MIN } from './hero/tempo'
@@ -40,6 +41,9 @@ export interface Settings {
   seriesDifficulty: Difficulty
   strictOctave: boolean
   keysMode: KeysMode
+  learnKeyMode: LearnKeyMode
+  learnFixedFifths: number
+  learnKeyChange: LearnKeyChange
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -64,6 +68,9 @@ export const DEFAULT_SETTINGS: Settings = {
   seriesDifficulty: DEFAULT_SERIES_DIFFICULTY,
   strictOctave: false,
   keysMode: 'major',
+  learnKeyMode: 'random',
+  learnFixedFifths: 0,
+  learnKeyChange: 'short',
 }
 
 export interface HeroProgress {
@@ -227,11 +234,19 @@ export function sanitizeSettings(raw: unknown): Settings {
     seriesDifficulty: SERIES_DIFFICULTIES.find((level) => level === stored.seriesDifficulty) ?? DEFAULT_SERIES_DIFFICULTY,
     strictOctave: booleanOr(stored.strictOctave, DEFAULT_SETTINGS.strictOctave),
     keysMode: oneOf(KEYS_MODES, stored.keysMode, DEFAULT_SETTINGS.keysMode),
+    learnKeyMode: oneOf(LEARN_KEY_MODES, stored.learnKeyMode, DEFAULT_SETTINGS.learnKeyMode),
+    learnFixedFifths: sanitizeFifths(stored.learnFixedFifths),
+    learnKeyChange: oneOf(LEARN_KEY_CHANGES, stored.learnKeyChange, DEFAULT_SETTINGS.learnKeyChange),
   }
 }
 
 function oneOf<T extends string>(options: readonly T[], value: unknown, fallback: T): T {
   return options.find((option) => option === value) ?? fallback
+}
+
+function sanitizeFifths(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || Math.abs(value) > MAX_FIFTHS) return DEFAULT_SETTINGS.learnFixedFifths
+  return value
 }
 
 function sanitizeVolume(value: unknown): number {

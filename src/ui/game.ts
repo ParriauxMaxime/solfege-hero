@@ -1,4 +1,5 @@
-import { createLearnSampler } from '../game/runs'
+import { learnKeyChipLabel, learnKeyPlan } from '../game/learnKey'
+import { createLearnSampler, type LearnKeyPlan } from '../game/runs'
 import { buildPool, promptId, recordAnswer } from '../game/sampler'
 import { isCorrectAnswer, recordExactPitch } from '../game/strictOctave'
 import { midi, noteName } from '../music/notes'
@@ -8,13 +9,17 @@ import { renderStaff } from './staff'
 
 const NEXT_DELAY_WRONG_MS = 900
 
-export type GameOptions = DrillOptions
+export interface GameOptions extends DrillOptions {
+  /** The key chip was tapped; the flag says whether a chrono is running. */
+  onEditKey: (chronoRunning: boolean) => void
+}
 export type { Game }
 
-function learnDrill(settings: Settings): Drill {
+function learnDrill(settings: Settings, plan: LearnKeyPlan, onEditKey: GameOptions['onEditKey']): Drill {
   const pool = buildPool(settings.clefs, settings.accidentals)
-  const sampler = createLearnSampler(settings.clefs, settings.accidentals)
+  const sampler = createLearnSampler(settings.clefs, settings.accidentals, Math.random, plan)
   return {
+    hudChip: { label: learnKeyChipLabel(plan), onTap: onEditKey },
     strictOctave: settings.strictOctave,
     wrongDelayMs: NEXT_DELAY_WRONG_MS,
     bestTimed: (progress) => progress.bestTimed,
@@ -41,5 +46,5 @@ function learnDrill(settings: Settings): Drill {
 }
 
 export function createGame(options: GameOptions): Game {
-  return createDrillGame(options, learnDrill(options.settings))
+  return createDrillGame(options, learnDrill(options.settings, learnKeyPlan(options.settings), options.onEditKey))
 }

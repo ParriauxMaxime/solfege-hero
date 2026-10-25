@@ -65,8 +65,19 @@ describe('sanitizeSettings', () => {
       seriesDifficulty: 4,
       strictOctave: true,
       keysMode: 'both',
+      learnKeyMode: 'fixed',
+      learnFixedFifths: -3,
+      learnKeyChange: '20',
     }
     expect(sanitizeSettings(JSON.parse(JSON.stringify(settings)))).toEqual(settings)
+  })
+
+  it('sanitizes the Apprendre key settings', () => {
+    expect(sanitizeSettings({ learnFixedFifths: 9, learnKeyMode: 'x', learnKeyChange: 5 })).toMatchObject({
+      learnFixedFifths: 0,
+      learnKeyMode: 'random',
+      learnKeyChange: 'short',
+    })
   })
 
   it('defaults to the dark theme, medium keys, latin names and 80% volume', () => {

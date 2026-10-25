@@ -24,6 +24,8 @@ export interface Drill {
   /** Answers are exact pitches (strict octave) instead of pitch classes. */
   strictOctave: boolean
   screenClass?: string
+  /** Small tappable label top-centre of the HUD. */
+  hudChip?: { label: string; onTap: (chronoRunning: boolean) => void }
   wrongDelayMs: number
   next: (progress: Progress) => DrillRound
   bestTimed: (progress: Progress) => number
@@ -72,7 +74,12 @@ export function createDrillGame({ settings, progress: initialProgress, sound, on
   const multiplierValue = el('span', 'multiplier', '×1')
   const timerValue = el('span', 'timer', String(TIMED_SECONDS))
   timerValue.hidden = !settings.timed
-  const hud = el('div', 'hud', el('div', 'hud-score', scoreValue), streak, multiplierValue, timerValue)
+  const chip = drill.hudChip
+  const hudChip = chip ? button('hud-chip', chip.label, () => chip.onTap(deadline !== null)) : null
+  hudChip?.setAttribute('aria-label', `Armure : ${chip?.label ?? ''}. Modifier`)
+  const hud = hudChip
+    ? el('div', 'hud with-chip', el('div', 'hud-score', scoreValue), hudChip, el('div', 'hud-right', streak, multiplierValue, timerValue))
+    : el('div', 'hud', el('div', 'hud-score', scoreValue), streak, multiplierValue, timerValue)
 
   const staffCard = el('div', 'staff-card')
   const feedback = el('div', 'feedback')
