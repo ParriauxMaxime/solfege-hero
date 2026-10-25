@@ -264,7 +264,7 @@ export function startApp(root: HTMLElement): void {
   function freshSeriesConfig(): RandomSeriesConfig {
     return {
       kind: 'random',
-      version: 2,
+      version: 3,
       seed: newSeed(),
       clefs: settings.clefs,
       armures: settings.accidentals,

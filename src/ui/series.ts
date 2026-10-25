@@ -176,7 +176,10 @@ export function createSeries({
   function showItem(): void {
     const item = items[index]
     if (!item) return
-    staffCard.replaceChildren(renderStaff(item.clef, item.note, item.fifths))
+    const staff = renderStaff(item.clef, item.note, item.fifths)
+    const before = items[index - 1]
+    if (before && before.fifths !== item.fifths) staff.classList.add('key-changed')
+    staffCard.replaceChildren(staff)
     counter.textContent = `${index + 1}/${items.length}`
     bar.style.width = `${(index / items.length) * 100}%`
     pad.setTarget(item.clef, item.pitch)

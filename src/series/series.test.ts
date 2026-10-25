@@ -4,6 +4,7 @@ import type { Score } from '../hero/types'
 import { generateMelody } from '../music/generator'
 import { midi, pitchClass, type Clef, type Note } from '../music/notes'
 import { seededRandom } from '../random'
+import { parseChallenge } from './challenge'
 import {
   INITIAL_RUN,
   PENALTY_MS,
@@ -77,6 +78,59 @@ describe('generateSeries version 2', () => {
 
   it('fails without any clef', () => {
     expect(() => generateSeries({ ...v2, clefs: [] })).toThrow()
+  })
+})
+
+describe('generateSeries version 3', () => {
+  const v3: RandomSeriesConfig = { ...config, version: 3 }
+  const seeds = Array.from({ length: 40 }, (_, offset) => 4000 + offset)
+
+  it('has twenty notes and never repeats a pitch class', () => {
+    for (const seed of seeds) {
+      for (const clefs of [['treble'], ['treble', 'bass', 'alto']] as Clef[][]) {
+        const items = generateSeries({ ...v3, seed, clefs })
+        expect(items).toHaveLength(SERIES_LENGTH)
+        items.forEach((item, index) => {
+          if (index > 0) expect(pitchClass(item.pitch)).not.toBe(pitchClass(items[index - 1]?.pitch ?? -1))
+          expect(midi(item.note)).toBe(item.pitch)
+        })
+      }
+    }
+  })
+
+  it('holds the key signature and clef for runs of 4 or 5 notes', () => {
+    const manySeeds = Array.from({ length: 300 }, (_, offset) => 1000 + offset)
+    let regular = 0
+    for (const seed of manySeeds) {
+      const items = generateSeries({ ...v3, seed, clefs: ['treble', 'bass'] })
+      const runs: number[] = []
+      items.forEach((item, index) => {
+        const before = items[index - 1]
+        if (before && before.fifths === item.fifths && before.clef === item.clef) runs[runs.length - 1]! += 1
+        else runs.push(1)
+      })
+      expect(new Set(items.map((item) => item.fifths)).size).toBeGreaterThan(1)
+      const full = runs.slice(0, -1).every((run) => run === 4 || run === 5)
+      if (full && (runs[runs.length - 1] ?? 0) <= 5) regular++
+    }
+    // A run that no other key signature can write without inline accidentals has to stay as it is.
+    expect(regular / manySeeds.length).toBeGreaterThan(0.9)
+  })
+
+  it('is deterministic and keeps the seeded melody where it did not repeat', () => {
+    expect(generateSeries(v3)).toEqual(generateSeries({ ...v3 }))
+    const melody = generateSeries({ ...v3, version: 2 })
+    const same = generateSeries(v3).filter((item, index) => item.pitch === melody[index]?.pitch)
+    expect(same.length).toBeGreaterThan(SERIES_LENGTH / 2)
+  })
+
+  it('still decodes v=2 links to the melody series', () => {
+    const decoded = parseChallenge('s=4821&c=sol-fa&k=1&v=2')?.config as RandomSeriesConfig
+    const clef = decoded.clefs[decoded.seed % decoded.clefs.length] as Clef
+    const melody = generateMelody(decoded.seed, { clef, armures: true, difficulty: 2, bars: 16 })
+    const items = generateSeries(decoded)
+    expect(items.map((item) => item.pitch)).toEqual(melody.notes.slice(0, SERIES_LENGTH).map((spec) => spec.pitch))
+    expect(new Set(items.map((item) => item.fifths))).toEqual(new Set([melody.key]))
   })
 })
 

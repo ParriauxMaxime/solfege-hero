@@ -38,7 +38,7 @@ export function dailyLabel(key: DailyKey): string {
 }
 
 export function dailyConfig(key: DailyKey): RandomSeriesConfig {
-  return { kind: 'random', version: 2, seed: Number(key), clefs: ['treble'], armures: true, difficulty: DEFAULT_SERIES_DIFFICULTY }
+  return { kind: 'random', version: 3, seed: Number(key), clefs: ['treble'], armures: true, difficulty: DEFAULT_SERIES_DIFFICULTY }
 }
 
 export function encodeDailyHash(key: DailyKey): string {

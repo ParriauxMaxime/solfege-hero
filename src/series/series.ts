@@ -6,6 +6,7 @@ import { generateMelody, type Difficulty } from '../music/generator'
 import { chooseKey, spellInKey } from '../music/keySignature'
 import { spell, type Clef, type Note } from '../music/notes'
 import { seededRandom } from '../random'
+import { generateRunSeries } from './runSeries'
 
 export const SERIES_LENGTH = 20
 export const PENALTY_MS = 5000
@@ -13,8 +14,11 @@ export const PENALTY_MS = 5000
 const MIN_SEED = 1000
 const SEED_COUNT = 9000
 
-/** Version 1 draws notes uniformly; version 2 plays the start of a generated melody. */
-export type SeriesVersion = 1 | 2
+/**
+ * Version 1 draws notes uniformly; version 2 plays the start of a generated melody;
+ * version 3 removes repeated pitch classes and changes clef and key signature every 4 or 5 notes.
+ */
+export type SeriesVersion = 1 | 2 | 3
 
 export type SeriesConfig =
   | { kind: 'random'; version: SeriesVersion; seed: number; clefs: Clef[]; armures: boolean; difficulty: Difficulty }
@@ -72,6 +76,7 @@ function generateMelodySeries({ seed, clefs, armures, difficulty }: RandomSeries
 }
 
 export function generateSeries(config: RandomSeriesConfig): SeriesItem[] {
+  if (config.version === 3) return generateRunSeries(config)
   return config.version === 2 ? generateMelodySeries(config) : generateUniformSeries(config)
 }
 

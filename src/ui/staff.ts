@@ -34,6 +34,11 @@ function renderNote(note: Note, step: number, fifths: number, noteX: number): SV
   return group
 }
 
+function markKeySignature(glyph: SVGGElement): SVGGElement {
+  glyph.classList.add('staff-key')
+  return glyph
+}
+
 export function renderStaff(clef: Clef, note: Note, fifths: number): SVGSVGElement {
   const noteX = Math.max(MIN_NOTE_X, SIGNATURE_X + keySignatureWidth(fifths) + NOTE_CLEARANCE)
   const staffRight = noteX + NOTE_TRAILING_SPACE
@@ -48,7 +53,7 @@ export function renderStaff(clef: Clef, note: Note, fifths: number): SVGSVGEleme
   svg.append(
     staffLines(STAFF_LEFT, staffRight),
     clefGlyph(clef),
-    keySignatureGlyph(clef, fifths, SIGNATURE_X),
+    markKeySignature(keySignatureGlyph(clef, fifths, SIGNATURE_X)),
     renderNote(note, staffStep(note, clef), fifths, noteX),
   )
   return svg

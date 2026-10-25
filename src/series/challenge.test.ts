@@ -51,6 +51,13 @@ describe('series version', () => {
     expect(parseChallenge(encodeChallenge(v2))).toEqual(v2)
   })
 
+  it('writes and reads v=3', () => {
+    const v3: Challenge = { ...challenge, config: { ...challenge.config, version: 3 } }
+    expect(encodeChallenge(v3)).toBe('s=4821&c=sol-fa&k=1&v=3&t=47')
+    expect(parseChallenge(encodeChallenge(v3))).toEqual(v3)
+    expect(parseChallenge('s=4821&c=sol&k=1&v=2')?.config).toMatchObject({ version: 2 })
+  })
+
   it('reads links without v as version 1', () => {
     expect(parseChallenge('s=4821&c=sol&k=1')?.config).toMatchObject({ version: 1 })
     expect(parseChallenge('s=4821&c=sol&k=1&v=9')?.config).toMatchObject({ version: 1 })

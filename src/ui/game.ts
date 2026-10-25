@@ -1,9 +1,9 @@
 import type { Sound } from '../audio/sound'
 import { INITIAL_SCORE, applyAnswer, multiplier, type AnswerOutcome, type ScoreState } from '../game/scoring'
-import { buildPool, pickPrompt, promptId, recordAnswer, type Prompt } from '../game/sampler'
+import { createLearnSampler } from '../game/runs'
+import { buildPool, promptId, recordAnswer, type Prompt } from '../game/sampler'
 import { answerPitch, isCorrectAnswer, recordExactPitch, type Answer } from '../game/strictOctave'
-import { chooseKey } from '../music/keySignature'
-import { midi, noteName, spell, type Note } from '../music/notes'
+import { midi, noteName, type Note } from '../music/notes'
 import { vibrate } from '../platform/haptics'
 import type { Progress, Settings } from '../storage'
 import { button, el } from './dom'
@@ -41,7 +41,7 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
   let progress = initialProgress
   let score: ScoreState = INITIAL_SCORE
   let shown: ShownPrompt | null = null
-  let previousId: string | null = null
+  const sampler = createLearnSampler(settings.clefs, settings.accidentals)
   let shownAt = 0
   let locked = true
   let deadline: number | null = null
@@ -70,13 +70,11 @@ export function createGame({ settings, progress: initialProgress, sound, onProgr
   const element = el('section', 'screen game', hud, staffCard, feedback, pad.element, flash, effectsLayer)
 
   function showNext(): void {
-    const prompt = pickPrompt(pool, progress.notes, previousId)
-    const { fifths, note } = settings.accidentals
-      ? chooseKey(prompt.pitch, prompt.clef)
-      : { fifths: 0, note: spell(prompt.pitch, false) }
+    const { prompt, note, fifths, keyChanged } = sampler.next(pool, progress.notes)
     shown = { prompt, note }
-    previousId = promptId(prompt)
-    staffCard.replaceChildren(renderStaff(prompt.clef, note, fifths))
+    const staff = renderStaff(prompt.clef, note, fifths)
+    if (keyChanged) staff.classList.add('key-changed')
+    staffCard.replaceChildren(staff)
     feedback.textContent = ''
     feedback.className = 'feedback'
     pad.setTarget(prompt.clef, prompt.pitch)
