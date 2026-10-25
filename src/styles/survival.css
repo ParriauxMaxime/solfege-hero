@@ -1,0 +1,131 @@
+.survival-hud {
+  gap: 10px;
+}
+
+.hearts {
+  display: flex;
+  gap: 4px;
+}
+
+.heart {
+  width: 28px;
+  height: 28px;
+  overflow: visible;
+  color: var(--error);
+}
+
+.heart.lost {
+  color: var(--ink-dim);
+}
+
+.heart-half {
+  transform-box: fill-box;
+  opacity: 0.45;
+}
+
+.heart-half.left {
+  transform: translate(-1px, 1px) rotate(-8deg);
+  transform-origin: bottom right;
+  animation: heart-break-left 0.7s ease-out;
+}
+
+.heart-half.right {
+  transform: translate(1px, 1px) rotate(8deg);
+  transform-origin: bottom left;
+  animation: heart-break-right 0.7s ease-out;
+}
+
+.heart.lost {
+  animation: heart-shake 0.45s;
+}
+
+.survival-score {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--ink-dim);
+  font-weight: 700;
+}
+
+.survival-score-value {
+  display: inline-block;
+  min-width: 2ch;
+  color: var(--ink);
+  font-size: 1.8rem;
+  font-weight: 800;
+  text-align: right;
+}
+
+.survival-score-value.bump {
+  animation: bump 0.3s ease-out;
+}
+
+.survival-level {
+  margin-left: auto;
+  padding: 4px 12px;
+  white-space: nowrap;
+  border-radius: 999px;
+  background: var(--card-raised);
+  color: var(--ink-dim);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.survival-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--card-raised);
+  overflow: hidden;
+}
+
+.survival-bar-fill {
+  width: 100%;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--accent);
+  transform-origin: left center;
+}
+
+.survival-bar.urgent .survival-bar-fill {
+  background: var(--error);
+}
+
+@keyframes heart-shake {
+  20%,
+  60% {
+    transform: translateX(-3px);
+  }
+  40%,
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes heart-break-left {
+  from {
+    transform: translate(0, 0) rotate(0);
+    opacity: 1;
+  }
+  35% {
+    transform: translate(-5px, -3px) rotate(-22deg);
+    opacity: 1;
+  }
+}
+
+@keyframes heart-break-right {
+  from {
+    transform: translate(0, 0) rotate(0);
+    opacity: 1;
+  }
+  35% {
+    transform: translate(5px, -3px) rotate(22deg);
+    opacity: 1;
+  }
+}
+
+@media (orientation: landscape) {
+  .survival .survival-bar {
+    grid-area: feedback;
+    align-self: start;
+  }
+}

@@ -3,7 +3,7 @@ import { button, el, iconButton } from './dom'
 import { icon as glyph } from './icons'
 import { clefGlyph, inkGroup, noteHead, staffLines, stem, svgElement } from './glyphs'
 
-export type HomeChoice = 'apprendre' | 'series' | 'hero' | 'partitions' | 'daily'
+export type HomeChoice = 'apprendre' | 'series' | 'survival' | 'hero' | 'partitions' | 'daily'
 
 export interface DailyStatus {
   label: string
@@ -61,6 +61,13 @@ const CARDS: CardSpec[] = [
         ['path', { d: 'M26 8H38M32 8V16M32 36L42 26' }],
         ['path', { d: 'M50 14L54 18' }],
       ]),
+  },
+  {
+    choice: 'survival',
+    accent: 'rose',
+    title: 'Survie',
+    subtitle: '3 vies, tiens le plus longtemps',
+    icon: () => icon([['path', { d: 'M32 56C32 56 8 42 8 24a12 12 0 0 1 24-5 12 12 0 0 1 24 5C56 42 32 56 32 56Z' }]]),
   },
   {
     choice: 'hero',

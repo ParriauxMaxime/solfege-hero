@@ -66,6 +66,22 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
     )
   }
 
+  function survivalSection(survival: Progress['survival']): HTMLElement {
+    return el(
+      'div',
+      'clef-section',
+      el('h2', '', 'Survie'),
+      el(
+        'div',
+        'summary',
+        summary('meilleur score', survival.bestScore),
+        summary('parties jouées', survival.played),
+        summary('défis gagnés', survival.challengesWon),
+        summary('défis perdus', survival.challengesLost),
+      ),
+    )
+  }
+
   function dailySection(daily: Progress['daily']): HTMLElement {
     const today = dailyKey(new Date())
     const todayAttempt = daily.attempts[today]
@@ -121,6 +137,7 @@ export function createStatsScreen({ progress: initial, onReset, onBack }: StatsO
       heroSection(progress.hero),
       dailySection(progress.daily),
       seriesSection(progress.series),
+      survivalSection(progress.survival),
       ...CLEFS.filter((clef) => hasData(progress, clef)).map((clef) => clefSection(progress, clef)),
       el(
         'div',

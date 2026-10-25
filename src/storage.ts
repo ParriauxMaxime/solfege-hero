@@ -3,6 +3,7 @@ import type { NoteRecord, NoteStats } from './game/sampler'
 import { START_BPM_MAX, START_BPM_MIN } from './hero/tempo'
 import { CLEFS, type Clef, type Naming } from './music/notes'
 import { isDailyKey, type DailyKey } from './series/daily'
+import { DEFAULT_SURVIVAL_DELAY, SURVIVAL_DELAYS, type SurvivalDelay } from './survival/game'
 import { KEYBOARD_SPANS, type KeyboardSpan } from './ui/keyboardLayout'
 
 export const NAMINGS: readonly Naming[] = ['latin', 'english']
@@ -30,6 +31,7 @@ export interface Settings {
   vibration: boolean
   volume: number
   instrument: Instrument
+  survivalDelayS: SurvivalDelay
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -50,6 +52,7 @@ export const DEFAULT_SETTINGS: Settings = {
   vibration: true,
   volume: 0.8,
   instrument: 'piano',
+  survivalDelayS: DEFAULT_SURVIVAL_DELAY,
 }
 
 export interface HeroProgress {
@@ -69,6 +72,13 @@ export interface SeriesProgress {
   lost: number
   /** Fastest time in ms per imported or built-in score id. */
   bestByScore: Record<string, number>
+}
+
+export interface SurvivalProgress {
+  bestScore: number
+  played: number
+  challengesWon: number
+  challengesLost: number
 }
 
 export interface DailyAttempt {
@@ -91,6 +101,7 @@ export interface Progress {
   hero: HeroProgress
   series: SeriesProgress
   daily: DailyProgress
+  survival: SurvivalProgress
 }
 
 const MAX_DAILY_ATTEMPTS = 400
@@ -104,6 +115,13 @@ export const EMPTY_SERIES_PROGRESS: SeriesProgress = {
   won: 0,
   lost: 0,
   bestByScore: {},
+}
+
+export const EMPTY_SURVIVAL_PROGRESS: SurvivalProgress = {
+  bestScore: 0,
+  played: 0,
+  challengesWon: 0,
+  challengesLost: 0,
 }
 
 export const EMPTY_HERO_PROGRESS: HeroProgress = {
@@ -123,6 +141,7 @@ export const EMPTY_PROGRESS: Progress = {
   hero: EMPTY_HERO_PROGRESS,
   series: EMPTY_SERIES_PROGRESS,
   daily: EMPTY_DAILY_PROGRESS,
+  survival: EMPTY_SURVIVAL_PROGRESS,
 }
 
 const SETTINGS_KEY = 'solfege.settings.v2'
@@ -170,6 +189,7 @@ export function sanitizeSettings(raw: unknown): Settings {
     vibration: booleanOr(stored.vibration, DEFAULT_SETTINGS.vibration),
     volume: sanitizeVolume(stored.volume),
     instrument: oneOf(INSTRUMENTS, stored.instrument, DEFAULT_SETTINGS.instrument),
+    survivalDelayS: SURVIVAL_DELAYS.find((delay) => delay === stored.survivalDelayS) ?? DEFAULT_SETTINGS.survivalDelayS,
   }
 }
 
@@ -214,6 +234,16 @@ function sanitizeSeriesProgress(raw: unknown): SeriesProgress {
     won: nonNegativeOr(stored.won, 0),
     lost: nonNegativeOr(stored.lost, 0),
     bestByScore: sanitizeBestByScore(stored.bestByScore),
+  }
+}
+
+function sanitizeSurvivalProgress(raw: unknown): SurvivalProgress {
+  const stored = asObject(raw)
+  return {
+    bestScore: nonNegativeOr(stored.bestScore, 0),
+    played: nonNegativeOr(stored.played, 0),
+    challengesWon: nonNegativeOr(stored.challengesWon, 0),
+    challengesLost: nonNegativeOr(stored.challengesLost, 0),
   }
 }
 
@@ -298,6 +328,7 @@ export function sanitizeProgress(raw: unknown): Progress {
     hero: sanitizeHeroProgress(stored.hero),
     series: sanitizeSeriesProgress(stored.series),
     daily: sanitizeDailyProgress(stored.daily),
+    survival: sanitizeSurvivalProgress(stored.survival),
   }
 }
 
@@ -346,6 +377,7 @@ export function resetProgress(): Progress {
     hero: { ...EMPTY_HERO_PROGRESS },
     series: { ...EMPTY_SERIES_PROGRESS },
     daily: { attempts: {}, bestMs: 0 },
+    survival: { ...EMPTY_SURVIVAL_PROGRESS },
   }
 }
 

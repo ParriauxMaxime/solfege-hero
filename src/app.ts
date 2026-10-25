@@ -23,7 +23,10 @@ import { createHero, type Hero } from './ui/hero'
 import { createHeroStart } from './ui/heroStart'
 import { createHome, type HomeChoice } from './ui/home'
 import { createLibrary } from './ui/library'
-import { createSeries, type ChallengeTarget, type DailyRun, type Series } from './ui/series'
+import { createSurvival, type Survival, type SurvivalTarget } from './ui/survival'
+import { createSurvivalIntro } from './ui/survivalIntro'
+import { parseSurvivalChallenge, type SurvivalChallenge, type SurvivalConfig } from './survival/challenge'
+import { createSeries,type ChallengeTarget, type DailyRun, type Series } from './ui/series'
 import { createDailyIntro } from './ui/dailyIntro'
 import { dailyConfig, dailyKey, dailyLabel, parseDailyHash, type DailyKey } from './series/daily'
 import { isInstrumentPickerOpen } from './ui/instrumentPicker'
@@ -46,6 +49,7 @@ export function startApp(root: HTMLElement): void {
   let pushed = false
   let activeHero: Hero | null = null
   let activeSeries: Series | null = null
+  let activeSurvival: Survival | null = null
   let leaving: Element[] = []
   let leaveTimeout = 0
   let lastBlockedToast = -Infinity
@@ -80,8 +84,13 @@ export function startApp(root: HTMLElement): void {
 
   function onPopState(): void {
     if (isInstrumentPickerOpen()) return
-    if (parseChallenge(location.hash) || parseScoreHash(location.hash) || parseDailyHash(location.hash)) return
+    if (isLaunchLink(location.hash)) return
     pushed = false
+    if (activeSurvival?.pause()) {
+      history.pushState({ screen: 'inside' }, '')
+      pushed = true
+      return
+    }
     if (activeHero) {
       activeHero.pause()
       history.pushState({ screen: 'inside' }, '')
@@ -91,24 +100,30 @@ export function startApp(root: HTMLElement): void {
     renderHome()
   }
 
+  function isLaunchLink(hash: string): boolean {
+    return Boolean(parseChallenge(hash) || parseScoreHash(hash) || parseDailyHash(hash) || parseSurvivalChallenge(hash))
+  }
+
   function openLaunchChallenge(): boolean {
     const challenge = parseChallenge(location.hash)
     const scoreLink = challenge ? null : parseScoreHash(location.hash)
     const dailyLink = challenge || scoreLink ? null : parseDailyHash(location.hash)
-    if (!challenge && !scoreLink && !dailyLink) return false
+    const survivalLink = challenge || scoreLink || dailyLink ? null : parseSurvivalChallenge(location.hash)
+    if (!challenge && !scoreLink && !dailyLink && !survivalLink) return false
     history.replaceState(null, '', location.pathname + location.search)
     const open = () =>
       enterFromHome(() => {
         if (challenge) showChallengeIntro(challenge)
         else if (scoreLink) void openScoreLink(scoreLink)
         else if (dailyLink) showDailyIntro(dailyLink)
+        else if (survivalLink) showSurvivalIntro(survivalLink)
       })
     if (!running) {
       open()
       return true
     }
     activeHero?.pause()
-    const releaseClock = activeSeries?.hold()
+    const releaseClock = (activeSeries ?? activeSurvival)?.hold()
     void confirmOverlay(root, 'Abandonner la partie en cours ?', 'Abandonner', 'Continuer').then((abandon) => {
       if (abandon) open()
       else releaseClock?.()
@@ -181,12 +196,17 @@ export function startApp(root: HTMLElement): void {
     running = next
     activeHero = null
     activeSeries = null
+    activeSurvival = null
     topBar.hidden = !withTopBar
     swapScreen(content)
   }
 
   function freshSeriesConfig(): RandomSeriesConfig {
     return { kind: 'random', version: 2, seed: newSeed(), clefs: settings.clefs, armures: settings.accidentals }
+  }
+
+  function freshSurvivalConfig(): SurvivalConfig {
+    return { seed: newSeed(), clefs: settings.clefs, armures: settings.accidentals, delayS: settings.survivalDelayS }
   }
 
   function renderHome(): void {
@@ -203,6 +223,7 @@ export function startApp(root: HTMLElement): void {
   function choose(choice: HomeChoice): void {
     if (choice === 'apprendre') showLearn()
     else if (choice === 'series') void showSeries(freshSeriesConfig(), null)
+    else if (choice === 'survival') showSurvival(freshSurvivalConfig(), null)
     else if (choice === 'partitions') showLibrary()
     else if (choice === 'daily') {
       const today = dailyKey(new Date())
@@ -302,6 +323,30 @@ export function startApp(root: HTMLElement): void {
     })
     show(series.element, true, series)
     activeSeries = series
+  }
+
+  function showSurvival(config: SurvivalConfig, against: SurvivalTarget | null): void {
+    const survival = createSurvival({
+      settings,
+      config,
+      challenge: against,
+      progress,
+      sound,
+      onProgress: changeProgress,
+      onReplay: () => showSurvival(freshSurvivalConfig(), null),
+      onRetry: () => showSurvival(config, against),
+      onHome: goHome,
+      onQuit: renderHome,
+    })
+    show(survival.element, false, survival)
+    activeSurvival = survival
+  }
+
+  function showSurvivalIntro(challenge: SurvivalChallenge): void {
+    show(
+      createSurvivalIntro({ challenge, onStart: () => showSurvival(challenge.config, { score: challenge.score }) }),
+      true,
+    )
   }
 
   function showChallengeIntro(challenge: Challenge): void {

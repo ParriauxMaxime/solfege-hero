@@ -60,6 +60,7 @@ describe('sanitizeSettings', () => {
       vibration: false,
       volume: 0.35,
       instrument: 'organ',
+      survivalDelayS: 3,
     }
     expect(sanitizeSettings(JSON.parse(JSON.stringify(settings)))).toEqual(settings)
   })
@@ -135,8 +136,30 @@ describe('sanitizeProgress', () => {
         attempts: { '20261024': { totalMs: 52300, penaltyMs: 5000, results: [true, false, true] } },
         bestMs: 52300,
       },
+      survival: { bestScore: 47, played: 9, challengesWon: 2, challengesLost: 1 },
     }
     expect(sanitizeProgress(JSON.parse(JSON.stringify(progress)))).toEqual(progress)
+  })
+
+  it('defaults the survival delay to 5 s and accepts only 3 or 5', () => {
+    expect(DEFAULT_SETTINGS.survivalDelayS).toBe(5)
+    expect(sanitizeSettings({ survivalDelayS: 3 }).survivalDelayS).toBe(3)
+    expect(sanitizeSettings({ survivalDelayS: 4 }).survivalDelayS).toBe(5)
+    expect(sanitizeSettings({ survivalDelayS: '3' }).survivalDelayS).toBe(5)
+  })
+
+  it('loads progress saved before Survie existed', () => {
+    expect(sanitizeProgress({ bestStreak: 4 }).survival).toEqual({
+      bestScore: 0,
+      played: 0,
+      challengesWon: 0,
+      challengesLost: 0,
+    })
+  })
+
+  it('sanitizes survival progress field by field', () => {
+    const { survival } = sanitizeProgress({ survival: { bestScore: 31, played: 'x', challengesWon: -2, challengesLost: 1 } })
+    expect(survival).toEqual({ bestScore: 31, played: 0, challengesWon: 0, challengesLost: 1 })
   })
 
   it('sanitizes daily progress, dropping bad days and keeping the newest 400', () => {

@@ -28,10 +28,19 @@ function parseTimeS(text: string): number | null {
   return timeS > 0 && timeS <= MAX_TIME_S ? timeS : null
 }
 
-export function encodeChallenge({ config, timeS }: Challenge): string {
-  const clefs = CLEFS.filter((clef) => config.clefs.includes(clef))
+export function encodeClefs(selected: readonly Clef[]): string {
+  return CLEFS.filter((clef) => selected.includes(clef))
     .map((clef) => CLEF_CODES[clef])
     .join(CODE_SEPARATOR)
+}
+
+export function parseClefs(text: string): Clef[] {
+  const codes = text.split(CODE_SEPARATOR)
+  return CLEFS.filter((clef) => codes.includes(CLEF_CODES[clef]))
+}
+
+export function encodeChallenge({ config, timeS }: Challenge): string {
+  const clefs = encodeClefs(config.clefs)
   const params = new URLSearchParams({
     s: String(config.seed),
     c: clefs,
@@ -47,8 +56,7 @@ export function parseChallenge(hash: string): Challenge | null {
   const seed = params.get('s') ?? ''
   if (!WHOLE_NUMBER.test(seed)) return null
 
-  const codes = (params.get('c') ?? '').split(CODE_SEPARATOR)
-  const clefs = CLEFS.filter((clef) => codes.includes(CLEF_CODES[clef]))
+  const clefs = parseClefs(params.get('c') ?? '')
   if (clefs.length === 0) return null
 
   return {
