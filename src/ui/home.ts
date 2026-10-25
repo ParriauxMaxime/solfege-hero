@@ -99,8 +99,8 @@ function logoStaff(): SVGSVGElement {
   note.append(noteHead('filled', 126, 0), stemUp, stemDown)
   const mover = svgElement('g', { class: 'home-logo-mover' })
   mover.append(svgElement('circle', { class: 'home-logo-halo', cx: 126, cy: stepY(0), r: 22 }), note)
-  const [ledger] = ledgerLines(-2, 126)
-  ledger.setAttribute('class', 'home-logo-ledger')
+  const ledger = svgElement('g', { class: 'home-logo-ledger' })
+  ledger.append(...ledgerLines(-2, 126))
   svg.append(staffLines(24, 170), ledger, clefGlyph('treble'), mover)
   return svg
 }
