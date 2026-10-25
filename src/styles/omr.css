@@ -1,0 +1,548 @@
+.library-image-imports {
+  flex: none;
+  display: flex;
+  gap: 8px;
+}
+
+.library-image-imports .segment-button {
+  flex: 1;
+  gap: 8px;
+  padding: 0 12px;
+  font-size: 0.9rem;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.library-image-imports svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+
+.omr-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+  background: var(--bg);
+  color: var(--ink);
+  animation: picker-in 160ms ease-out both;
+}
+
+.omr-modal > section {
+  position: relative;
+  box-sizing: border-box;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.omr-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.omr-header h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.omr-header .icon-button {
+  width: 48px;
+  height: 48px;
+}
+
+.omr-save {
+  min-height: 48px;
+  padding: 0 16px;
+  font-size: 1rem;
+}
+
+.omr-save:disabled {
+  opacity: 0.4;
+}
+
+.omr-save svg {
+  width: 20px;
+  height: 20px;
+}
+
+.omr-progress,
+.omr-setup {
+  gap: 14px;
+}
+
+.omr-progress {
+  justify-content: center;
+  max-width: 420px !important;
+  padding: 0 8px;
+}
+
+.omr-progress h2 {
+  margin: 0;
+  text-align: center;
+}
+
+.omr-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.omr-bar {
+  flex: 1;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 7px;
+  background: var(--card-raised);
+}
+
+.omr-bar-fill {
+  width: 0;
+  height: 100%;
+  border-radius: 7px;
+  background: var(--accent);
+  transition: width 150ms ease-out;
+}
+
+.omr-percent {
+  min-width: 3.2em;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.omr-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.omr-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 28px;
+  color: var(--ink-dim);
+}
+
+.omr-step::before {
+  content: '';
+  flex: none;
+  width: 14px;
+  height: 14px;
+  box-sizing: border-box;
+  margin: 2px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+.omr-step svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0 2px;
+  color: var(--success);
+}
+
+.omr-step.done {
+  color: var(--ink);
+}
+
+.omr-step.done::before {
+  display: none;
+}
+
+.omr-step.current {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.omr-step.current::before {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.omr-error {
+  margin: 0;
+  color: var(--error);
+  text-align: center;
+}
+
+.omr-page-frame {
+  flex: 1;
+  min-height: 0;
+  padding: 8px;
+  border-radius: 14px;
+  background: var(--card);
+}
+
+.omr-page-preview {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #fff;
+}
+
+.omr-page-preview.loading {
+  opacity: 0.4;
+}
+
+.omr-pager {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-weight: 700;
+}
+
+.omr-pager .icon-button:disabled {
+  opacity: 0.35;
+}
+
+.omr-hint {
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: 0.85rem;
+}
+
+.omr-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.omr-label {
+  color: var(--ink-dim);
+  font-size: 0.8rem;
+}
+
+.omr-field .segment {
+  min-height: 44px;
+}
+
+.omr-select,
+.omr-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--card-raised);
+  color: var(--ink);
+  font: inherit;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.omr-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.omr-left,
+.omr-right {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.omr-crop {
+  flex: none;
+  height: 96px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.omr-crop-canvas {
+  display: block;
+  height: 100%;
+  width: auto;
+  max-width: none;
+}
+
+.omr-nav {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.omr-nav .spacer {
+  flex: 1;
+}
+
+.omr-nav .icon-button {
+  width: 44px;
+  height: 44px;
+}
+
+.omr-nav .icon-button:disabled {
+  opacity: 0.35;
+}
+
+.omr-staff-label {
+  min-width: 7.5em;
+  font-weight: 700;
+  text-align: center;
+}
+
+.omr-left {
+  flex: 1 0 auto;
+}
+
+.omr-sheet {
+  flex: 1 0 220px;
+  overflow-y: auto;
+  border-radius: 14px;
+  background: var(--card);
+  user-select: none;
+}
+
+.omr-sheet svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  color: var(--ink);
+}
+
+.omr-sheet .sheet-note.playing {
+  color: var(--accent);
+}
+
+.omr-selection {
+  fill: var(--accent);
+  opacity: 0.25;
+}
+
+.omr-uncertain {
+  fill: var(--caution);
+  fill-opacity: 0.14;
+  stroke: var(--caution);
+  stroke-dasharray: 6 4;
+  stroke-width: 2;
+}
+
+.omr-legend {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: 0.75rem;
+}
+
+.omr-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.omr-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.omr-swatch.high {
+  background: var(--success);
+}
+
+.omr-swatch.medium {
+  background: var(--caution);
+}
+
+.omr-swatch.low {
+  background: var(--error);
+}
+
+.omr-swatch.bar {
+  border-radius: 3px;
+  border: 2px dashed var(--caution);
+  box-sizing: border-box;
+}
+
+.omr-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.omr-tool-group {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.omr-tool {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 10px;
+  background: var(--card);
+  box-shadow: var(--card-shadow);
+  line-height: 0;
+}
+
+.omr-tool svg {
+  width: 24px;
+  height: 24px;
+}
+
+.omr-tool.active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.omr-tool:disabled {
+  opacity: 0.35;
+}
+
+.omr-details {
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: var(--card-shadow);
+}
+
+.omr-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 0 14px;
+  font-weight: 700;
+  list-style: none;
+  cursor: pointer;
+}
+
+.omr-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.omr-details summary svg {
+  width: 20px;
+  height: 20px;
+  transition: transform 150ms;
+}
+
+.omr-details[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.omr-settings-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 0 14px 14px;
+}
+
+.omr-settings-body > :first-child,
+.omr-settings-body > :last-child {
+  grid-column: 1 / -1;
+}
+
+.omr-warnings {
+  margin: 0;
+  padding: 0 14px 14px 32px;
+  font-size: 0.85rem;
+}
+
+.omr-warnings li + li {
+  margin-top: 6px;
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .omr-modal {
+    padding-top: max(4px, env(safe-area-inset-top));
+    padding-bottom: max(4px, env(safe-area-inset-bottom));
+  }
+
+  .omr-modal > section {
+    gap: 6px;
+  }
+
+  .omr-header .icon-button,
+  .omr-save {
+    height: 40px;
+    min-height: 40px;
+  }
+
+  .omr-main {
+    flex-direction: row;
+    gap: 12px;
+    overflow: hidden;
+  }
+
+  .omr-left {
+    flex: 1.35;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .omr-right {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+  }
+
+  .omr-crop {
+    height: 64px;
+  }
+
+  .omr-nav .icon-button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .omr-sheet {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  .omr-setup {
+    display: grid;
+    grid-template-columns: 1fr minmax(240px, 320px);
+    grid-template-rows: auto 1fr;
+    align-content: start;
+    column-gap: 16px;
+  }
+
+  .omr-setup > * {
+    grid-column: 2;
+  }
+
+  .omr-setup > .omr-header {
+    grid-column: 1 / -1;
+  }
+
+  .omr-setup > .omr-page-frame {
+    grid-column: 1;
+    grid-row: 2 / span 5;
+  }
+}

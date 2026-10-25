@@ -30,6 +30,7 @@
   --error: #ff4d6d;
   --error-rgb: 255 77 109;
   --on-error: #2a0610;
+  --caution: #f5b83d;
   --key-natural: #e9e4f8;
   --key-natural-ink: #1d1a2b;
   --key-natural-shadow: none;
@@ -59,6 +60,7 @@
   --error: #d6264a;
   --error-rgb: 214 38 74;
   --on-error: #fff;
+  --caution: #b7791f;
   --key-natural: #fff;
   --key-natural-ink: #221c33;
   --key-natural-shadow: 0 2px 0 rgb(60 40 100 / 0.14), 0 0 0 1px rgb(60 40 100 / 0.08);
@@ -79,6 +81,7 @@
   --error: #f59e0b;
   --error-rgb: 245 158 11;
   --on-error: #2b1700;
+  --caution: #d9d4ee;
 }
 
 :root[data-theme='light'][data-colorblind='on'] {
@@ -87,6 +90,7 @@
   --error: #d97706;
   --error-rgb: 217 119 6;
   --on-error: #fff;
+  --caution: #7d7699;
 }
 
 :root[data-keys='S'] {

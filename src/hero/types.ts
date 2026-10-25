@@ -47,7 +47,7 @@ export interface Melody {
   timeSignature?: TimeSignature
 }
 
-export type ScoreSource = 'builtin' | 'file' | 'link'
+export type ScoreSource = 'builtin' | 'file' | 'link' | 'omr'
 
 /** A melody kept in the library; `id` is a hash of its musical content so the same score imported twice is one entry. */
 export interface Score extends Melody {

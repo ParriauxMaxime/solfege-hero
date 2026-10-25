@@ -43,6 +43,7 @@ import { createSeries,type ChallengeTarget, type DailyRun, type Series } from '.
 import { createDailyIntro } from './ui/dailyIntro'
 import { dailyConfig, dailyKey, parseDailyHash, type DailyKey } from './series/daily'
 import { isInstrumentPickerOpen } from './ui/instrumentPicker'
+import { isOmrImportOpen } from './ui/omr/openState'
 import { createSettingsScreen } from './ui/settings'
 import { createStatsScreen } from './ui/stats'
 import { showToast } from './ui/toast'
@@ -121,7 +122,7 @@ export function startApp(root: HTMLElement): void {
 
   function onPopState(): void {
     if (collapsingLinkEntry) return
-    if (isInstrumentPickerOpen()) return
+    if (isInstrumentPickerOpen() || isOmrImportOpen()) return
     if (isLaunchLink(location.hash)) return
     pushed = false
     if (activeSurvival?.pause()) {
@@ -304,6 +305,7 @@ export function startApp(root: HTMLElement): void {
     show(
       createLibrary({
         library: scoreLibrary,
+        sound,
         onPlayHero: playScore,
         onPlaySeries: (score) => void showSeries({ kind: 'score', scoreId: score.id }, null, true),
       }),

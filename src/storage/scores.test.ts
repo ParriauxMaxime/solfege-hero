@@ -87,6 +87,13 @@ describe('createScoreLibrary', () => {
     expect(ids.slice(BUILTIN_SCORES.length)).toEqual([second.id, first.id])
   })
 
+  it('stores a recognised score with the omr source', async () => {
+    const { library, backend } = create()
+    const added = await library.add(draft(65), 'omr')
+    expect(added.source).toBe('omr')
+    expect(backend.stored.get(added.id)?.source).toBe('omr')
+  })
+
   it('keeps the existing entry when the same score is added again', async () => {
     const { library, backend } = create()
     const first = await library.add(draft(), 'file')

@@ -1,4 +1,4 @@
-import { COMMON_TIME, DURATION_BEATS, type Duration, type NoteSpec, type Score, type TimeSignature } from '../hero/types'
+import { COMMON_TIME, DURATION_BEATS, type Duration, type NoteSpec, type Score, type ScoreSource, type TimeSignature } from '../hero/types'
 import { MELODIES } from '../music/melodies'
 import { scoreId } from '../music/musicxml'
 import { CLEFS, type Clef } from '../music/notes'
@@ -16,7 +16,7 @@ export interface ScoreLibrary {
   list(): Promise<Score[]>
   get(id: string): Promise<Score | null>
   /** Keeps the existing entry when the same content is already stored. */
-  add(score: NewScore, source: 'file' | 'link'): Promise<Score>
+  add(score: NewScore, source: Exclude<ScoreSource, 'builtin'>): Promise<Score>
   remove(id: string): Promise<void>
   /** Makes a catalogue score resolvable by id for this session; it is never stored. */
   registerBuiltin(score: NewScore): Score

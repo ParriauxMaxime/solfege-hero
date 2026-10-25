@@ -2,9 +2,11 @@ import type { Score } from '../hero/types'
 import type { Clef } from '../music/notes'
 import { importScoreFile } from '../music/musicxml'
 import { catalogueUrl, fetchCatalogueIndex, withoutCatalogued, type CatalogueEntry } from '../storage/catalogue'
-import type { createScoreLibrary } from '../storage/scores'
+import type { Sound } from '../audio/sound'
+import type { createScoreLibrary, NewScore } from '../storage/scores'
 import { confirmOverlay } from './confirm'
 import { button, el, iconButton } from './dom'
+import { icon, type IconName } from './icons'
 import { shareScore } from './sharing'
 import { showToast } from './toast'
 
@@ -12,12 +14,13 @@ type ScoreLibrary = ReturnType<typeof createScoreLibrary>
 
 export interface LibraryOptions {
   library: ScoreLibrary
+  sound: Sound
   onPlayHero: (score: Score) => void
   onPlaySeries: (score: Score) => void
 }
 
 const CLEF_LABELS: Record<Clef, string> = { treble: 'Sol', bass: 'Fa', alto: 'Ut 3' }
-const EMPTY_MESSAGE = 'Aucune partition importée. Trouve des fichiers MusicXML sur MuseScore, IMSLP…'
+const EMPTY_MESSAGE = 'Aucune partition importée. Trouve des fichiers MusicXML sur MuseScore, IMSLP… ou lis un PDF ou une photo.'
 
 function keyLabel(fifths: number): string {
   if (fifths === 0) return '—'
@@ -28,23 +31,45 @@ function noteCount(score: Score): number {
   return score.notes.filter((note) => note.pitch !== null).length
 }
 
-export function createLibrary({ library, onPlayHero, onPlaySeries }: LibraryOptions): HTMLElement {
+function hiddenFileInput(accept: string, onFile: (file: File) => void, capture?: string): HTMLInputElement {
   const input = el('input')
   input.type = 'file'
-  input.accept = '.musicxml,.xml,.mxl'
+  input.accept = accept
+  if (capture) input.setAttribute('capture', capture)
   input.hidden = true
-  input.addEventListener('change', async () => {
+  input.addEventListener('change', () => {
     const file = input.files?.[0]
     input.value = ''
-    if (file) await importFile(file)
+    if (file) onFile(file)
   })
+  return input
+}
+
+function iconLabelButton(className: string, name: IconName, label: string, onClick: () => void): HTMLButtonElement {
+  const element = button(`${className} inline-icon`, label, onClick)
+  element.prepend(icon(name))
+  return element
+}
+
+export function createLibrary({ library, sound, onPlayHero, onPlaySeries }: LibraryOptions): HTMLElement {
+  const input = hiddenFileInput('.musicxml,.xml,.mxl', (file) => void importFile(file))
+  const imageInput = hiddenFileInput('.pdf,application/pdf,image/*', (file) => void readImage(file))
+  const cameraInput = hiddenFileInput('image/*', (file) => void readImage(file), 'environment')
 
   const importButton = button('primary library-import', 'Importer', () => input.click())
   const header = el('div', 'library-header', el('h1', '', 'Partitions'), importButton, input)
+  const imageButtons = el(
+    'div',
+    'library-image-imports',
+    iconLabelButton('segment-button', 'document', 'Importer un PDF ou une photo', () => imageInput.click()),
+    iconLabelButton('segment-button', 'camera', 'Prendre une photo', () => cameraInput.click()),
+    imageInput,
+    cameraInput,
+  )
   const notice = el('div', 'library-notice')
   notice.hidden = true
   const list = el('div', 'library-list')
-  const element = el('section', 'screen library', header, notice, list)
+  const element = el('section', 'screen library', header, imageButtons, notice, list)
   let sharing = false
   let catalogue: CatalogueEntry[] = []
   const catalogueScores = new Map<string, Score>()
@@ -74,6 +99,18 @@ export function createLibrary({ library, onPlayHero, onPlaySeries }: LibraryOpti
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Import impossible')
     }
+  }
+
+  async function readImage(file: File): Promise<void> {
+    const { openOmrImport } = await import('./omr/importFlow')
+    openOmrImport({ file, sound, onSave: saveRecognised })
+  }
+
+  async function saveRecognised(score: NewScore): Promise<void> {
+    const known = (await library.list()).some((existing) => existing.id === score.id)
+    const stored = await library.add(score, 'omr')
+    showToast(known ? 'Déjà dans ta bibliothèque' : `Partition ajoutée : ${stored.name}`)
+    await renderList()
   }
 
   async function share(score: Score): Promise<void> {
@@ -106,7 +143,7 @@ export function createLibrary({ library, onPlayHero, onPlaySeries }: LibraryOpti
     return el(
       'article',
       'score-card',
-      el('div', 'score-main', el('h3', 'score-title', score.name), builtin ? el('span', 'badge', 'intégrée') : ''),
+      el('div', 'score-main', el('h3', 'score-title', score.name), builtin ? el('span', 'badge', 'intégrée') : score.source === 'omr' ? el('span', 'badge', 'scan') : ''),
       el('div', 'score-meta', ...meta.map((item) => el('span', 'chip', item))),
       actions,
     )
