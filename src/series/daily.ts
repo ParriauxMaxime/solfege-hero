@@ -3,6 +3,8 @@ import { DEFAULT_SERIES_DIFFICULTY, type RandomSeriesConfig } from './series'
 /** A calendar day in Paris, written "YYYYMMDD". */
 export type DailyKey = string
 
+export const DAILY_LEVEL = 50
+
 const TIME_ZONE = 'Europe/Paris'
 const KEY_FORMAT = /^\d{8}$/
 const HASH_PREFIX = 'daily='
@@ -38,7 +40,15 @@ export function dailyLabel(key: DailyKey): string {
 }
 
 export function dailyConfig(key: DailyKey): RandomSeriesConfig {
-  return { kind: 'random', version: 3, seed: Number(key), clefs: ['treble'], armures: true, difficulty: DEFAULT_SERIES_DIFFICULTY }
+  return {
+    kind: 'random',
+    version: 4,
+    seed: Number(key),
+    clefs: ['treble'],
+    armures: true,
+    difficulty: DEFAULT_SERIES_DIFFICULTY,
+    level: DAILY_LEVEL,
+  }
 }
 
 export function encodeDailyHash(key: DailyKey): string {

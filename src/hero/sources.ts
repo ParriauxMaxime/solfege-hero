@@ -1,4 +1,5 @@
 import { pickPrompt, promptId, type NoteStats, type Prompt } from '../game/sampler'
+import type { NoteCaps } from '../level/level'
 import { generateMelodyWithPlan, type Difficulty } from '../music/generator'
 import { spellInKey, withInlineAccidental } from '../music/keySignature'
 import { midi, spell, type Clef, type Note } from '../music/notes'
@@ -70,7 +71,7 @@ const GENERATED_CHUNK_BARS = 8
  */
 export function generatedSource(
   seed: number,
-  { clef, armures }: { clef: Clef; armures: boolean },
+  { clef, armures, caps }: { clef: Clef; armures: boolean; caps?: NoteCaps },
   getDifficulty: () => Difficulty,
 ): { key: number; time: TimeSignature; source: NoteSource } {
   const first = generateMelodyWithPlan(seed, {
@@ -78,6 +79,7 @@ export function generatedSource(
     armures,
     difficulty: getDifficulty(),
     bars: GENERATED_CHUNK_BARS,
+    caps,
   })
   const { key, timeSignature: time } = first.melody
 
@@ -96,6 +98,7 @@ export function generatedSource(
           key,
           time,
           mode: first.mode,
+          caps,
         })
         chunk = melodySource(next.melody)
         bar = chunk.nextBar()

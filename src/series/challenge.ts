@@ -1,3 +1,4 @@
+import { MAX_LEVEL, clampLevel, parseLevelParam } from '../level/level'
 import { CLEFS, type Clef } from '../music/notes'
 import { DEFAULT_SERIES_DIFFICULTY, SERIES_DIFFICULTIES, type RandomSeriesConfig, type SeriesVersion } from './series'
 import { ceilToTenth } from './share'
@@ -47,13 +48,14 @@ export function encodeChallenge({ config, timeS }: Challenge): string {
     k: config.armures ? '1' : '0',
   })
   if (config.version > 1) params.set('v', String(config.version))
+  if (config.version === 4) params.set('l', String(clampLevel(config.level ?? MAX_LEVEL)))
   if (config.difficulty !== DEFAULT_SERIES_DIFFICULTY) params.set('d', String(config.difficulty))
   if (timeS !== null) params.set('t', String(Math.round(timeS * 10) / 10))
   return params.toString()
 }
 
 function parseVersion(text: string | null): SeriesVersion {
-  return text === '3' ? 3 : text === '2' ? 2 : 1
+  return text === '4' ? 4 : text === '3' ? 3 : text === '2' ? 2 : 1
 }
 
 export function parseChallenge(hash: string): Challenge | null {
@@ -65,14 +67,16 @@ export function parseChallenge(hash: string): Challenge | null {
   const clefs = parseClefs(params.get('c') ?? '')
   if (clefs.length === 0) return null
 
+  const version = parseVersion(params.get('v'))
   return {
     config: {
       kind: 'random',
-      version: parseVersion(params.get('v')),
+      version,
       seed: Number(seed),
       clefs,
       armures: params.get('k') === '1',
       difficulty: SERIES_DIFFICULTIES.find((level) => String(level) === params.get('d')) ?? DEFAULT_SERIES_DIFFICULTY,
+      ...(version === 4 ? { level: parseLevelParam(params.get('l')) } : {}),
     },
     timeS: parseTimeS(params.get('t') ?? ''),
   }

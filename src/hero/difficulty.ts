@@ -21,13 +21,20 @@ export const INITIAL_DIFFICULTY: DifficultyState = { level: 1, cleanRun: 0, miss
 
 const clampLevel = (level: number) => Math.min(MAX_LEVEL, Math.max(MIN_LEVEL, level)) as Difficulty
 
-export function onJudgement(state: DifficultyState, hit: boolean, bar: number): DifficultyState {
+/** Rising stops at `maxLevel` (the player level's cap); a miss streak still lowers the level. */
+export function onJudgement(
+  state: DifficultyState,
+  hit: boolean,
+  bar: number,
+  maxLevel: Difficulty = 5,
+): DifficultyState {
   const missesInBar = bar === state.bar ? state.missesInBar : 0
 
   if (hit) {
     const cleanRun = state.cleanRun + 1
     if (cleanRun < CLEAN_NOTES_PER_LEVEL) return { ...state, cleanRun, missesInBar, bar }
-    return { level: clampLevel(state.level + 1), cleanRun: 0, missesInBar, bar }
+    const risen = Math.min(clampLevel(state.level + 1), Math.max(maxLevel, state.level)) as Difficulty
+    return { level: risen, cleanRun: 0, missesInBar, bar }
   }
 
   const misses = missesInBar + 1

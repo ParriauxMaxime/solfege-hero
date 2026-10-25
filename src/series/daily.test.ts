@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  DAILY_LEVEL,
   dailyConfig,
   dailyKey,
   dailyLabel,
@@ -68,7 +69,16 @@ describe('dailyLabel and hash', () => {
 describe('dailyConfig', () => {
   it('is the same series for everyone on a given day', () => {
     const config = dailyConfig('20261024')
-    expect(config).toEqual({ kind: 'random', version: 3, seed: 20261024, clefs: ['treble'], armures: true, difficulty: 2 })
+    expect(config).toEqual({
+      kind: 'random',
+      version: 4,
+      seed: 20261024,
+      clefs: ['treble'],
+      armures: true,
+      difficulty: 2,
+      level: DAILY_LEVEL,
+    })
+    expect(DAILY_LEVEL).toBe(50)
     const items = generateSeries(config)
     expect(items).toHaveLength(SERIES_LENGTH)
     expect(generateSeries(dailyConfig('20261024'))).toEqual(items)

@@ -16,12 +16,21 @@ const SEED_COUNT = 9000
 
 /**
  * Version 1 draws notes uniformly; version 2 plays the start of a generated melody;
- * version 3 removes repeated pitch classes and changes clef and key signature every 4 or 5 notes.
+ * version 3 removes repeated pitch classes and changes clef and key signature every 4 or 5 notes;
+ * version 4 is version 3 limited by the caps of a player level (100 when absent).
  */
-export type SeriesVersion = 1 | 2 | 3
+export type SeriesVersion = 1 | 2 | 3 | 4
 
 export type SeriesConfig =
-  | { kind: 'random'; version: SeriesVersion; seed: number; clefs: Clef[]; armures: boolean; difficulty: Difficulty }
+  | {
+      kind: 'random'
+      version: SeriesVersion
+      seed: number
+      clefs: Clef[]
+      armures: boolean
+      difficulty: Difficulty
+      level?: number
+    }
   | { kind: 'score'; scoreId: string }
 
 export type RandomSeriesConfig = Extract<SeriesConfig, { kind: 'random' }>
@@ -76,7 +85,7 @@ function generateMelodySeries({ seed, clefs, armures, difficulty }: RandomSeries
 }
 
 export function generateSeries(config: RandomSeriesConfig): SeriesItem[] {
-  if (config.version === 3) return generateRunSeries(config)
+  if (config.version >= 3) return generateRunSeries(config)
   return config.version === 2 ? generateMelodySeries(config) : generateUniformSeries(config)
 }
 

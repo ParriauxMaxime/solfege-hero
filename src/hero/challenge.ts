@@ -1,3 +1,4 @@
+import { clampLevel, isUncapped, parseLevelParam } from '../level/level'
 import type { Difficulty } from '../music/generator'
 import type { Clef } from '../music/notes'
 import { encodeClefs, parseClefs } from '../series/challenge'
@@ -13,6 +14,8 @@ export interface HeroChallengeConfig {
   bpm: number
   difficulty: Difficulty
   bars: number
+  /** Player level capping the notes, 100 when uncapped. */
+  level: number
 }
 
 export interface HeroResult {
@@ -80,6 +83,7 @@ export function encodeHeroChallenge({ config, target }: HeroChallenge): string {
     d: String(config.difficulty),
     m: String(config.bars),
   })
+  if (!isUncapped(config.level)) params.set('l', String(clampLevel(config.level)))
   if (target) {
     params.set('p', String(target.percent))
     params.set('s', String(target.score))
@@ -108,7 +112,15 @@ export function parseHeroChallenge(hash: string): HeroChallenge | null {
   if (hasTarget && (percent === null || score === null)) return null
 
   return {
-    config: { seed: Number(seed), clefs, armures: params.get('k') === '1', bpm, difficulty: difficulty as Difficulty, bars },
+    config: {
+      seed: Number(seed),
+      clefs,
+      armures: params.get('k') === '1',
+      bpm,
+      difficulty: difficulty as Difficulty,
+      bars,
+      level: parseLevelParam(params.get('l')),
+    },
     target: percent !== null && score !== null ? { percent, score } : null,
   }
 }

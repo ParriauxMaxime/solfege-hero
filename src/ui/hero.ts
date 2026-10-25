@@ -1,4 +1,5 @@
 import type { Sound } from '../audio/sound'
+import { MAX_LEVEL as UNCAPPED_LEVEL } from '../level/level'
 import { createBeatClock, withTempo, type BeatClock } from '../hero/clock'
 import {
   CHALLENGE_BARS,
@@ -457,6 +458,7 @@ export function createHero({
       bpm: startBpm,
       difficulty: difficulty.level,
       bars: CHALLENGE_BARS,
+      level: UNCAPPED_LEVEL,
     }
     return { config, result: null }
   }

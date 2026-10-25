@@ -1,3 +1,4 @@
+import { MAX_LEVEL, clampLevel, isUncapped, parseLevelParam } from '../level/level'
 import type { Clef } from '../music/notes'
 import { encodeClefs, parseClefs } from '../series/challenge'
 import { SURVIVAL_DELAYS, type SurvivalDelay } from './game'
@@ -17,13 +18,15 @@ const WHOLE_NUMBER = /^\d+$/
 const MAX_SCORE = 99999
 
 export function encodeSurvivalChallenge({ config, score }: SurvivalChallenge): string {
-  return new URLSearchParams({
+  const params = new URLSearchParams({
     v: String(config.seed),
     c: encodeClefs(config.clefs),
     k: config.armures ? '1' : '0',
     d: String(config.delayS),
     n: String(score),
-  }).toString()
+  })
+  if (!isUncapped(config.level ?? MAX_LEVEL)) params.set('l', String(clampLevel(config.level as number)))
+  return params.toString()
 }
 
 /** Series links carry `s=` (and sometimes `v=2`); a Survie link has `v=<seed>` and no `s`. */
@@ -38,8 +41,15 @@ export function parseSurvivalChallenge(hash: string): SurvivalChallenge | null {
   if (!WHOLE_NUMBER.test(seed) || !WHOLE_NUMBER.test(score) || delayS === undefined || clefs.length === 0) return null
   if (Number(score) > MAX_SCORE) return null
 
+  const level = parseLevelParam(params.get('l'))
   return {
-    config: { seed: Number(seed), clefs, armures: params.get('k') === '1', delayS },
+    config: {
+      seed: Number(seed),
+      clefs,
+      armures: params.get('k') === '1',
+      delayS,
+      ...(isUncapped(level) ? {} : { level }),
+    },
     score: Number(score),
   }
 }

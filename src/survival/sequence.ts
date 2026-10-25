@@ -1,4 +1,5 @@
 import { hashText } from '../hash'
+import { MAX_LEVEL, capsFor, isUncapped } from '../level/level'
 import { generateMelody } from '../music/generator'
 import type { Clef } from '../music/notes'
 import { scoreSeries, type SeriesItem } from '../series/series'
@@ -11,18 +12,21 @@ export interface SurvivalSequenceConfig {
   seed: number
   clefs: Clef[]
   armures: boolean
+  /** Player level capping the notes; absent or 100 means no cap. */
+  level?: number
 }
 
 /**
  * Notes come in blocks of BLOCK_NOTES, one difficulty per block. A block depends only on
  * (seed, clefs, armures, block index), so note i never depends on how the player did.
  */
-function generateBlock({ seed, clefs, armures }: SurvivalSequenceConfig, block: number): SeriesItem[] {
+function generateBlock({ seed, clefs, armures, level = MAX_LEVEL }: SurvivalSequenceConfig, block: number): SeriesItem[] {
   const difficulty = difficultyFor(block * BLOCK_NOTES)
   const blockSeed = hashText(`survie:${seed}:${block}`)
   const clef = clefs[blockSeed % clefs.length]
   if (!clef) throw new Error('Cannot play Survie without a clef')
-  return scoreSeries(generateMelody(blockSeed, { clef, armures, difficulty, bars: BLOCK_BARS })).slice(0, BLOCK_NOTES)
+  const caps = isUncapped(level) ? undefined : capsFor(level)
+  return scoreSeries(generateMelody(blockSeed, { clef, armures, difficulty, bars: BLOCK_BARS, caps })).slice(0, BLOCK_NOTES)
 }
 
 export interface SurvivalSequence {

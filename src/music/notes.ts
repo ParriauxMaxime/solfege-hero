@@ -131,11 +131,17 @@ export function frequency(note: Note): number {
   return 440 * 2 ** ((midi(note) - 69) / 12)
 }
 
-/** Every pitch written within two ledger lines below and above the staff. */
-export function pitchesInRange(clef: Clef, withAccidentals: boolean): number[] {
+/** Staff steps reachable with `ledgerLines` ledger lines on each side of the staff. */
+export function ledgerStepRange(ledgerLines: number): [number, number] {
+  return [Math.max(LOWEST_STEP, -1 - 2 * ledgerLines), Math.min(HIGHEST_STEP, TOP_LINE_STEP + 1 + 2 * ledgerLines)]
+}
+
+/** Every pitch written within `ledgerLines` ledger lines below and above the staff (two by default). */
+export function pitchesInRange(clef: Clef, withAccidentals: boolean, ledgerLines = 2): number[] {
   const base = diatonicIndex(BOTTOM_LINE[clef])
-  const low = midi(naturalFromDiatonicIndex(base + LOWEST_STEP))
-  const high = midi(naturalFromDiatonicIndex(base + HIGHEST_STEP))
+  const [lowStep, highStep] = ledgerStepRange(ledgerLines)
+  const low = midi(naturalFromDiatonicIndex(base + lowStep))
+  const high = midi(naturalFromDiatonicIndex(base + highStep))
   const pitches: number[] = []
   for (let m = low; m <= high; m++) if (withAccidentals || isNatural(m)) pitches.push(m)
   return pitches

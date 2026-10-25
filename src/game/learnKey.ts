@@ -1,4 +1,5 @@
 import { MAX_FIFTHS, randomKey, signatureLabel } from '../music/keySignature'
+import { pickCappedSignature } from '../level/level'
 import type { LearnKeyPlan } from './runs'
 
 export const LEARN_KEY_MODES = ['random', 'fixed'] as const
@@ -18,9 +19,15 @@ export interface LearnKeySettings {
 }
 
 /** The plan a session plays: "never" draws its one signature now. */
-export function learnKeyPlan(settings: LearnKeySettings, random: () => number = Math.random): LearnKeyPlan {
+export function learnKeyPlan(
+  settings: LearnKeySettings,
+  random: () => number = Math.random,
+  maxFifths: number = MAX_FIFTHS,
+): LearnKeyPlan {
   if (settings.learnKeyMode === 'fixed') return { mode: 'fixed', fifths: settings.learnFixedFifths }
-  if (settings.learnKeyChange === 'never') return { mode: 'fixed', fifths: randomKey(random) }
+  if (settings.learnKeyChange === 'never') {
+    return { mode: 'fixed', fifths: maxFifths < MAX_FIFTHS ? pickCappedSignature(maxFifths, random) : randomKey(random) }
+  }
   return { mode: 'random', runLength: RUN_LENGTHS[settings.learnKeyChange] }
 }
 

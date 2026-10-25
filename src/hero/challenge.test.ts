@@ -18,7 +18,7 @@ import {
 import { generatedSource, type NoteSource } from './sources'
 
 const challenge: HeroChallenge = {
-  config: { seed: 1234, clefs: ['treble', 'bass'], armures: true, bpm: 72, difficulty: 3, bars: 16 },
+  config: { seed: 1234, clefs: ['treble', 'bass'], armures: true, bpm: 72, difficulty: 3, bars: 16, level: 100 },
   target: { percent: 87, score: 1240 },
 }
 

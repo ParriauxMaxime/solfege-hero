@@ -1,4 +1,5 @@
 import { createSound } from './audio/sound'
+import { MAX_LEVEL } from './level/level'
 import { CHALLENGE_BARS, parseHeroChallenge, type HeroChallenge, type HeroChallengeConfig } from './hero/challenge'
 import { INITIAL_DIFFICULTY } from './hero/difficulty'
 import { createHeroChallengeIntro } from './ui/heroChallengeIntro'
@@ -381,6 +382,7 @@ export function startApp(root: HTMLElement): void {
       bpm: settings.heroTempo,
       difficulty: INITIAL_DIFFICULTY.level,
       bars: CHALLENGE_BARS,
+      level: MAX_LEVEL,
     }
   }
 

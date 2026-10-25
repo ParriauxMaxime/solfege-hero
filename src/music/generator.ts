@@ -1,5 +1,6 @@
 import { barLength } from '../hero/meter'
 import { COMMON_TIME, type Duration, type Melody, type NoteSpec, type TimeSignature } from '../hero/types'
+import { ALL_KEYS_FIFTHS, signatureWeight, type NoteCaps } from '../level/level'
 import { seededRandom } from '../random'
 import { pitchClass, pitchesInRange, type Clef } from './notes'
 
@@ -14,6 +15,7 @@ export interface GeneratorOptions {
   key?: number
   time?: TimeSignature
   mode?: Mode
+  caps?: NoteCaps
 }
 
 export type BarKind =
@@ -171,7 +173,7 @@ function createContext(
     SEMITONES_PER_OCTAVE * Math.floor(degree / DEGREES_PER_OCTAVE) +
     (steps[mod(degree, DEGREES_PER_OCTAVE)] as number)
 
-  const range = pitchesInRange(options.clef, true)
+  const range = pitchesInRange(options.clef, true, options.caps?.ledgerLines)
   const low = range[0] as number
   const high = range[range.length - 1] as number
   const window = WINDOW[options.difficulty]
@@ -522,10 +524,16 @@ function written(beats: number): { duration: Duration; dots?: number } {
   return WRITTEN[beats] as { duration: Duration; dots?: number }
 }
 
-function chooseKey(random: () => number): number {
+const MAX_CAPPED_KEY_REACH = 4
+
+function chooseKey(random: () => number, maxFifths: number = ALL_KEYS_FIFTHS): number {
+  const capped = maxFifths < ALL_KEYS_FIFTHS
+  const reachable = capped ? KEY_WEIGHTS.filter(([fifths]) => Math.abs(fifths) <= maxFifths) : KEY_WEIGHTS
   return weighted(
-    KEY_WEIGHTS.map(([fifths]) => fifths),
-    KEY_WEIGHTS.map(([, weight]) => weight),
+    reachable.map(([fifths]) => fifths),
+    reachable.map(([fifths, weight]) =>
+      capped ? weight * signatureWeight(fifths, Math.min(maxFifths, MAX_CAPPED_KEY_REACH)) : weight,
+    ),
     random,
   )
 }
@@ -536,7 +544,7 @@ function attemptRandom(seed: number, attempt: number): () => number {
 
 export function generateMelodyWithPlan(seed: number, options: GeneratorOptions): GeneratedMelody {
   const setup = seededRandom(seed >>> 0)
-  const drawnKey = chooseKey(setup)
+  const drawnKey = chooseKey(setup, options.caps?.maxFifths)
   const drawnMode: Mode = setup() < MAJOR_CHANCE ? 'major' : 'minor'
   const drawnWaltz = setup() < WALTZ_CHANCE
 
@@ -559,7 +567,7 @@ export function generateMelodyWithPlan(seed: number, options: GeneratorOptions):
   let sounded: Sounded[] = bars.flatMap((bar) =>
     bar.degrees.map((degree, index) => ({ pitch: ctx.midiOf(degree), beats: bar.beats[index] as number })),
   )
-  if (options.armures && options.difficulty >= 3) sounded = addChromaticPassingTones(sounded, ctx)
+  if (options.armures && options.difficulty >= 3 && options.caps?.inlineAccidentals !== false) sounded = addChromaticPassingTones(sounded, ctx)
 
   return {
     melody: {
