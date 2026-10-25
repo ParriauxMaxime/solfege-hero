@@ -27,7 +27,8 @@ import { button, el, iconButton } from './dom'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
 import { createHearts } from './hearts'
 import { renderStaff } from './staff'
-import { shareOrCopy } from './sharing'
+import { copyLink, shareLink, shareRow } from './sharing'
+import { appBase } from '../share/links'
 
 const NEXT_DELAY_MS = 150
 const MISS_REVEAL_MS = 900
@@ -283,12 +284,16 @@ export function createSurvival({
     return true
   }
 
+  function challengeLink(): string {
+    return survivalChallengeUrl(appBase(location.href), { config, score: state.score })
+  }
+
   async function share(): Promise<void> {
     if (sharing) return
     sharing = true
     try {
-      const url = survivalChallengeUrl(location.origin + location.pathname, { config, score: state.score })
-      await shareOrCopy(survivalShareText({ seed: config.seed, score: state.score, lives: state.lives, url }))
+      const text = survivalShareText({ seed: config.seed, score: state.score, lives: state.lives })
+      await shareLink({ title: 'Solfège hero : défi Survie', text, url: challengeLink() })
     } finally {
       sharing = false
     }
@@ -339,12 +344,12 @@ export function createSurvival({
         : el('p', 'result-best', `Meilleur score : ${progress.survival.bestScore}`)
     const actions = challenge
       ? [
-          button('primary', 'Partager mon résultat', () => void share()),
+          shareRow('Partager mon résultat', () => void share(), () => void copyLink(challengeLink())),
           button('segment-button', 'Réessayer ce défi', onRetry),
           button('segment-button', 'Accueil', onHome),
         ]
       : [
-          button('primary', 'Défier un ami', () => void share()),
+          shareRow('Défier un ami', () => void share(), () => void copyLink(challengeLink())),
           button('segment-button', 'Rejouer', onReplay),
           button('segment-button', 'Accueil', onHome),
         ]

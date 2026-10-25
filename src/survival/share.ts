@@ -12,9 +12,9 @@ export function noteCount(count: number): string {
   return `${count} note${count > 1 ? 's' : ''}`
 }
 
-export function survivalShareText(input: { seed: number; score: number; lives: number; url: string; callToAction?: string }): string {
+export function survivalShareText(input: { seed: number; score: number; lives: number; callToAction?: string }): string {
   return [
     `Solfège hero · Survie #${input.seed} · 🎯 ${noteCount(input.score)} · ${heartsText(input.lives)}`,
-    `${input.callToAction ?? 'Bats-moi'} : ${input.url}`,
+    input.callToAction ?? 'Bats-moi !',
   ].join('\n')
 }

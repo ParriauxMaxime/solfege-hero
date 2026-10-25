@@ -142,7 +142,7 @@ describe('survival challenge link', () => {
   })
 
   it('builds a full url', () => {
-    expect(survivalChallengeUrl('https://x.test/app/', challenge)).toBe('https://x.test/app/#v=1234&c=sol-fa&k=1&d=3&n=47')
+    expect(survivalChallengeUrl('https://x.test/app/', challenge)).toBe('https://x.test/app/survie/#v=1234&c=sol-fa&k=1&d=3&n=47')
   })
 
   it('rejects Series links, with or without a version', () => {
@@ -179,12 +179,12 @@ describe('survival share text', () => {
     expect(heartsText(0)).toBe('🖤🖤🖤')
   })
 
-  it('formats the title line and the link', () => {
-    const text = survivalShareText({ seed: 1234, score: 47, lives: 1, url: 'https://x.test/#v=1234' })
-    expect(text).toBe('Solfège hero · Survie #1234 · 🎯 47 notes · ❤️🖤🖤\nBats-moi : https://x.test/#v=1234')
+  it('formats the title line and the call to action', () => {
+    const text = survivalShareText({ seed: 1234, score: 47, lives: 1 })
+    expect(text).toBe('Solfège hero · Survie #1234 · 🎯 47 notes · ❤️🖤🖤\nBats-moi !')
   })
 
   it('uses the singular for one note', () => {
-    expect(survivalShareText({ seed: 1234, score: 1, lives: 0, url: 'u' })).toContain('🎯 1 note ·')
+    expect(survivalShareText({ seed: 1234, score: 1, lives: 0 })).toContain('🎯 1 note ·')
   })
 })

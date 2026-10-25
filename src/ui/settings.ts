@@ -9,7 +9,9 @@ import { button, el } from './dom'
 import type { KeyboardSpan } from './keyboardLayout'
 import { restartAnimation } from './effects'
 import { openInstrumentPicker } from './instrumentPicker'
+import { shareLink } from './sharing'
 import { showToast } from './toast'
+import { appBase } from '../share/links'
 
 export interface SettingsOptions {
   settings: Settings
@@ -160,6 +162,10 @@ export function createSettingsScreen({ settings: initial, sound, getProgress, on
     URL.revokeObjectURL(link.href)
   }
 
+  function shareApp(): void {
+    void shareLink({ title: 'Solfège hero', text: 'Apprendre à lire les notes, gratuit et hors ligne', url: appBase(location.href) })
+  }
+
   function importControl(): HTMLElement {
     const input = el('input')
     input.type = 'file'
@@ -228,6 +234,7 @@ export function createSettingsScreen({ settings: initial, sound, getProgress, on
         row('Sauvegarde', el('div', 'settings-actions', button('segment-button', 'Exporter', exportProgress)), '', ACTION_ROW),
         row('Restauration', importControl(), '', ACTION_ROW),
       ),
+      section('À propos', row('Partager l’app', button('segment-button', 'Partager', shareApp), '', ACTION_ROW)),
       button('primary', 'Retour', onBack),
     )
   }

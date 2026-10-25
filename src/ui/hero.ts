@@ -15,7 +15,8 @@ import {
 } from '../hero/challenge'
 import { newSeed } from '../series/series'
 import { seededRandom } from '../random'
-import { shareOrCopy } from './sharing'
+import { copyLink, shareLink, shareRow } from './sharing'
+import { appBase } from '../share/links'
 import { expiredNotes, noteInWindow, timingJudgement } from '../hero/judgement'
 import { INITIAL_HERO_SCORE, applyJudgement, type HeroScore } from '../hero/scoring'
 import { INITIAL_DIFFICULTY, TEMPO_CAP, onJudgement, type DifficultyState } from '../hero/difficulty'
@@ -464,13 +465,17 @@ export function createHero({
   }
 
   let sharing = false
+  function challengeLink(): string {
+    const { config, result } = challengeToShare()
+    return heroChallengeUrl(appBase(location.href), { config, target: result })
+  }
+
   async function share(): Promise<void> {
     if (sharing) return
     sharing = true
     try {
       const { config, result } = challengeToShare()
-      const url = heroChallengeUrl(location.origin + location.pathname, { config, target: result })
-      await shareOrCopy(heroShareText({ config, result, url }))
+      await shareLink({ title: 'Solfège hero : défi hero', text: heroShareText({ config, result }), url: challengeLink() })
     } finally {
       sharing = false
     }
@@ -480,10 +485,10 @@ export function createHero({
     const home = button('segment-button', homeLabel, onHome)
     if (challenge) {
       const label = target ? 'Partager mon résultat' : 'Défier un ami'
-      return [button('primary', label, () => void share()), button('segment-button', 'Réessayer ce défi', onRetry), home]
+      return [shareRow(label, () => void share(), () => void copyLink(challengeLink())), button('segment-button', 'Réessayer ce défi', onRetry), home]
     }
     const replay = button('primary', 'Rejouer', onReplay)
-    return melody ? [replay, home] : [replay, button('segment-button', 'Défier un ami', () => void share()), home]
+    return melody ? [replay, home] : [replay, shareRow('Défier un ami', () => void share(), () => void copyLink(challengeLink()), 'segment-button'), home]
   }
 
   function freezeWhileBlocked(blocked: boolean): void {

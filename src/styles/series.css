@@ -90,6 +90,35 @@
   padding: 0 20px;
 }
 
+.result-actions > .share-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding: 0;
+}
+
+.result .result-actions > .share-row:first-child {
+  margin-top: 16px;
+}
+
+.result .share-row > * {
+  margin: 0;
+  padding: 0 10px;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.share-row > :first-child {
+  flex: 1;
+  white-space: normal;
+  line-height: 1.15;
+  min-width: 0;
+}
+
+.share-row > :last-child {
+  flex: none;
+}
+
 .result p {
   text-wrap: balance;
 }

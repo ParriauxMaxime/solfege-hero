@@ -2,6 +2,7 @@ import { clampLevel, isUncapped, parseLevelParam } from '../level/level'
 import type { Difficulty } from '../music/generator'
 import type { Clef } from '../music/notes'
 import { encodeClefs, parseClefs } from '../series/challenge'
+import { landingUrl } from '../share/links'
 import type { NoteSource } from './sources'
 import { START_BPM_MAX, START_BPM_MIN } from './tempo'
 
@@ -126,13 +127,13 @@ export function parseHeroChallenge(hash: string): HeroChallenge | null {
 }
 
 export function heroChallengeUrl(base: string, challenge: HeroChallenge): string {
-  return `${base}#${encodeHeroChallenge(challenge)}`
+  return landingUrl(base, 'hero', encodeHeroChallenge(challenge))
 }
 
-export function heroShareText(input: { config: HeroChallengeConfig; result: HeroResult | null; url: string }): string {
-  const { config, result, url } = input
-  const parts = [`Solfège hero · Défi hero #${config.seed}`]
+export function heroShareText(input: { config: HeroChallengeConfig; result: HeroResult | null }): string {
+  const { config, result } = input
+  const parts = ['Solfège hero']
   if (result) parts.push(`✅ ${result.percent}${NBSP}%`, `⭐ ${result.score}${NBSP}pts`)
-  parts.push(`🎵 ${config.bpm}${NBSP}BPM`)
-  return `${parts.join(' · ')}\n${result ? 'Bats-moi' : 'Relève le défi'} : ${url}`
+  parts.push(`Défi hero #${config.seed}`, `🎵 ${config.bpm}${NBSP}BPM`)
+  return `${parts.join(' · ')}\n${result ? 'Bats-moi !' : 'Relève le défi !'}`
 }

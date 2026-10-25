@@ -2,6 +2,8 @@ import type { Score } from '../hero/types'
 import { toMusicXml } from '../music/musicxmlExport'
 import { copyText } from '../platform/clipboard'
 import { encodeScoreBlob, scoreLinkHash } from '../scores/link'
+import { appBase, landingUrl } from '../share/links'
+import { button, el } from './dom'
 import { showToast } from './toast'
 
 const MUSICXML_TYPE = 'application/vnd.recordare.musicxml+xml'
@@ -17,16 +19,24 @@ function fileName(score: ShareableScore): string {
   return `${safe || 'partition'}.musicxml`
 }
 
-export async function shareOrCopy(text: string): Promise<void> {
+export async function shareLink({ title, text, url }: { title: string; text: string; url: string }): Promise<void> {
   if (navigator.share) {
     try {
-      await navigator.share({ text })
+      await navigator.share({ title, text, url })
       return
     } catch (error) {
       if (isAbort(error)) return
     }
   }
-  showToast((await copyText(text)) ? 'Copié !' : 'Copie impossible')
+  showToast((await copyText(`${text}\n${url}`)) ? 'Copié !' : 'Copie impossible')
+}
+
+export async function copyLink(url: string): Promise<void> {
+  showToast((await copyText(url)) ? 'Lien copié !' : 'Copie impossible')
+}
+
+export function shareRow(label: string, onShare: () => void, onCopy: () => void, shareClass = 'primary'): HTMLElement {
+  return el('div', 'share-row', button(shareClass, label, onShare), button('segment-button', 'Copier le lien', onCopy))
 }
 
 export function downloadScoreFile(score: ShareableScore): void {
@@ -43,7 +53,7 @@ export async function scoreLink(score: ShareableScore, timeS: number | null = nu
   const blob = await encodeScoreBlob(score)
   if (blob === null) return null
   const challenge = timeS === null ? '' : `&t=${timeS}`
-  return `${location.origin}${location.pathname}#${scoreLinkHash(blob)}${challenge}`
+  return landingUrl(appBase(location.href), 'partition', `${scoreLinkHash(blob)}${challenge}`)
 }
 
 async function shareFile(score: ShareableScore): Promise<boolean> {
@@ -61,7 +71,7 @@ export async function shareScore(score: ShareableScore): Promise<void> {
   if (await shareFile(score)) return
   const url = await scoreLink(score)
   if (url) {
-    await shareOrCopy(`Partition « ${score.name} » sur Solfège hero : ${url}`)
+    await shareLink({ title: 'Solfège hero : partition', text: `Partition « ${score.name} » sur Solfège hero`, url })
     return
   }
   showToast('Partition trop longue pour un lien, envoie le fichier .musicxml')

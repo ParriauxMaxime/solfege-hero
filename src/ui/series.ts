@@ -6,6 +6,7 @@ import { spell } from '../music/notes'
 import { vibrate } from '../platform/haptics'
 import type { Score } from '../hero/types'
 import { scoreLink } from './sharing'
+import { appBase, landingUrl } from '../share/links'
 import { trackHiddenTime } from '../platform/visibility'
 import { challengeTimeS, challengeUrl, challengeWon } from '../series/challenge'
 import {
@@ -27,8 +28,14 @@ import { button, el } from './dom'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
 import { renderStaff } from './staff'
 import { icon } from './icons'
-import { downloadScoreFile, shareOrCopy } from './sharing'
+import { copyLink, downloadScoreFile, shareLink, shareRow } from './sharing'
 import { showToast } from './toast'
+
+interface SharePayload {
+  title: string
+  text: string
+  url: string
+}
 
 const NEXT_DELAY_MS = 150
 const WRONG_FLASH_MS = 350
@@ -284,26 +291,42 @@ export function createSeries({
     if (sharing) return
     sharing = true
     try {
-      if (daily) await shareOrCopy(resultText(dailyOutcome(daily.key, outcome), dailyUrl(daily.key), `Défi du jour ${dailyLabel(daily.key)}`, 'Joue aussi'))
-      else if (config.kind === 'random') await shareOrCopy(resultText(outcome, randomChallengeUrl(outcome, config), `Série #${config.seed}`))
-      else if (score) await shareScoreChallenge(outcome, score)
+      const payload = await sharePayload(outcome)
+      if (payload) await shareLink(payload)
+      else if (score) {
+        scoreTooLong()
+        downloadScoreFile(score)
+      }
     } finally {
       sharing = false
     }
   }
 
-  function randomChallengeUrl(outcome: Outcome, random: RandomSeriesConfig): string {
-    return challengeUrl(location.origin + location.pathname, { config: random, timeS: challengeTimeS(outcome.totalMs) })
+  async function copyChallengeLink(outcome: Outcome): Promise<void> {
+    const payload = await sharePayload(outcome)
+    if (payload) await copyLink(payload.url)
+    else scoreTooLong()
   }
 
-  async function shareScoreChallenge(outcome: Outcome, shared: Score): Promise<void> {
-    const url = await scoreLink(shared, challengeTimeS(outcome.totalMs))
-    if (!url) {
-      showToast('Partition trop longue : partage d’abord le fichier')
-      downloadScoreFile(shared)
-      return
+  async function sharePayload(outcome: Outcome): Promise<SharePayload | null> {
+    if (daily) {
+      const text = resultText(dailyOutcome(daily.key, outcome), `Défi du jour ${dailyLabel(daily.key)}`, 'Joue aussi !')
+      return { title: 'Solfège hero : défi du jour', text, url: dailyUrl(daily.key) }
     }
-    await shareOrCopy(resultText(outcome, url, `« ${shared.name} »`))
+    if (config.kind === 'random') {
+      return { title: 'Solfège hero : défi Séries', text: resultText(outcome, `Série #${config.seed}`), url: randomChallengeUrl(outcome, config) }
+    }
+    if (!score) return null
+    const url = await scoreLink(score, challengeTimeS(outcome.totalMs))
+    return url ? { title: 'Solfège hero : défi Séries', text: resultText(outcome, `« ${score.name} »`), url } : null
+  }
+
+  function randomChallengeUrl(outcome: Outcome, random: RandomSeriesConfig): string {
+    return challengeUrl(appBase(location.href), { config: random, timeS: challengeTimeS(outcome.totalMs) })
+  }
+
+  function scoreTooLong(): void {
+    showToast('Partition trop longue : partage d’abord le fichier')
   }
 
   /** Like Wordle, the day's first attempt is the one shared, even after practice runs. */
@@ -313,17 +336,16 @@ export function createSeries({
   }
 
   function dailyUrl(key: DailyKey): string {
-    return `${location.origin}${location.pathname}#${encodeDailyHash(key)}`
+    return landingUrl(appBase(location.href), 'jour', encodeDailyHash(key))
   }
 
-  function resultText(outcome: Outcome, url: string, title: string, callToAction?: string): string {
+  function resultText(outcome: Outcome, title: string, callToAction?: string): string {
     return shareText({
       title,
       callToAction,
       results: outcome.results,
       totalMs: outcome.totalMs,
       penaltyMs: outcome.penalty,
-      url,
       squares: settings.colorblind ? COLORBLIND_SQUARES : undefined,
     })
   }
@@ -401,18 +423,18 @@ export function createSeries({
     )
     const actions = daily
       ? [
-          button('primary', 'Partager', () => void share(outcome)),
+          shareRow('Partager', () => void share(outcome), () => void copyChallengeLink(outcome)),
           button('segment-button', 'Rejouer (entraînement)', onReplay),
           button('segment-button', homeLabel, onHome),
         ]
       : challenge
       ? [
-          button('primary', 'Partager mon résultat', () => void share(outcome)),
+          shareRow('Partager mon résultat', () => void share(outcome), () => void copyChallengeLink(outcome)),
           button('segment-button', 'Réessayer ce défi', onRetry),
           button('segment-button', homeLabel, onHome),
         ]
       : [
-          button('primary', 'Défier un ami', () => void share(outcome)),
+          shareRow('Défier un ami', () => void share(outcome), () => void copyChallengeLink(outcome)),
           button('segment-button', 'Rejouer', onReplay),
           button('segment-button', homeLabel, onHome),
         ]

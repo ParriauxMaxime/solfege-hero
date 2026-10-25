@@ -38,7 +38,7 @@ describe('encoding', () => {
   })
 
   it('builds the url from a base', () => {
-    expect(heroChallengeUrl('https://x.test/solfege/', challenge)).toBe(`https://x.test/solfege/#${encodeHeroChallenge(challenge)}`)
+    expect(heroChallengeUrl('https://x.test/solfege/', challenge)).toBe(`https://x.test/solfege/hero/#${encodeHeroChallenge(challenge)}`)
   })
 })
 
@@ -135,18 +135,16 @@ describe('describeGap', () => {
 })
 
 describe('heroShareText', () => {
-  const url = 'https://x.test/#h=1234'
-
   it('lists percentage, points and tempo with non-breaking spaces', () => {
-    const text = heroShareText({ config: challenge.config, result: { percent: 87, score: 1240 }, url })
+    const text = heroShareText({ config: challenge.config, result: { percent: 87, score: 1240 } })
     expect(text).toBe(
-      `Solfège hero · Défi hero #1234 · ✅ 87 % · ⭐ 1240 pts · 🎵 72 BPM\nBats-moi : ${url}`,
+      `Solfège hero · ✅ 87 % · ⭐ 1240 pts · Défi hero #1234 · 🎵 72 BPM\nBats-moi !`,
     )
   })
 
   it('shares only the settings when there is no result', () => {
-    const text = heroShareText({ config: challenge.config, result: null, url })
-    expect(text).toBe(`Solfège hero · Défi hero #1234 · 🎵 72 BPM\nRelève le défi : ${url}`)
+    const text = heroShareText({ config: challenge.config, result: null })
+    expect(text).toBe(`Solfège hero · Défi hero #1234 · 🎵 72 BPM\nRelève le défi !`)
   })
 })
 

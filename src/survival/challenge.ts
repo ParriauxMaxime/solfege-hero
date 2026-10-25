@@ -1,6 +1,7 @@
 import { MAX_LEVEL, clampLevel, isUncapped, parseLevelParam } from '../level/level'
 import type { Clef } from '../music/notes'
 import { encodeClefs, parseClefs } from '../series/challenge'
+import { landingUrl } from '../share/links'
 import { SURVIVAL_DELAYS, type SurvivalDelay } from './game'
 import type { SurvivalSequenceConfig } from './sequence'
 
@@ -55,7 +56,7 @@ export function parseSurvivalChallenge(hash: string): SurvivalChallenge | null {
 }
 
 export function survivalChallengeUrl(base: string, challenge: SurvivalChallenge): string {
-  return `${base}#${encodeSurvivalChallenge(challenge)}`
+  return landingUrl(base, 'survie', encodeSurvivalChallenge(challenge))
 }
 
 /** Strictly more notes than the friend. */

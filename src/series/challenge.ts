@@ -1,5 +1,6 @@
 import { MAX_LEVEL, clampLevel, parseLevelParam } from '../level/level'
 import { CLEFS, type Clef } from '../music/notes'
+import { landingUrl } from '../share/links'
 import { DEFAULT_SERIES_DIFFICULTY, SERIES_DIFFICULTIES, type RandomSeriesConfig, type SeriesVersion } from './series'
 import { ceilToTenth } from './share'
 
@@ -83,5 +84,5 @@ export function parseChallenge(hash: string): Challenge | null {
 }
 
 export function challengeUrl(base: string, challenge: Challenge): string {
-  return `${base}#${encodeChallenge(challenge)}`
+  return landingUrl(base, 'defi', encodeChallenge(challenge))
 }

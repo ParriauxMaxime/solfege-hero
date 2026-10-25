@@ -23,6 +23,10 @@ A note-reading trainer for phones. French UI, installable, works offline.
 
 Treble, bass and alto clefs, sharps and flats, adaptive practice that brings back the notes you miss, streaks and combos.
 
+## Sharing
+
+End screens offer **Partager** (the system share sheet, with the link passed separately so WhatsApp or Messages show a preview card) and **Copier le lien**. Challenge links point to small static pages (`/defi/`, `/survie/`, `/hero/`, `/jour/`, `/partition/`) that carry their own Open Graph title and image, then forward to the app with the challenge in the `#hash`. Crawlers never see the hash, so the preview is generic for each challenge type, and the sender's time or score goes in the first line of the shared text. The preview images in `public/og/` are rendered by `npm run og`, and `npm run check:og` validates the tags.
+
 ## Install on a phone
 
 1. Open the GitHub Pages URL of this repository in Chrome (or Safari on iOS).
