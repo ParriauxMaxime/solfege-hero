@@ -48,14 +48,16 @@ export interface Review {
   destroy: () => void
 }
 
-const MIN_SHEET_WIDTH = 480
-const MAX_SHEET_WIDTH = 760
+const MIN_SHEET_WIDTH = 560
+const MAX_SHEET_WIDTH = 1000
 /** Screen pixels per sheet unit the page is drawn at: wider panes get more measures per line rather than bigger notes. */
-const SHEET_SCALE = 0.75
+const SHEET_SCALE = 0.44
 const STAFF_BAND_TOP = 70
 const STAFF_BAND_BOTTOM_MARGIN = 24
 const SELECTION_HALF_WIDTH = 20
 const MEASURE_PADDING = 24
+const UNCERTAIN_BAR_TOP = 52
+const UNCERTAIN_BAR_HEIGHT = 8
 const SCROLL_MARGIN = 8
 const SVG_NS = 'http://www.w3.org/2000/svg'
 const DEFAULT_NAME = 'Partition importée'
@@ -166,8 +168,8 @@ export function createReview({ source, result, sound, onSave, onClose, onRerun }
     el(
       'div',
       'omr-main',
-      el('div', 'omr-left', crop.element, el('div', 'omr-nav', previousStaff, staffLabel, nextStaff, el('span', 'spacer'), playButton), sheetBox, legend),
-      el('div', 'omr-right', tools.element, settingsDetails, warnings),
+      el('div', 'omr-left', crop.element, el('div', 'omr-nav', previousStaff, staffLabel, nextStaff, el('span', 'spacer'), playButton), sheetBox),
+      el('div', 'omr-right', legend, tools.element, settingsDetails, warnings),
     ),
   )
 
@@ -201,9 +203,14 @@ export function createReview({ source, result, sound, onSave, onClose, onRerun }
       span.right = Math.max(span.right, position.x)
       spans.set(id, span)
     }
-    const bands = [...spans.values()].map((span) =>
-      backgroundBand('omr-uncertain', span.left - MEASURE_PADDING, span.right - span.left + 2 * MEASURE_PADDING, span),
-    )
+    const bands = [...spans.values()].map((span) => {
+      const bar = document.createElementNS(SVG_NS, 'rect')
+      bar.setAttribute('class', 'omr-uncertain')
+      const top = (drawn.systems[span.system]?.top ?? 0) + UNCERTAIN_BAR_TOP
+      const geometry = { x: span.left - MEASURE_PADDING, y: top, width: span.right - span.left + 2 * MEASURE_PADDING, height: UNCERTAIN_BAR_HEIGHT, rx: 4 }
+      for (const [attribute, value] of Object.entries(geometry)) bar.setAttribute(attribute, String(value))
+      return bar
+    })
     const chosen = drawn.notePositions.find((position) => position.index === selected)
     if (chosen) bands.push(backgroundBand('omr-selection', chosen.x - SELECTION_HALF_WIDTH, 2 * SELECTION_HALF_WIDTH, chosen))
     drawn.svg.prepend(...bands)
@@ -334,7 +341,12 @@ export function createReview({ source, result, sound, onSave, onClose, onRerun }
     drawSheet()
   }
 
-  window.addEventListener('resize', fitSheet)
+  function onResize(): void {
+    fitSheet()
+    drawSource()
+  }
+
+  window.addEventListener('resize', onResize)
   refresh()
   requestAnimationFrame(() => {
     fitSheet()
@@ -345,7 +357,7 @@ export function createReview({ source, result, sound, onSave, onClose, onRerun }
     hasEdits: () => edited,
     destroy() {
       playback.stop()
-      window.removeEventListener('resize', fitSheet)
+      window.removeEventListener('resize', onResize)
     },
   }
 }

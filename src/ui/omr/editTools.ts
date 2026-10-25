@@ -53,16 +53,27 @@ export function createEditTools(actions: ToolActions): EditTools {
   }
 
   const group = (...children: HTMLElement[]) => el('div', 'omr-tool-group', ...children)
-  const element = el(
+  const hint = el('p', 'omr-tools-hint', 'Touche une note pour la modifier')
+  const buttons = el(
     'div',
     'omr-tools',
-    group(tool('arrow-up', 'Monter d’un cran', () => actions.move(1), undefined, true), tool('arrow-down', 'Descendre d’un cran', () => actions.move(-1), undefined, true)),
-    group(...DURATIONS.map(({ duration, icon, label }) => tool(icon, label, () => actions.duration(duration), (state) => state.duration === duration)), tool('dot', 'Point', actions.dot, (state) => state.dotted)),
-    group(...ACCIDENTALS.map(({ accidental, icon, label }) => tool(icon, label, () => actions.accidental(accidental), (state) => state.accidental === accidental, true))),
-    group(tool('rest', 'Note ou silence', actions.rest, (state) => !state.pitched), tool('plus', 'Insérer après', actions.insert), tool('trash', 'Supprimer', actions.remove)),
+    group(
+      ...DURATIONS.map(({ duration, icon, label }) => tool(icon, label, () => actions.duration(duration), (state) => state.duration === duration)),
+      tool('dot', 'Point', actions.dot, (state) => state.dotted),
+      tool('rest', 'Note ou silence', actions.rest, (state) => !state.pitched),
+    ),
+    group(
+      tool('arrow-up', 'Monter d’un cran', () => actions.move(1), undefined, true),
+      tool('arrow-down', 'Descendre d’un cran', () => actions.move(-1), undefined, true),
+      ...ACCIDENTALS.map(({ accidental, icon, label }) => tool(icon, label, () => actions.accidental(accidental), (state) => state.accidental === accidental, true)),
+      tool('plus', 'Insérer après', actions.insert),
+      tool('trash', 'Supprimer', actions.remove),
+    ),
   )
+  const element = el('div', 'omr-tools-box', hint, buttons)
 
   function refresh(state: ToolState | null): void {
+    hint.style.visibility = state ? 'hidden' : 'visible'
     for (const { button: element, active, needsPitch } of tools) {
       element.disabled = !state || (needsPitch && !state.pitched)
       element.classList.toggle('active', Boolean(state) && active(state as ToolState))

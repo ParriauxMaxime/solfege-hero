@@ -4,6 +4,8 @@ import type { ReviewNote } from '../../omr/edit'
 import type { Sound } from '../../audio/sound'
 
 const MS_PER_MINUTE = 60_000
+/** Share of the written duration the note rings, so repeated pitches stay distinct. */
+const NOTE_HOLD = 0.92
 
 export interface PlaybackOptions {
   sound: Sound
@@ -46,8 +48,9 @@ export function createPlayback({ sound, notes, key, tempo, onNote }: PlaybackOpt
         return
       }
       onNote(index)
-      if (entry.spec.pitch !== null) sound.playNote(spelledIn(entry.spec.pitch, key()))
-      timer = window.setTimeout(() => step(index + 1), (specBeats(entry.spec) * MS_PER_MINUTE) / tempo())
+      const milliseconds = (specBeats(entry.spec) * MS_PER_MINUTE) / tempo()
+      if (entry.spec.pitch !== null) sound.playNote(spelledIn(entry.spec.pitch, key()), (milliseconds * NOTE_HOLD) / 1000)
+      timer = window.setTimeout(() => step(index + 1), milliseconds)
     }
     step(from)
   }

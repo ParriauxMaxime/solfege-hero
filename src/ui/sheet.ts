@@ -90,8 +90,9 @@ const BEAM_STUB = 10
 const FLAG_PITCH = 8
 const REST_DOT_X = 10
 const REST_DOT_STEP = 5
-const TAP_HALF_WIDTH = 16
-const TAP_HALF_HEIGHT = 16
+/** Transparent tap target, generous so notes stay tappable when the page is drawn small. */
+const TAP_HALF_WIDTH = 26
+const TAP_HALF_HEIGHT = 44
 const FINAL_BAR_THICKNESS = 5
 const FINAL_BAR_GAP = 4
 

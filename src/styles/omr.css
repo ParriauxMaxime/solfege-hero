@@ -271,7 +271,7 @@
 
 .omr-crop {
   flex: none;
-  height: 96px;
+  height: 140px;
   overflow-x: auto;
   overflow-y: hidden;
   border-radius: 12px;
@@ -312,11 +312,16 @@
 }
 
 .omr-left {
-  flex: 1 0 auto;
+  flex: 1 0 440px;
+}
+
+.omr-right {
+  flex: none;
 }
 
 .omr-sheet {
-  flex: 1 0 220px;
+  flex: 1 1 0;
+  min-height: 180px;
   overflow-y: auto;
   border-radius: 14px;
   background: var(--card);
@@ -341,10 +346,16 @@
 
 .omr-uncertain {
   fill: var(--caution);
-  fill-opacity: 0.14;
+  fill-opacity: 0.3;
   stroke: var(--caution);
   stroke-dasharray: 6 4;
   stroke-width: 2;
+}
+
+.omr-tools-hint {
+  margin: 0 0 6px;
+  color: var(--ink-dim);
+  font-size: 0.85rem;
 }
 
 .omr-legend {
@@ -389,19 +400,20 @@
 
 .omr-tools {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px 10px;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .omr-tool-group {
-  display: inline-flex;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
 }
 
 .omr-tool {
   display: grid;
   place-items: center;
-  width: 44px;
+  min-width: 0;
   height: 44px;
   padding: 0;
   border-radius: 10px;
@@ -512,7 +524,11 @@
   }
 
   .omr-crop {
-    height: 64px;
+    height: 100px;
+  }
+
+  .omr-left {
+    flex-basis: 0;
   }
 
   .omr-nav .icon-button {

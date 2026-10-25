@@ -6,7 +6,8 @@ export interface Sound {
   correct(streak: number): void
   wrong(): void
   milestone(): void
-  playNote(note: Note): void
+  /** Plays a note for `seconds`, a short default when absent. */
+  playNote(note: Note, seconds?: number): void
   /** Plays a midi pitch with the given instrument after `delay` seconds, even when muted (instrument picker). */
   preview(instrument: Instrument, midi: number, delay?: number): void
   /** Audio clock in seconds; starts the audio context even when muted. */
@@ -174,8 +175,8 @@ export function createSound({ onBlocked }: SoundOptions = {}): Sound {
         })
       })
     },
-    playNote(note) {
-      play((ctx) => playInstrument(ctx, output(), instrument, frequency(note), ctx.currentTime, NOTE_SECONDS))
+    playNote(note, seconds = NOTE_SECONDS) {
+      play((ctx) => playInstrument(ctx, output(), instrument, frequency(note), ctx.currentTime, seconds))
     },
     preview(previewInstrument, midi, delay = 0) {
       const hz = 440 * 2 ** ((midi - 69) / 12)

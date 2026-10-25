@@ -14,6 +14,8 @@ import { createReview } from './review'
 import type { Review } from './review'
 import { decodePhoto, isPdf, readableError, renderPage } from './source'
 
+const NOTHING_READ_MESSAGE = 'Aucune portée ni note reconnue : cadre bien la partition, à plat et bien éclairée.'
+
 export interface OmrImportOptions {
   file: File
   sound: Sound
@@ -130,6 +132,10 @@ export function openOmrImport({ file, sound, onSave }: OmrImportOptions): void {
       job = startRecognition(source, staffIndex, progress.update)
       const result = await job.result
       if (mine !== run) return
+      if (result.staves.length === 0 || !result.score.notes.some((note) => note.pitch !== null)) {
+        progress.fail(result.warnings[0] ?? NOTHING_READ_MESSAGE)
+        return
+      }
       showReview(result)
     } catch (error) {
       if (mine !== run || error instanceof RecognitionCancelled) return
