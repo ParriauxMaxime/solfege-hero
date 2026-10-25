@@ -1,48 +1,36 @@
 .home {
   --radius: 20px;
   --pad: 14px;
+  position: relative;
   height: 100%;
   box-sizing: border-box;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-rows: auto minmax(0, 1fr);
-  grid-template-areas:
-    'brand actions'
-    'cards cards';
-  align-items: center;
-  gap: 8px 12px;
-  padding: 4px 16px 16px;
-}
-
-.home-actions {
-  grid-area: actions;
   display: flex;
-  gap: 8px;
-}
-
-.home .icon-button {
-  width: 48px;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 16px 16px;
+  overflow-y: auto;
 }
 
 .home-brand {
-  grid-area: brand;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
   color: var(--ink);
+  text-align: center;
 }
 
 .home-logo {
   flex: none;
-  height: 44px;
-  width: auto;
+  width: 96px;
+  height: auto;
   overflow: visible;
 }
 
 .home-title {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: 800;
   letter-spacing: -0.01em;
   line-height: 1;
@@ -50,49 +38,30 @@
 }
 
 .home-brand-b .home-logo {
-  height: 48px;
-}
-
-.home-brand-b .home-title {
-  font-size: 1.15rem;
-}
-
-.home-brand-c {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  width: 72px;
 }
 
 .home-brand-c .home-logo {
-  height: 36px;
-}
-
-.home-brand-c .home-title {
-  font-size: 1rem;
+  width: 80px;
+  color: var(--on-accent);
 }
 
 .home-logo-badge {
   fill: var(--accent);
 }
 
-.home-brand-c .home-logo {
-  color: var(--on-accent);
-}
-
 .home-cards {
-  grid-area: cards;
-  align-self: stretch;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: minmax(64px, 0.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(64px, 0.4fr);
+  grid-auto-rows: auto;
+  align-content: start;
   gap: 10px;
-  min-height: 0;
 }
 
 .home-card {
   --from: #6d5ae6;
   --to: #5646c4;
-  min-height: 0;
+  min-height: 150px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -130,6 +99,12 @@
 .home-card[data-accent='gold'] {
   --from: #b27f33;
   --to: #8f6122;
+}
+
+.home-card.home-utility {
+  --from: #3a3f52;
+  --to: #2a2e3d;
+  min-height: 90px;
 }
 
 .home-card-icon {
@@ -205,15 +180,16 @@
 
 @media (orientation: portrait) {
   .home-card.home-daily,
-  .home-card:last-child {
+  .home-card.home-partitions {
     grid-column: 1 / -1;
+    min-height: 84px;
     flex-direction: row;
     justify-content: flex-start;
     gap: 14px;
     text-align: left;
   }
 
-  .home-card:last-child .home-card-text {
+  .home-partitions .home-card-text {
     align-items: flex-start;
   }
 
@@ -231,16 +207,35 @@
 
 @media (orientation: landscape) {
   .home {
+    gap: 8px;
     padding: 4px 16px 12px;
   }
 
-  .home-cards {
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(2, minmax(0, 1fr));
+  .home-brand {
+    flex-direction: row;
+    justify-content: center;
+    gap: 12px;
+    min-height: 48px;
   }
 
-  .home-card {
+  .home-logo,
+  .home-brand-b .home-logo,
+  .home-brand-c .home-logo {
+    width: 48px;
+  }
+
+  .home-title {
+    font-size: 1.5rem;
+  }
+
+  .home-cards {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .home-card,
+  .home-card.home-utility {
     gap: 6px;
+    min-height: 130px;
   }
 }
 

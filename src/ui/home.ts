@@ -2,7 +2,7 @@ import { dailyStreak, type DailyKey } from '../series/daily'
 import { formatTenthsUp } from '../series/share'
 import type { PlayMode, Progress } from '../storage'
 import type { Score } from '../hero/types'
-import { button, el, iconButton } from './dom'
+import { button, el } from './dom'
 import { icon as glyph } from './icons'
 import { clefGlyph, inkGroup, noteHead, staffLines, stem, svgElement } from './glyphs'
 
@@ -231,7 +231,15 @@ function specCard(spec: CardSpec, index: number, onChoose: (choice: HomeChoice) 
 }
 
 export function createHome({ progress, today, scores, onChoose, onSettings, onStats }: HomeOptions): HTMLElement {
-  const actions = el('div', 'home-actions', iconButton('stats', onStats, 'Statistiques'), iconButton('settings', onSettings, 'Réglages'))
+  const answers = Object.values(progress.notes).reduce((sum, record) => sum + record.attempts, 0)
+  const utilityCard = (name: 'stats' | 'settings', title: string, onClick: () => void, detail?: string): HTMLButtonElement => {
+    const mark = glyph(name)
+    mark.classList.add('home-card-icon')
+    const element = button('home-card home-utility', '', onClick)
+    element.style.setProperty('--i', '6')
+    element.append(mark, el('span', 'home-card-text', el('strong', 'home-card-title', title), ...(detail ? [el('small', 'home-stat-label', detail)] : [])))
+    return element
+  }
   const partitionsStats = el('span', 'home-stats', ...scoresStats([]))
   void scores.then((list) => partitionsStats.replaceChildren(...scoresStats(list)))
   const cards = el(
@@ -240,7 +248,10 @@ export function createHome({ progress, today, scores, onChoose, onSettings, onSt
     card('daily', 'gold', 0, onChoose, dailyBanner(progress, today)),
     ...cardSpecs(progress, today).map((spec, index) => specCard(spec, index + 1, onChoose)),
     card('partitions', 'ocean', 5, onChoose, el('span', 'home-card-text', el('strong', 'home-card-title', 'Partitions'), partitionsStats)),
+    utilityCard('settings', 'Réglages', onSettings),
+    utilityCard('stats', 'Statistiques', onStats, answers > 0 ? `${answers} réponses` : undefined),
   )
   cards.firstElementChild?.classList.add('home-daily')
-  return el('section', 'home', renderLogo(logoParam()), actions, cards)
+  cards.children[5]?.classList.add('home-partitions')
+  return el('section', 'home', renderLogo(logoParam()), cards)
 }
