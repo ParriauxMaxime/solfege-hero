@@ -65,6 +65,8 @@ export interface Settings {
   onboarded: boolean
   /** Clef suggestions already shown. */
   levelTips: LevelTip[]
+  /** Dictée: play Do twice before the first note. */
+  dictationReference: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -96,6 +98,7 @@ export const DEFAULT_SETTINGS: Settings = {
   levelAuto: true,
   onboarded: false,
   levelTips: [],
+  dictationReference: true,
 }
 
 export interface HeroProgress {
@@ -119,6 +122,16 @@ export interface SeriesProgress {
   bestByScore: Record<string, number>
 }
 
+export interface DictationProgress {
+  /** Fastest dictation including penalties; 0 means none yet. */
+  bestMs: number
+  played: number
+  won: number
+  lost: number
+  /** Times « Réécouter » was used. */
+  replays: number
+}
+
 export interface SurvivalProgress {
   bestScore: number
   played: number
@@ -138,7 +151,7 @@ export interface DailyProgress {
   bestMs: number
 }
 
-export const PLAY_MODES = ['learn', 'series', 'survival', 'hero', 'keys'] as const
+export const PLAY_MODES = ['learn', 'series', 'survival', 'hero', 'keys', 'dictation'] as const
 export type PlayMode = (typeof PLAY_MODES)[number]
 
 /** Days with at least one game per mode, as ascending daily keys. */
@@ -157,6 +170,7 @@ export interface Progress {
   bestTimed: number
   hero: HeroProgress
   series: SeriesProgress
+  dictation: DictationProgress
   daily: DailyProgress
   survival: SurvivalProgress
   history: History
@@ -168,7 +182,7 @@ const MAX_DAILY_ATTEMPTS = 400
 const MAX_DAILY_RESULTS = 100
 const MAX_PLAY_DAYS = 400
 
-export const EMPTY_PLAY_DAYS: PlayDays = { learn: [], series: [], survival: [], hero: [], keys: [] }
+export const EMPTY_PLAY_DAYS: PlayDays = { learn: [], series: [], survival: [], hero: [], keys: [], dictation: [] }
 
 export const EMPTY_DAILY_PROGRESS: DailyProgress = { attempts: {}, bestMs: 0 }
 
@@ -178,6 +192,14 @@ export const EMPTY_SERIES_PROGRESS: SeriesProgress = {
   won: 0,
   lost: 0,
   bestByScore: {},
+}
+
+export const EMPTY_DICTATION_PROGRESS: DictationProgress = {
+  bestMs: 0,
+  played: 0,
+  won: 0,
+  lost: 0,
+  replays: 0,
 }
 
 export const EMPTY_SURVIVAL_PROGRESS: SurvivalProgress = {
@@ -209,6 +231,7 @@ export const EMPTY_PROGRESS: Progress = {
   bestTimed: 0,
   hero: EMPTY_HERO_PROGRESS,
   series: EMPTY_SERIES_PROGRESS,
+  dictation: EMPTY_DICTATION_PROGRESS,
   daily: EMPTY_DAILY_PROGRESS,
   survival: EMPTY_SURVIVAL_PROGRESS,
   history: {},
@@ -272,6 +295,7 @@ export function sanitizeSettings(raw: unknown): Settings {
     levelAuto: booleanOr(stored.levelAuto, DEFAULT_SETTINGS.levelAuto),
     onboarded: booleanOr(stored.onboarded, DEFAULT_SETTINGS.onboarded),
     levelTips: LEVEL_TIPS.filter((tip) => Array.isArray(stored.levelTips) && stored.levelTips.includes(tip)),
+    dictationReference: booleanOr(stored.dictationReference, DEFAULT_SETTINGS.dictationReference),
   }
 }
 
@@ -351,6 +375,17 @@ function sanitizeSeriesProgress(raw: unknown): SeriesProgress {
     won: nonNegativeOr(stored.won, 0),
     lost: nonNegativeOr(stored.lost, 0),
     bestByScore: sanitizeBestByScore(stored.bestByScore),
+  }
+}
+
+function sanitizeDictationProgress(raw: unknown): DictationProgress {
+  const stored = asObject(raw)
+  return {
+    bestMs: nonNegativeOr(stored.bestMs, 0),
+    played: nonNegativeOr(stored.played, 0),
+    won: nonNegativeOr(stored.won, 0),
+    lost: nonNegativeOr(stored.lost, 0),
+    replays: nonNegativeOr(stored.replays, 0),
   }
 }
 
@@ -436,7 +471,14 @@ function sanitizePlayDays(raw: unknown): PlayDays {
     const keys = Array.isArray(stored[mode]) ? (stored[mode] as unknown[]) : []
     return [...new Set(keys.filter(isDailyKey))].sort().slice(-MAX_PLAY_DAYS)
   }
-  return { learn: days('learn'), series: days('series'), survival: days('survival'), hero: days('hero'), keys: days('keys') }
+  return {
+    learn: days('learn'),
+    series: days('series'),
+    survival: days('survival'),
+    hero: days('hero'),
+    keys: days('keys'),
+    dictation: days('dictation'),
+  }
 }
 
 /** Marks the day as played for this mode. */
@@ -464,6 +506,7 @@ export function sanitizeProgress(raw: unknown): Progress {
     bestTimed: nonNegativeOr(stored.bestTimed, 0),
     hero: sanitizeHeroProgress(stored.hero),
     series: sanitizeSeriesProgress(stored.series),
+    dictation: sanitizeDictationProgress(stored.dictation),
     daily: sanitizeDailyProgress(stored.daily),
     survival: sanitizeSurvivalProgress(stored.survival),
     history: sanitizeHistory(stored.history),
@@ -525,12 +568,13 @@ export function resetProgress(): Progress {
   }
   return {
     ...EMPTY_PROGRESS,
-    playDays: { learn: [], series: [], survival: [], hero: [], keys: [] },
+    playDays: { learn: [], series: [], survival: [], hero: [], keys: [], dictation: [] },
     notes: {},
     pitches: {},
     keys: {},
     hero: { ...EMPTY_HERO_PROGRESS },
     series: { ...EMPTY_SERIES_PROGRESS },
+    dictation: { ...EMPTY_DICTATION_PROGRESS },
     daily: { attempts: {}, bestMs: 0 },
     survival: { ...EMPTY_SURVIVAL_PROGRESS },
     history: {},

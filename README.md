@@ -16,6 +16,7 @@ A note-reading trainer for phones. French UI, installable, works offline.
 - **Apprendre**: a note appears on the staff, tap its name as fast as you can.
 - **Armures**: read a key signature, name the key.
 - **Séries**: 20 notes against the clock, +5 s per mistake, share a challenge link.
+- **Dictée**: 20 notes heard, not shown; find each one on the keyboard against the clock, share a challenge link.
 - **Survie**: 3 lives, a few seconds per note, how far can you go.
 - **Défi du jour**: the same 20 notes for everyone, once a day.
 - **Solfège hero**: notes in real rhythms scroll toward a hit zone over a metronome; tap each one on the beat.

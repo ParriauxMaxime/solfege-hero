@@ -1,13 +1,13 @@
 import { formatPercent, formatSeconds, formatSignedInteger, formatSignedPoints, formatSignedSeconds } from './format'
 import type { Metric, WindowSummary } from './progression'
-import type { HistoryMode } from './history'
+import { LOWER_BEST_IS_BETTER, type HistoryMode } from './history'
 
 export const EMPTY_MESSAGE = 'Pas encore de données sur cette période'
 
 const LABELS: Record<Metric, string> = { precision: 'Précision', meanMs: 'Temps moyen', best: 'Meilleur score' }
 
 function isTimeBest(mode: HistoryMode, metric: Metric): boolean {
-  return metric === 'meanMs' || (metric === 'best' && (mode === 'series' || mode === 'daily'))
+  return metric === 'meanMs' || (metric === 'best' && LOWER_BEST_IS_BETTER[mode])
 }
 
 export function metricLabel(mode: HistoryMode, metric: Metric): string {

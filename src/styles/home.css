@@ -208,6 +208,11 @@
   --to: #ac3552;
 }
 
+.home-card[data-accent='fuchsia'] {
+  --from: #c2409b;
+  --to: #8f2c78;
+}
+
 .home-card[data-accent='gold'] {
   --from: #b27f33;
   --to: #8f6122;
@@ -291,9 +296,14 @@
 }
 
 @media (orientation: portrait) {
-  .home-card.home-daily {
+  .home-card {
+    min-height: 130px;
+  }
+
+  .home-card.home-daily,
+  .home-card.home-wide {
     grid-column: 1 / -1;
-    min-height: 84px;
+    min-height: 76px;
     flex-direction: row;
     justify-content: flex-start;
     gap: 14px;
@@ -307,7 +317,8 @@
     gap: 12px;
   }
 
-  .home-daily .home-card-text {
+  .home-daily .home-card-text,
+  .home-wide .home-card-text {
     align-items: flex-start;
   }
 }

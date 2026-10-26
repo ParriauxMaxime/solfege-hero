@@ -16,6 +16,8 @@ export interface GeneratorOptions {
   time?: TimeSignature
   mode?: Mode
   caps?: NoteCaps
+  /** Lowest and highest pitch to use, instead of the clef's range for the caps' ledger lines. */
+  range?: readonly [lowest: number, highest: number]
 }
 
 export type BarKind =
@@ -174,8 +176,8 @@ function createContext(
     (steps[mod(degree, DEGREES_PER_OCTAVE)] as number)
 
   const range = pitchesInRange(options.clef, true, options.caps?.ledgerLines)
-  const low = range[0] as number
-  const high = range[range.length - 1] as number
+  const low = options.range?.[0] ?? (range[0] as number)
+  const high = options.range?.[1] ?? (range[range.length - 1] as number)
   const window = WINDOW[options.difficulty]
   const degrees = Array.from({ length: 61 }, (_, index) => index - 30)
 

@@ -1,6 +1,6 @@
 export type IconName = 'back' | 'pause' | 'play' | 'sound-on' | 'sound-off' | 'settings' | 'stats' | 'close' | 'wave' | 'piano' | 'organ' | 'guitar' | 'check' | 'flame' | 'rotate' | 'link' | 'trash'
   | 'chevron-left' | 'chevron-right' | 'chevron-down' | 'arrow-up' | 'arrow-down' | 'arrow-right' | 'camera' | 'document' | 'plus' | 'stop'
-  | 'note-whole' | 'note-half' | 'note-quarter' | 'note-eighth' | 'note-sixteenth' | 'dot' | 'sharp' | 'flat' | 'natural' | 'rest'
+  | 'note-whole' | 'note-half' | 'note-quarter' | 'note-eighth' | 'note-sixteenth' | 'dot' | 'sharp' | 'flat' | 'natural' | 'rest' | 'replay'
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
 
@@ -47,6 +47,7 @@ const PATHS: Record<IconName, string> = {
   flat: '<path d="M8 3v17"/><path d="M8 13.5c1.5-1.5 7-2 7 2.8 0 2.5-3.5 3.7-7 3.7"/>',
   natural: '<path d="M8 4v11l8-2.5"/><path d="M16 20V9l-8 2.5"/>',
   rest: '<path d="M10 4l5 6-4 4 5 5"/><path d="M16 19c-3-1-5 1-3 3"/>',
+  replay: '<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/><path d="M10.5 9v6l4.5-3z" fill="currentColor"/>',
 }
 
 export function icon(name: IconName): SVGSVGElement {

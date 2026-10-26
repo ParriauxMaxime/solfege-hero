@@ -1,4 +1,4 @@
-export type LandingKind = 'defi' | 'survie' | 'hero' | 'jour' | 'partition'
+export type LandingKind = 'defi' | 'survie' | 'hero' | 'jour' | 'partition' | 'dictee'
 
 export function appBase(href: string): string {
   return new URL('./', href).href

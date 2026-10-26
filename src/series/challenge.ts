@@ -24,7 +24,7 @@ export function challengeWon(totalMs: number, timeS: number): boolean {
   return totalMs <= timeS * 1000
 }
 
-function parseTimeS(text: string): number | null {
+export function parseTimeS(text: string): number | null {
   if (!SECONDS_WITH_TENTH.test(text)) return null
   const timeS = Number(text)
   return timeS > 0 && timeS <= MAX_TIME_S ? timeS : null

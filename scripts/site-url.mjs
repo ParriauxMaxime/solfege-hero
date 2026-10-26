@@ -1,5 +1,5 @@
 export const DEFAULT_SITE_URL = 'https://parriauxmaxime.github.io/solfege-hero/'
-export const LANDING_PAGES = ['defi', 'survie', 'hero', 'jour', 'partition']
+export const LANDING_PAGES = ['defi', 'dictee', 'survie', 'hero', 'jour', 'partition']
 
 export function normalizeSiteUrl(raw) {
   const url = new URL(raw?.trim() || DEFAULT_SITE_URL)

@@ -15,6 +15,7 @@ const ALL_KEYS = Array.from({ length: 2 * MAX_FIFTHS + 1 }, (_, index) => index 
 /**
  * Replaces each note that sounds like the one before by the nearest scale degree of the
  * melody's key, going up or down by turns according to the seed. Pure, so everyone gets the same series.
+ * Replacements stay within `bounds` when given, else within the clef's range for `ledgerLines`.
  */
 export function withoutRepeatedPitchClasses(
   pitches: readonly number[],
@@ -22,12 +23,13 @@ export function withoutRepeatedPitchClasses(
   clef: Clef,
   seed: number,
   ledgerLines = 2,
+  bounds?: readonly [lowest: number, highest: number],
 ): number[] {
   const tonic = (((key * 7) % SEMITONES_PER_OCTAVE) + SEMITONES_PER_OCTAVE) % SEMITONES_PER_OCTAVE
   const inScale = (pitch: number) => MAJOR_SCALE.includes((pitchClass(pitch) - tonic + SEMITONES_PER_OCTAVE) % SEMITONES_PER_OCTAVE)
   const range = pitchesInRange(clef, true, ledgerLines)
-  const lowest = range[0] ?? 0
-  const highest = range[range.length - 1] ?? 127
+  const lowest = bounds?.[0] ?? range[0] ?? 0
+  const highest = bounds?.[1] ?? range[range.length - 1] ?? 127
 
   const result: number[] = []
   for (const [index, pitch] of pitches.entries()) {

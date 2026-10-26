@@ -6,8 +6,9 @@ const outDir = new URL('../public/og/', import.meta.url)
 const maxBytes = 150 * 1024
 
 const pages = [
-  { file: 'og.png', accent: ['#7c5cff', '#4a34c9'], title: 'Solfège hero', subtitle: 'Apprendre à lire les notes', foot: 'Apprendre · Séries · Armures · Survie · Solfège hero · Partitions' },
+  { file: 'og.png', accent: ['#7c5cff', '#4a34c9'], title: 'Solfège hero', subtitle: 'Apprendre à lire les notes', foot: 'Apprendre · Séries · Dictée · Armures · Survie · Solfège hero · Partitions' },
   { file: 'og-defi.png', accent: ['#1aa3b8', '#117486'], title: 'Un ami te défie', subtitle: '20 notes, bats son temps', foot: 'Solfège hero · Séries' },
+  { file: 'og-dictee.png', accent: ['#c2409b', '#8f2c78'], title: 'Défi Dictée', subtitle: '20 notes à l’oreille, bats le temps de ton ami', foot: 'Solfège hero · Dictée' },
   { file: 'og-survie.png', accent: ['#cf4a6c', '#ac3552'], title: 'Défi Survie', subtitle: '3 vies, tiens plus longtemps que ton ami', foot: 'Solfège hero · Survie' },
   { file: 'og-hero.png', accent: ['#e8854a', '#cf5a72'], title: 'Défi Solfège hero', subtitle: '16 mesures en rythme, fais mieux que ton ami', foot: 'Solfège hero' },
   { file: 'og-jour.png', accent: ['#f5b83d', '#e8854a'], title: 'Défi du jour', subtitle: 'La même série pour tout le monde aujourd’hui', foot: 'Solfège hero · Séries' },

@@ -40,6 +40,9 @@ function seedDay(history: History, day: DayKey, progress: number, random: Random
   if (random() < 0.3) {
     entry.series = { answered: 20, correct: 17 + Math.floor(random() * 4), totalMs: 0, timed: 0, games: 1, best: Math.round(lerp(60000, 35000, progress) * between(random, 0.95, 1.08)) }
   }
+  if (random() < 0.2) {
+    entry.dictation = { answered: 20, correct: 12 + Math.floor(random() * 8), totalMs: Math.round(between(random, 25000, 40000)), timed: 20, games: 1, best: Math.round(lerp(95000, 60000, progress) * between(random, 0.95, 1.08)) }
+  }
   if (random() < 0.25) {
     entry.survival = { answered: Math.round(between(random, 15, 70)), correct: 0, totalMs: 0, timed: 0, games: 1, best: Math.round(lerp(12, 54, progress) * between(random, 0.7, 1.15)) }
     entry.survival.correct = Math.round(entry.survival.answered * 0.85)

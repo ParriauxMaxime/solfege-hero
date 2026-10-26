@@ -1,6 +1,6 @@
 import { isDayKey, isWeekKey } from './dates'
 
-export const HISTORY_MODES =['learn', 'keys', 'series', 'survival', 'hero', 'daily'] as const
+export const HISTORY_MODES = ['learn', 'keys', 'series', 'dictation', 'survival', 'hero', 'daily'] as const
 export type HistoryMode = (typeof HISTORY_MODES)[number]
 
 /** `YYYY-MM-DD`, Paris calendar day (same day boundary as the daily challenge). */
@@ -39,6 +39,7 @@ export const LOWER_BEST_IS_BETTER: Readonly<Record<HistoryMode, boolean>> = {
   learn: false,
   keys: false,
   series: true,
+  dictation: true,
   survival: false,
   hero: false,
   daily: true,

@@ -74,6 +74,7 @@ describe('sanitizeSettings', () => {
       levelAuto: false,
       onboarded: true,
       levelTips: ['bass'],
+      dictationReference: false,
     }
     expect(sanitizeSettings(JSON.parse(JSON.stringify(settings)))).toEqual(settings)
   })
@@ -149,7 +150,7 @@ describe('play days', () => {
     const { playDays } = sanitizeProgress({
       playDays: { learn: ['20261024', '20261023', '20261024', '20261340', 5, 'x'], series: 'nope' },
     })
-    expect(playDays).toEqual({ learn: ['20261023', '20261024'], series: [], survival: [], hero: [], keys: [] })
+    expect(playDays).toEqual({ learn: ['20261023', '20261024'], series: [], survival: [], hero: [], keys: [], dictation: [] })
   })
 
   it('keeps only the newest 400 days', () => {
@@ -171,7 +172,7 @@ describe('sanitizeProgress', () => {
 
   it('round-trips valid progress', () => {
     const progress: Progress = {
-      playDays: { learn: ['20261023', '20261024'], series: [], survival: ['20261024'], hero: [], keys: ['20261024'] },
+      playDays: { learn: ['20261023', '20261024'], series: [], survival: ['20261024'], hero: [], keys: ['20261024'], dictation: ['20261024'] },
       notes: { 'treble:C4': { attempts: 5, correct: 3, misses: 1.5, avgMs: 1200 } },
       pitches: { Do4: { attempts: 6, correct: 4 }, 'Sol#3': { attempts: 2, correct: 0 } },
       keys: { '4': { attempts: 6, correct: 5, misses: 0.5, avgMs: 2100 }, '-3': { attempts: 2, correct: 0, misses: 2, avgMs: 3000 } },
@@ -181,6 +182,7 @@ describe('sanitizeProgress', () => {
       bestTimed: 340,
       hero: { bestScore: 900, bestStreak: 30, maxBpm: 110, hits: 200, misses: 20, perfects: 90, challengesWon: 3, challengesLost: 1 },
       series: { bestMs: 47000, played: 6, won: 4, lost: 2, bestByScore: { abc: 31500 } },
+      dictation: { bestMs: 61000, played: 3, won: 1, lost: 1, replays: 14 },
       daily: {
         attempts: { '20261024': { totalMs: 52300, penaltyMs: 5000, results: [true, false, true] } },
         bestMs: 52300,
@@ -216,6 +218,34 @@ describe('sanitizeProgress', () => {
     expect(sanitizeSettings({ levelAuto: 'no', onboarded: 1 })).toMatchObject({ levelAuto: true, onboarded: false })
     expect(sanitizeSettings({ levelTips: ['alto', 'tuba', 'bass', 'alto'] }).levelTips).toEqual(['bass', 'alto'])
     expect(sanitizeSettings({ levelTips: 'bass' }).levelTips).toEqual([])
+  })
+
+  it('loads saves from before the dictation with empty dictation progress and the reference on', () => {
+    const progress = sanitizeProgress({ series: { bestMs: 52000, played: 2, won: 0, lost: 0 }, playDays: { hero: ['20261024'] } })
+    expect(progress.dictation).toEqual({ bestMs: 0, played: 0, won: 0, lost: 0, replays: 0 })
+    expect(progress.playDays.dictation).toEqual([])
+    expect(sanitizeSettings({ clefs: ['bass'] }).dictationReference).toBe(true)
+  })
+
+  it('sanitizes the dictation progress and settings', () => {
+    expect(sanitizeProgress({ dictation: { bestMs: 'x', played: -1, won: 2, lost: 1.5, replays: 9 } }).dictation).toEqual({
+      bestMs: 0,
+      played: 0,
+      won: 2,
+      lost: 1.5,
+      replays: 9,
+    })
+    expect(sanitizeProgress({ dictation: [] }).dictation).toEqual(EMPTY_PROGRESS.dictation)
+    expect(sanitizeSettings({ dictationReference: false }).dictationReference).toBe(false)
+    expect(sanitizeSettings({ dictationReference: 'no' }).dictationReference).toBe(true)
+    expect(resetProgress().dictation).toEqual(EMPTY_PROGRESS.dictation)
+  })
+
+  it('keeps the dictation progress through export and import', () => {
+    const progress = sanitizeProgress({ dictation: { bestMs: 61000, played: 3, won: 1, lost: 1, replays: 14 } })
+    const imported = importData(exportData({ ...DEFAULT_SETTINGS, dictationReference: false }, progress))
+    expect(imported?.progress.dictation).toEqual(progress.dictation)
+    expect(imported?.settings.dictationReference).toBe(false)
   })
 
   it('sanitizes the level window and clears it on reset', () => {
@@ -493,5 +523,15 @@ describe('history in progress', () => {
     expect(answered.noteHistory).toEqual({})
     const played = recordHistory(answered, 'hero', { kind: 'game', best: 120 }, now)
     expect(played.history['2026-10-24']?.hero).toMatchObject({ answered: 1, games: 1, best: 120 })
+  })
+
+  it('records dictation answers and keeps the fastest time as the day best', () => {
+    const now = new Date('2026-10-24T10:00:00Z')
+    let progress = recordHistory(EMPTY_PROGRESS, 'dictation', { kind: 'answer', correct: true, ms: 1500 }, now)
+    progress = recordHistory(progress, 'dictation', { kind: 'game', best: 61000 }, now)
+    progress = recordHistory(progress, 'dictation', { kind: 'game', best: 55000 }, now)
+    progress = recordHistory(progress, 'dictation', { kind: 'game', best: 70000 }, now)
+    expect(progress.history['2026-10-24']?.dictation).toMatchObject({ answered: 1, correct: 1, games: 3, best: 55000 })
+    expect(sanitizeProgress(JSON.parse(JSON.stringify(progress))).history).toEqual(progress.history)
   })
 })

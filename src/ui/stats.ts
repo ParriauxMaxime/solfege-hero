@@ -8,7 +8,7 @@ import { formatTenthsUp } from '../series/share'
 import { overview } from '../stats/aggregate'
 import { dayKeyOf, weekKeyOf } from '../stats/dates'
 import { formatAxisSeconds, formatPercent, formatSeconds } from '../stats/format'
-import type { DayKey, HistoryMode } from '../stats/history'
+import { LOWER_BEST_IS_BETTER, type DayKey, type HistoryMode } from '../stats/history'
 import { metricsFor, progressionPoints, windowSummary, type Metric } from '../stats/progression'
 import { isWeak, trendDescription, weakestFirst } from '../stats/rank'
 import { dataTicks, PERCENT_TICKS } from '../stats/scale'
@@ -28,12 +28,12 @@ export interface StatsOptions {
   today?: DayKey
 }
 
-type ProgressionMode = Extract<HistoryMode, 'learn' | 'keys' | 'series' | 'survival' | 'hero'>
+type ProgressionMode = Extract<HistoryMode, 'learn' | 'keys' | 'series' | 'dictation' | 'survival' | 'hero'>
 type NotesFilter = 'all' | 'weak'
 
 const CLEF_TITLES: Record<Clef, string> = { treble: 'Clé de sol', bass: 'Clé de fa', alto: 'Clé d’ut 3' }
-const MODE_LABELS: Record<ProgressionMode, string> = { learn: 'Apprendre', keys: 'Armures', series: 'Séries', survival: 'Survie', hero: 'Hero' }
-const MODE_ORDER: ProgressionMode[] = ['learn', 'keys', 'series', 'survival', 'hero']
+const MODE_LABELS: Record<ProgressionMode, string> = { learn: 'Apprendre', keys: 'Armures', series: 'Séries', dictation: 'Dictée', survival: 'Survie', hero: 'Hero' }
+const MODE_ORDER: ProgressionMode[] = ['learn', 'keys', 'series', 'dictation', 'survival', 'hero']
 const RANGES = [7, 30, 90]
 const DEFAULT_RANGE = 30
 const FILTER_LABELS: Record<NotesFilter, string> = { all: 'Toutes', weak: 'Faibles' }
@@ -53,7 +53,7 @@ function hasData(progress: Progress, clef: Clef): boolean {
 }
 
 function isTimeMetric(mode: HistoryMode, metric: Metric): boolean {
-  return metric === 'meanMs' || (metric === 'best' && (mode === 'series' || mode === 'daily'))
+  return metric === 'meanMs' || (metric === 'best' && LOWER_BEST_IS_BETTER[mode])
 }
 
 function chartTitle(mode: ProgressionMode, metric: Metric): string {
@@ -270,7 +270,7 @@ export function createStatsScreen({ progress: initial, onReset, onBack, today: f
   }
 
   function challengesSection(): HTMLElement {
-    const { hero, series, survival, daily } = progress
+    const { hero, series, dictation, survival, daily } = progress
     const judged = hero.hits + hero.misses
     const perfectRatio = judged > 0 ? `${Math.round((hero.perfects / judged) * 100)} %` : '–'
     const todayAttempt = daily.attempts[dailyKey(new Date())]
@@ -290,6 +290,13 @@ export function createStatsScreen({ progress: initial, onReset, onBack, today: f
         summary('meilleur temps', series.bestMs > 0 ? formatTenthsUp(series.bestMs) : '–'),
         summary(plural(series.played, 'série jouée', 'séries jouées'), series.played),
         ...wonLost(series.won, series.lost),
+      ),
+      block(
+        'Dictée',
+        summary('meilleur temps', dictation.bestMs > 0 ? formatTenthsUp(dictation.bestMs) : '–'),
+        summary(plural(dictation.played, 'dictée jouée', 'dictées jouées'), dictation.played),
+        summary(plural(dictation.replays, 'réécoute', 'réécoutes'), dictation.replays),
+        ...wonLost(dictation.won, dictation.lost),
       ),
       block(
         'Survie',

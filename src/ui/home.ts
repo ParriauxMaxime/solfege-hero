@@ -6,7 +6,7 @@ import { button, el } from './dom'
 import { icon as glyph } from './icons'
 import { clefGlyph, inkGroup, ledgerLines, noteHead, staffLines, stem, stepY, svgElement } from './glyphs'
 
-export type HomeChoice = 'apprendre' | 'series' | 'keys' | 'survival' | 'hero' | 'partitions' | 'daily'
+export type HomeChoice = 'apprendre' | 'series' | 'dictation' | 'keys' | 'survival' | 'hero' | 'partitions' | 'daily'
 
 interface HomeOptions {
   progress: Progress
@@ -55,6 +55,12 @@ const ICONS: Record<HomeChoice, () => SVGSVGElement> = {
       ['circle', { cx: 32, cy: 36, r: 20 }],
       ['path', { d: 'M26 8H38M32 8V16M32 36L42 26' }],
       ['path', { d: 'M50 14L54 18' }],
+    ]),
+  dictation: () =>
+    icon([
+      ['ellipse', { cx: 22, cy: 46, rx: 9, ry: 6.5, fill: 'currentColor', stroke: 'none', transform: 'rotate(-20 22 46)' }],
+      ['path', { d: 'M30 44V12', 'stroke-width': 3, 'stroke-linecap': 'round' }],
+      ['path', { d: 'M40 22C45 27 45 35 40 40M47 15C56 24 56 38 47 47', 'stroke-linecap': 'round' }],
     ]),
   keys: () =>
     icon([
@@ -190,6 +196,13 @@ function cardSpecs(progress: Progress, today: DailyKey): CardSpec[] {
       icon: ICONS.series,
     },
     {
+      choice: 'dictation',
+      accent: 'fuchsia',
+      title: 'Dictée',
+      stats: statsRow({ value: best(progress.dictation.bestMs, formatTenthsUp), label: 'temps' }, streakOf(progress, 'dictation', today)),
+      icon: ICONS.dictation,
+    },
+    {
       choice: 'keys',
       accent: 'teal',
       title: 'Armures',
@@ -237,21 +250,23 @@ export function createHome({ progress, today, scores, onChoose, onSettings, onSt
     const mark = glyph(name)
     mark.classList.add('home-card-icon')
     const element = button('home-card home-utility', '', onClick)
-    element.style.setProperty('--i', '7')
+    element.style.setProperty('--i', '8')
     element.append(mark, el('span', 'home-card-text', el('strong', 'home-card-title', title), ...(detail ? [el('small', 'home-stat-label', detail)] : [])))
     return element
   }
   const partitionsStats = el('span', 'home-stats', ...scoresStats([]))
   void scores.then((list) => partitionsStats.replaceChildren(...scoresStats(list)))
+  const partitionsCard = card('partitions', 'ocean', 7, onChoose, el('span', 'home-card-text', el('strong', 'home-card-title', 'Partitions'), partitionsStats))
   const cards = el(
     'div',
     'home-cards',
     card('daily', 'gold', 0, onChoose, dailyBanner(progress, today)),
     ...cardSpecs(progress, today).map((spec, index) => specCard(spec, index + 1, onChoose)),
-    card('partitions', 'ocean', 6, onChoose, el('span', 'home-card-text', el('strong', 'home-card-title', 'Partitions'), partitionsStats)),
+    partitionsCard,
     utilityCard('settings', 'Réglages', onSettings),
     utilityCard('stats', 'Statistiques', onStats, answers > 0 ? `${answers} réponses` : undefined),
   )
   cards.firstElementChild?.classList.add('home-daily')
+  partitionsCard.classList.add('home-wide')
   return el('section', 'home', renderLogo(), cards)
 }

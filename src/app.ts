@@ -9,6 +9,8 @@ import type { Melody, Score } from './hero/types'
 import { createAppearance, motionReduced } from './platform/appearance'
 import { setVibrationEnabled } from './platform/haptics'
 import { parseChallenge, type Challenge } from './series/challenge'
+import { parseDictationChallenge, type DictationChallenge } from './dictation/challenge'
+import { dictationClef, generateDictation, type DictationConfig } from './dictation/sequence'
 import {
   generateSeries,
   newSeed,
@@ -46,6 +48,8 @@ import { createSurvival, type Survival, type SurvivalTarget } from './ui/surviva
 import { createSurvivalIntro } from './ui/survivalIntro'
 import { parseSurvivalChallenge, type SurvivalChallenge, type SurvivalConfig } from './survival/challenge'
 import { createSeries,type ChallengeTarget, type DailyRun, type Series } from './ui/series'
+import { createDictation, type Dictation } from './ui/dictation'
+import { createDictationChallengeIntro, createDictationStart } from './ui/dictationStart'
 import { createDailyIntro } from './ui/dailyIntro'
 import { dailyConfig, dailyKey, parseDailyHash, type DailyKey } from './series/daily'
 import { isInstrumentPickerOpen } from './ui/instrumentPicker'
@@ -80,6 +84,7 @@ export function startApp(root: HTMLElement): void {
   let activeGame: Game | null = null
   let activeHero: Hero | null = null
   let activeSeries: Series | null = null
+  let activeDictation: Dictation | null = null
   let activeSurvival: Survival | null = null
   let leaving: Element[] = []
   let leaveTimeout = 0
@@ -178,7 +183,8 @@ export function startApp(root: HTMLElement): void {
         parseChallenge(hash) ||
         parseScoreHash(hash) ||
         parseDailyHash(hash) ||
-        parseSurvivalChallenge(hash),
+        parseSurvivalChallenge(hash) ||
+        parseDictationChallenge(hash),
     )
   }
 
@@ -188,7 +194,9 @@ export function startApp(root: HTMLElement): void {
     const scoreLink = heroLink || challenge ? null : parseScoreHash(location.hash)
     const dailyLink = heroLink || challenge || scoreLink ? null : parseDailyHash(location.hash)
     const survivalLink = heroLink || challenge || scoreLink || dailyLink ? null : parseSurvivalChallenge(location.hash)
-    if (!heroLink && !challenge && !scoreLink && !dailyLink && !survivalLink) return false
+    const dictationLink =
+      heroLink || challenge || scoreLink || dailyLink || survivalLink ? null : parseDictationChallenge(location.hash)
+    if (!heroLink && !challenge && !scoreLink && !dailyLink && !survivalLink && !dictationLink) return false
     const open = () =>
       enterFromHome(() => {
         if (heroLink) showHeroChallengeIntro(heroLink)
@@ -196,6 +204,7 @@ export function startApp(root: HTMLElement): void {
         else if (scoreLink) void openScoreLink(scoreLink)
         else if (dailyLink) showDailyIntro(dailyLink)
         else if (survivalLink) showSurvivalIntro(survivalLink)
+        else if (dictationLink) showDictationChallengeIntro(dictationLink)
       })
     const ready = fromHashChange ? dropLinkEntry() : Promise.resolve(clearLaunchHash())
     void ready.then(() => confirmAbandonOrOpen(open))
@@ -212,7 +221,7 @@ export function startApp(root: HTMLElement): void {
       return
     }
     activeHero?.pause()
-    const releaseClock = (activeSeries ?? activeSurvival ?? activeGame)?.hold()
+    const releaseClock = (activeSeries ?? activeDictation ?? activeSurvival ?? activeGame)?.hold()
     void confirmOverlay(root, 'Abandonner la partie en cours ?', 'Abandonner', 'Continuer').then((abandon) => {
       if (abandon) open()
       else releaseClock?.()
@@ -288,6 +297,7 @@ export function startApp(root: HTMLElement): void {
     running = next
     activeHero = null
     activeSeries = null
+    activeDictation = null
     activeSurvival = null
     activeGame = null
     topBar.hidden = !withTopBar
@@ -304,6 +314,11 @@ export function startApp(root: HTMLElement): void {
       difficulty: settings.seriesDifficulty,
       level: settings.level,
     }
+  }
+
+  function freshDictationConfig(): DictationConfig {
+    const seed = newSeed()
+    return { seed, clef: dictationClef(seed, settings.clefs), level: settings.level, armures: settings.accidentals }
   }
 
   function freshSurvivalConfig(): SurvivalConfig {
@@ -375,6 +390,7 @@ export function startApp(root: HTMLElement): void {
   function choose(choice: HomeChoice): void {
     if (choice === 'apprendre') showLearnStart()
     else if (choice === 'series') void showSeries(freshSeriesConfig(), null)
+    else if (choice === 'dictation') showDictationStart()
     else if (choice === 'keys') showKeysStart()
     else if (choice === 'survival') showSurvival(freshSurvivalConfig(), null)
     else if (choice === 'partitions') showLibrary()
@@ -538,6 +554,51 @@ export function startApp(root: HTMLElement): void {
     })
     show(series.element, true, series)
     activeSeries = series
+  }
+
+  function showDictationStart(): void {
+    show(
+      createDictationStart({
+        settings,
+        onChange: changeSettings,
+        onPlay: () => showDictation(freshDictationConfig(), null),
+        onOpenSettings: () => showSettings(),
+      }),
+      true,
+    )
+  }
+
+  function showDictationChallengeIntro(challenge: DictationChallenge): void {
+    show(
+      createDictationChallengeIntro({
+        challenge,
+        settings,
+        onChange: changeSettings,
+        onStart: () => showDictation(challenge.config, challenge),
+      }),
+      true,
+    )
+  }
+
+  function showDictation(config: DictationConfig, against: ChallengeTarget | null): void {
+    if (settings.muted) {
+      changeSettings({ muted: false })
+      showToast('Son réactivé pour la dictée')
+    }
+    const dictation = createDictation({
+      settings,
+      config,
+      items: generateDictation(config),
+      challenge: against,
+      progress,
+      sound,
+      onProgress: progressFor('dictation'),
+      onReplay: () => showDictation(freshDictationConfig(), null),
+      onRetry: () => showDictation(config, against),
+      onHome: goHome,
+    })
+    show(dictation.element, true, dictation)
+    activeDictation = dictation
   }
 
   function showSurvival(config: SurvivalConfig, against: SurvivalTarget | null): void {
