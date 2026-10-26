@@ -20,7 +20,9 @@ import {
   HEADER_KEY_X,
   INLINE_CLEF_SCALE,
   INLINE_CLEF_WIDTH,
+  NOTE_LEFT_EXTENT,
   headerWidth,
+  isUnderHeader,
   layoutTimeline,
   noteState,
   scrollOffset,
@@ -112,6 +114,7 @@ export function createTimelineStaff({ maxFifths = 0 }: TimelineOptions = {}): Ti
   const items: TimelineItem[] = []
   const mistakes: number[] = []
   const nodes = new Map<number, NoteNode>()
+  const changeNodes: { group: SVGElement; barX: number }[] = []
   let current = -1
   let cursor = 0
   let hiddenCurrent = false
@@ -156,7 +159,7 @@ export function createTimelineStaff({ maxFifths = 0 }: TimelineOptions = {}): Ti
   function refreshStates(): void {
     for (const [index, node] of nodes) {
       const state = noteState(index, cursor, mistakes[index] ?? 0, hiddenCurrent)
-      if (state !== 'hidden') buildGlyph(index)
+      if (state !== 'hidden' && state !== 'hidden-missed') buildGlyph(index)
       node.group.dataset['state'] = state
     }
   }
@@ -186,7 +189,13 @@ export function createTimelineStaff({ maxFifths = 0 }: TimelineOptions = {}): Ti
     notesSvg.setAttribute('width', String(extent * scale))
     notesSvg.setAttribute('height', String(STAFF_VIEW_HEIGHT * scale))
     drawLines(extent)
-    const offset = scrollOffset(layoutTimeline(items.slice(0, current + 1)).noteX, current, visibleUnits)
+    const { noteX: xs } = layoutTimeline(items.slice(0, current + 1))
+    const offset = scrollOffset(xs, current, visibleUnits)
+    const edge = headerWidth(shownHeader?.fifths ?? 0)
+    for (const [index, node] of nodes) {
+      node.group.classList.toggle('timeline-covered', index < current && isUnderHeader((xs[index] ?? 0) - NOTE_LEFT_EXTENT, offset, edge))
+    }
+    for (const change of changeNodes) change.group.classList.toggle('timeline-covered', isUnderHeader(change.barX, offset, edge))
     const smooth = animate && !motionReduced()
     if (!smooth) track.style.transition = 'none'
     track.style.transform = `translate3d(${-offset * scale}px, 0, 0)`
@@ -220,10 +229,17 @@ export function createTimelineStaff({ maxFifths = 0 }: TimelineOptions = {}): Ti
     if (!item) return
     const { bars, changes } = layoutTimeline(items.slice(0, index + 1))
     const block = changes.find((change) => change.index === index)
-    if (block) barGroup.append(changeGlyphs(block, item))
-    else {
+    if (block) {
+      const group = changeGlyphs(block, item)
+      changeNodes.push({ group, barX: block.barX })
+      barGroup.append(group)
+    } else {
       const bar = bars.find((candidate) => candidate.index === index)
-      if (bar) barGroup.append(barLine(bar.x))
+      if (!bar) return
+      const line = barLine(bar.x)
+      line.classList.add('timeline-change')
+      changeNodes.push({ group: line, barX: bar.x })
+      barGroup.append(line)
     }
   }
 

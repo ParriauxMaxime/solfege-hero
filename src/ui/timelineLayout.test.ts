@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
   BAR_OFFSET,
   CURRENT_NOTE_RATIO,
+  NOTE_LEFT_EXTENT,
   NOTE_SPACING,
   changeWidth,
   firstNoteX,
   headerWidth,
+  isUnderHeader,
   layoutTimeline,
   noteState,
   scrollOffset,
@@ -110,7 +112,7 @@ describe('scrollOffset', () => {
     expect((noteX[lastResting] as number) + NOTE_SPACING).toBeLessThanOrEqual(visible - 20)
   })
 
-  it('puts the current note at 60 % of the visible width once it scrolls', () => {
+  it('puts the current note at 68 % of the visible width once it scrolls', () => {
     const first = offsets.findIndex((offset) => offset > 0)
     for (let i = first; i < noteX.length; i++) {
       expect((noteX[i] as number) - (offsets[i] as number)).toBeCloseTo(CURRENT_NOTE_RATIO * visible)
@@ -167,9 +169,26 @@ describe('noteState', () => {
 
   it('hides an unanswered target until it is found, whatever the taps', () => {
     expect(noteState(2, 2, 0, true)).toBe('hidden')
-    expect(noteState(2, 2, 3, true)).toBe('hidden')
+    expect(noteState(2, 2, 3, true)).toBe('hidden-missed')
     expect(noteState(1, 2, 0, true)).toBe('correct')
     expect(noteState(3, 2, 0, true)).toBe('pending')
+  })
+})
+
+describe('isUnderHeader', () => {
+  it('covers what has scrolled past the header edge, nothing before', () => {
+    expect(isUnderHeader(100, 0, 90)).toBe(false)
+    expect(isUnderHeader(100, 20, 90)).toBe(true)
+    expect(isUnderHeader(110, 20, 90)).toBe(false)
+  })
+
+  it('covers a growing prefix of the notes as the offset grows', () => {
+    const { noteX } = layoutTimeline(run(30))
+    const edge = headerWidth(0)
+    const covered = (offset: number) => noteX.filter((x) => isUnderHeader(x - NOTE_LEFT_EXTENT, offset, edge)).length
+    expect(covered(0)).toBe(0)
+    expect(covered(200)).toBeGreaterThan(covered(100))
+    expect(covered(400)).toBeLessThan(noteX.length)
   })
 })
 
@@ -179,7 +198,7 @@ describe('timelineScale', () => {
   })
 
   it('shrinks to keep five notes visible on a narrow screen', () => {
-    const narrow = timelineScale(330, 600, 0)
+    const narrow = timelineScale(280, 600, 0)
     const wide = timelineScale(800, 600, 0)
     expect(narrow.scale).toBeLessThan(wide.scale)
     expect(Math.floor((narrow.visibleUnits - firstNoteX(0)) / NOTE_SPACING)).toBeGreaterThanOrEqual(4)

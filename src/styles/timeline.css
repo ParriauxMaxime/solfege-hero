@@ -46,6 +46,16 @@
   pointer-events: none;
 }
 
+.timeline-note,
+.timeline-change {
+  transition: opacity 140ms ease-out;
+}
+
+.timeline-note.timeline-covered,
+.timeline-change.timeline-covered {
+  opacity: 0;
+}
+
 .timeline-note {
   color: var(--ink-dim);
   transform-box: fill-box;
@@ -60,8 +70,12 @@
   stroke-dasharray: 5 4;
 }
 
-.timeline-note[data-state='hidden'] .timeline-slot {
+.timeline-note:is([data-state='hidden'], [data-state='hidden-missed']) .timeline-slot {
   display: block;
+}
+
+.timeline-note[data-state='hidden-missed'] .timeline-slot {
+  stroke: var(--error);
 }
 
 .timeline-note[data-state='current'] {
@@ -82,7 +96,7 @@
   stroke-linejoin: round;
 }
 
-.timeline-note:is([data-state='current'], [data-state='current-missed'], [data-state='hidden']) {
+.timeline-note:is([data-state='current'], [data-state='current-missed'], [data-state='hidden'], [data-state='hidden-missed']) {
   animation: timeline-pulse 900ms ease-in-out infinite alternate;
 }
 

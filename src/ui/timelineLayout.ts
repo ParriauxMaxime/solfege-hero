@@ -15,14 +15,15 @@ export const CHANGE_PAD = 22
 export const INLINE_CLEF_SCALE = 0.8
 export const INLINE_CLEF_WIDTH = 44
 export const CLEF_ORIGIN = 30
-export const HEADER_KEY_X = 64
+export const HEADER_KEY_X = 56
 export const HEADER_TRAILING = 6
 export const FIRST_NOTE_GAP = 28
 export const RIGHT_MARGIN = 20
-export const CURRENT_NOTE_RATIO = 0.6
-export const HEADER_FADE = 14
+export const CURRENT_NOTE_RATIO = 0.68
+export const HEADER_FADE = 8
+export const NOTE_LEFT_EXTENT = 24
 
-export type NoteState = 'pending' | 'current' | 'current-missed' | 'correct' | 'recovered' | 'hidden'
+export type NoteState = 'pending' | 'current' | 'current-missed' | 'correct' | 'recovered' | 'hidden' | 'hidden-missed'
 
 export interface ChangeBlock {
   index: number
@@ -98,7 +99,7 @@ export function layoutTimeline(items: readonly ClefAndKey[]): TimelineLayout {
   return { noteX, bars, changes }
 }
 
-/** Horizontal shift of the notes: none while the next note still fits, then the current note stays at 60 % of the visible width. */
+/** Horizontal shift of the notes: none while the next note still fits, then the current note stays at 68 % of the visible width. */
 export function scrollOffset(noteX: readonly number[], index: number, visibleWidth: number): number {
   let offset = 0
   for (let step = 0; step <= index; step++) {
@@ -113,10 +114,15 @@ export function scrollOffset(noteX: readonly number[], index: number, visibleWid
 export function noteState(index: number, currentIndex: number, mistakes: number, hidden = false): NoteState {
   if (index > currentIndex) return 'pending'
   if (index === currentIndex) {
-    if (hidden) return 'hidden'
+    if (hidden) return mistakes > 0 ? 'hidden-missed' : 'hidden'
     return mistakes > 0 ? 'current-missed' : 'current'
   }
   return mistakes > 0 ? 'recovered' : 'correct'
+}
+
+/** Whether something whose left edge sits at `left` (layout units) is, at this scroll offset, at least partly under the pinned header. */
+export function isUnderHeader(left: number, offset: number, headerEdge: number): boolean {
+  return left - offset < headerEdge
 }
 
 export interface TimelineScale {
