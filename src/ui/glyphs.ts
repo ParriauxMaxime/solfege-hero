@@ -1,7 +1,7 @@
 import { ledgerSteps, TOP_LINE_STEP } from '../music/notes'
-import { signatureSteps } from '../music/keySignature'
+import { inlineAccidental, signatureSteps } from '../music/keySignature'
 import type { Accidental } from '../music/keySignature'
-import type { Clef } from '../music/notes'
+import type { Clef, Note } from '../music/notes'
 import type { Duration, TimeSignature } from '../hero/types'
 
 export type HeadFill = 'hollow' | 'filled'
@@ -17,6 +17,8 @@ const BEAM_GAP = 3
 const LEDGER_HALF_WIDTH = 19
 
 export const ACCIDENTAL_OFFSET = -34
+export const STAFF_VIEW_TOP = 20
+export const STAFF_VIEW_HEIGHT = 158
 
 const CLEF_PATHS: Record<Clef, string[]> = {
   treble: [
@@ -157,14 +159,23 @@ export function keySignatureWidth(fifths: number): number {
   return fifths === 0 ? 0 : Math.abs(fifths) * SIGNATURE_SPACING + SIGNATURE_GAP
 }
 
-/** Accidentals of the key signature, with `x` as the left edge of the first one. */
-export function keySignatureGlyph(clef: Clef, fifths: number, x: number): SVGGElement {
+function signatureRow(clef: Clef, fifths: number, x: number, accidentalOf: (alter: 1 | -1) => Accidental): SVGGElement {
   const group = inkGroup()
   signatureSteps(fifths, clef).forEach(({ alter, step }, index) => {
     const centre = x + SIGNATURE_GLYPH_HALF_WIDTH + index * SIGNATURE_SPACING
-    group.append(accidentalGlyph(alter === 1 ? 'sharp' : 'flat', centre, step))
+    group.append(accidentalGlyph(accidentalOf(alter), centre, step))
   })
   return group
+}
+
+/** Accidentals of the key signature, with `x` as the left edge of the first one. */
+export function keySignatureGlyph(clef: Clef, fifths: number, x: number): SVGGElement {
+  return signatureRow(clef, fifths, x, (alter) => (alter === 1 ? 'sharp' : 'flat'))
+}
+
+/** Naturals cancelling a key signature, laid out like the signature they cancel. */
+export function cancelledSignatureGlyph(clef: Clef, fifths: number, x: number): SVGGElement {
+  return signatureRow(clef, fifths, x, () => 'natural')
 }
 
 export function noteHead(fill: HeadFill, x: number, step: number): SVGPathElement {
@@ -180,6 +191,23 @@ export function noteHead(fill: HeadFill, x: number, step: number): SVGPathElemen
 
 export function ledgerLines(step: number, x: number): SVGLineElement[] {
   return ledgerSteps(step).map((ledger) => horizontalLine(ledger, x - LEDGER_HALF_WIDTH, x + LEDGER_HALF_WIDTH))
+}
+
+/** A hollow head with its ledger lines and the accidental the key signature does not already give it. */
+export function noteGroup(
+  note: Note,
+  step: number,
+  fifths: number,
+  x: number,
+  attributes: Record<string, string | number> = {},
+  accidentalOffset = ACCIDENTAL_OFFSET,
+): SVGGElement {
+  const group = inkGroup(attributes)
+  group.append(...ledgerLines(step, x))
+  const accidental = inlineAccidental(note, fifths)
+  if (accidental) group.append(accidentalGlyph(accidental, x + accidentalOffset, step))
+  group.append(noteHead('hollow', x, step))
+  return group
 }
 
 export function stemsUp(step: number): boolean {

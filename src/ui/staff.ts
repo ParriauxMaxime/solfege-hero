@@ -1,21 +1,17 @@
-import { MAX_FIFTHS, inlineAccidental } from '../music/keySignature'
+import { MAX_FIFTHS } from '../music/keySignature'
 import { staffStep } from '../music/notes'
 import type { Clef, Note } from '../music/notes'
 import {
-  ACCIDENTAL_OFFSET,
-  accidentalGlyph,
+  STAFF_VIEW_HEIGHT as VIEW_HEIGHT,
+  STAFF_VIEW_TOP as VIEW_TOP,
   clefGlyph,
-  inkGroup,
   keySignatureGlyph,
   keySignatureWidth,
-  ledgerLines,
-  noteHead,
+  noteGroup,
   staffLines,
   svgElement,
 } from './glyphs'
 
-const VIEW_TOP = 20
-const VIEW_HEIGHT = 158
 const VIEW_PADDING = 4
 const STAFF_LEFT = 12
 const NOTE_TRAILING_SPACE = 34
@@ -27,12 +23,7 @@ const SIGNATURE_TRAILING_SPACE = 40
 const CLEF_LABELS: Record<Clef, string> = { treble: 'de sol', bass: 'de fa', alto: 'd’ut' }
 
 function renderNote(note: Note, step: number, fifths: number, noteX: number): SVGGElement {
-  const group = inkGroup({ class: 'staff-note', style: 'transform-box: fill-box; transform-origin: center' })
-  group.append(...ledgerLines(step, noteX))
-  const accidental = inlineAccidental(note, fifths)
-  if (accidental) group.append(accidentalGlyph(accidental, noteX + ACCIDENTAL_OFFSET, step))
-  group.append(noteHead('hollow', noteX, step))
-  return group
+  return noteGroup(note, step, fifths, noteX, { class: 'staff-note', style: 'transform-box: fill-box; transform-origin: center' })
 }
 
 function markKeySignature(glyph: SVGGElement): SVGGElement {

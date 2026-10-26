@@ -26,7 +26,8 @@ import { recordDaily, recordHistory, recordScoreBest, type Progress, type Settin
 import { createAnswerPad } from './answerPad'
 import { button, el } from './dom'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
-import { renderStaff } from './staff'
+import { installDemoHook } from './demoHook'
+import { createTimelineStaff, type TimelinePoint } from './timelineStaff'
 import { icon } from './icons'
 import { copyLink, downloadScoreFile, shareLink, shareRow } from './sharing'
 import { showToast } from './toast'
@@ -131,7 +132,8 @@ export function createSeries({
     ...(daily || score ? [el('div', 'series-title', daily ? (practisingDaily ? 'Entraînement' : 'Défi du jour') : (score?.name ?? ''))] : []),
     el('div', 'progress', bar),
   )
-  const staffCard = el('div', 'staff-card')
+  const timeline = createTimelineStaff({ maxFifths: Math.max(0, ...items.map((item) => Math.abs(item.fifths))) })
+  const staffCard = el('div', 'staff-card', timeline.element)
   const pad = createAnswerPad(submitAnswer, settings.naming, settings.keyboardSpan, {
     strictOctave: settings.strictOctave,
     onBlockedChange: holdWhileBlocked,
@@ -184,10 +186,7 @@ export function createSeries({
   function showItem(): void {
     const item = items[index]
     if (!item) return
-    const staff = renderStaff(item.clef, item.note, item.fifths)
-    const before = items[index - 1]
-    if (before && before.fifths !== item.fifths) staff.classList.add('key-changed')
-    staffCard.replaceChildren(staff)
+    timeline.setCurrent(index, item)
     counter.textContent = `${index + 1}/${items.length}`
     bar.style.width = `${(index / items.length) * 100}%`
     pad.setTarget(item.clef, item.pitch)
@@ -219,7 +218,8 @@ export function createSeries({
       totalAnswered: progress.totalAnswered + 1,
     }
     streak = missedCurrent ? 0 : streak + 1
-    onCorrect(item.pitch, item.fifths)
+    timeline.markAnswered(index, !missedCurrent)
+    onCorrect(item.pitch, item.fifths, timeline.notePoint(index))
     index++
     if (answered.finished) finish()
     else nextTimeout = window.setTimeout(showItem, NEXT_DELAY_MS)
@@ -227,6 +227,7 @@ export function createSeries({
 
   function onWrong(chosen: Answer): void {
     missedCurrent = true
+    timeline.markWrong(index)
     streak = 0
     sound.wrong()
     vibrate([40, 30, 40])
@@ -237,17 +238,13 @@ export function createSeries({
     restartAnimation(flash, 'flash-bad')
   }
 
-  function onCorrect(pitch: number, fifths: number): void {
+  function onCorrect(pitch: number, fifths: number, notePoint: TimelinePoint | null): void {
     sound.correct(streak)
     sound.playNote(spell(pitch, fifths < 0))
     vibrate(15)
     pad.flash(pitch, 'correct')
     restartAnimation(flash, 'flash-ok')
-    const noteHead = staffCard.querySelector('.staff-note')
-    if (noteHead) {
-      noteHead.classList.add('pop')
-      burstParticles(effectsLayer, centerOf(noteHead))
-    }
+    if (notePoint) burstParticles(effectsLayer, notePoint)
   }
 
   function finish(): void {
@@ -462,6 +459,10 @@ export function createSeries({
   showItem()
   frame = requestAnimationFrame(tick)
   if (pad.isBlocked()) holdWhileBlocked(true)
+  const removeDemoHook = installDemoHook(() => {
+    const target = items[index]
+    return target && !locked ? { pitch: target.pitch, dueInMs: 0 } : null
+  }, submitAnswer)
 
   return {
     element,
@@ -472,6 +473,8 @@ export function createSeries({
       cancelAnimationFrame(countUpFrame)
       window.clearTimeout(nextTimeout)
       window.clearTimeout(wrongTimeout)
+      removeDemoHook()
+      timeline.destroy()
       pad.destroy()
     },
   }
