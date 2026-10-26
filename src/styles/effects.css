@@ -14,11 +14,13 @@
 }
 
 .flash-ok {
-  animation: flash-ok 0.35s ease-out;
+  background: rgb(var(--success-rgb) / 0.18);
+  animation: flash-fade 0.35s ease-out;
 }
 
 .flash-bad {
-  animation: flash-bad 0.45s ease-out;
+  background: rgb(var(--error-rgb) / 0.22);
+  animation: flash-fade 0.45s ease-out;
 }
 
 .staff-note.pop {
@@ -81,21 +83,12 @@
   font-size: 1rem;
 }
 
-@keyframes flash-ok {
+@keyframes flash-fade {
   from {
-    background: rgb(var(--success-rgb) / 0.18);
+    opacity: 1;
   }
   to {
-    background: transparent;
-  }
-}
-
-@keyframes flash-bad {
-  from {
-    background: rgb(var(--error-rgb) / 0.22);
-  }
-  to {
-    background: transparent;
+    opacity: 0;
   }
 }
 
