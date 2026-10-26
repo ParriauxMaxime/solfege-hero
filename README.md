@@ -57,3 +57,11 @@ so they only work on the GitHub Pages URL (or `localhost`), not over LAN HTTP.
 Every push to `main` runs the tests, builds, and publishes `dist/` to GitHub Pages through
 `.github/workflows/deploy.yml`. The repository's Pages source must be set to **GitHub Actions**
 (Settings → Pages).
+
+The site URL comes from `VITE_SITE_URL` (repository variable `SITE_URL`, default the github.io URL). It feeds canonical and Open Graph tags,
+`sitemap.xml`, `robots.txt` and `humans.txt`, and a `CNAME` file is emitted when the host is not `github.io`. The app works at `/` and under a sub-path.
+
+## Analytics
+
+Set the repository variable `CF_BEACON_TOKEN` to inject the Cloudflare Web Analytics beacon in the app page (build env `VITE_CF_BEACON`).
+It sets no cookies, so no consent banner is needed. For Google Search Console, verify the domain by DNS record: nothing to change in the code.

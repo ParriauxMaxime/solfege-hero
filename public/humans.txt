@@ -1,7 +1,0 @@
-/* TEAM */
-Author: Maxime Parriaux
-Site: https://parriauxmaxime.github.io/solfege-hero/
-
-/* SITE */
-Language: French
-Tools: Vite, TypeScript

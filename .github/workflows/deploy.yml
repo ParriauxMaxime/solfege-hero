@@ -26,6 +26,9 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+        env:
+          VITE_SITE_URL: ${{ vars.SITE_URL || 'https://parriauxmaxime.github.io/solfege-hero/' }}
+          VITE_CF_BEACON: ${{ vars.CF_BEACON_TOKEN }}
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

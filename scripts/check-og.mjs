@@ -1,8 +1,11 @@
 import { readFile } from 'node:fs/promises'
-import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
-const SITE = 'https://parriauxmaxime.github.io/solfege-hero/'
-const PAGES = ['', 'defi/', 'survie/', 'hero/', 'jour/', 'partition/']
+import { normalizeSiteUrl, sitePaths } from './site-url.mjs'
+
+const SITE = normalizeSiteUrl(process.env.VITE_SITE_URL)
+const PAGES = sitePaths()
 const REQUIRED = [
   'og:title',
   'og:description',
@@ -21,7 +24,7 @@ const PNG_SIGNATURE = '89504e470d0a1a0a'
 const IHDR_WIDTH_OFFSET = 16
 
 const baseUrl = process.argv[2] ? new URL(process.argv[2]).href : null
-const distDir = new URL('../dist/', import.meta.url)
+const distDir = process.env.DIST_DIR ? pathToFileURL(`${resolve(process.env.DIST_DIR)}/`) : new URL('../dist/', import.meta.url)
 
 async function loadBytes(path) {
   if (baseUrl) {

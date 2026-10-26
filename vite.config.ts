@@ -1,4 +1,6 @@
 import { readFileSync } from 'node:fs'
+import { loadEnv } from 'vite'
+import { LANDING_PAGES, customDomain, normalizeSiteUrl, renderHumans, renderRobots, renderSitemap } from './scripts/site-url.mjs'
 import { VitePWA } from 'vite-plugin-pwa'
 import type { Plugin } from 'vite'
 import { configDefaults, defineConfig } from 'vitest/config'
@@ -27,11 +29,55 @@ function pdfjsWasm(): Plugin {
   }
 }
 
-export default defineConfig({
+declare const process: { env: Record<string, string | undefined>; cwd(): string }
+
+const CF_BEACON_SRC = 'https://static.cloudflareinsights.com/beacon.min.js'
+
+function landingPage(page: string, siteUrl: string) {
+  return readFileSync(new URL(`./landing/${page}/index.html`, import.meta.url), 'utf8').replaceAll('%SITE_URL%', siteUrl)
+}
+
+/** One site URL feeds the html pages, sitemap, robots, humans, CNAME and the optional Cloudflare beacon. */
+function siteFiles(siteUrl: string, beaconToken: string): Plugin {
+  const domain = customDomain(siteUrl)
+  const closeBody = beaconToken
+    ? `    <script defer src="${CF_BEACON_SRC}" data-cf-beacon='${JSON.stringify({ token: beaconToken })}'></script>\n  </body>`
+    : '</body>'
+  const lastmod = new Date().toISOString().slice(0, 10)
+  return {
+    name: 'site-files',
+    transformIndexHtml: {
+      order: 'pre',
+      handler: (html) => html.replaceAll('%SITE_URL%', siteUrl).replace('</body>', () => closeBody),
+    },
+    configureServer(server) {
+      server.middlewares.use((request, response, next) => {
+        const page = LANDING_PAGES.find((name) => (request as { url?: string }).url?.split('?')[0] === `/${name}/`)
+        if (!page) return next()
+        response.setHeader('Content-Type', 'text/html')
+        response.end(landingPage(page, siteUrl))
+      })
+    },
+    generateBundle() {
+      const emit = (fileName: string, source: string) => this.emitFile({ type: 'asset', fileName, source })
+      for (const page of LANDING_PAGES) emit(`${page}/index.html`, landingPage(page, siteUrl))
+      emit('sitemap.xml', renderSitemap(siteUrl, lastmod))
+      emit('robots.txt', renderRobots(siteUrl))
+      emit('humans.txt', renderHumans(siteUrl))
+      if (domain) emit('CNAME', `${domain}\n`)
+    },
+  }
+}
+
+export default defineConfig(({ mode }) => {
+  const env = { ...loadEnv(mode, process.cwd(), 'VITE_'), ...process.env }
+  const siteUrl = normalizeSiteUrl(env.VITE_SITE_URL)
+  return {
   base: './',
   server: { allowedHosts: ['.ts.net'], hmr: { clientPort: 443 } },
   plugins: [
     pdfjsWasm(),
+    siteFiles(siteUrl, env.VITE_CF_BEACON?.trim() ?? ''),
     VitePWA({
       registerType: 'autoUpdate',
       devOptions: { enabled: false },
@@ -64,4 +110,5 @@ export default defineConfig({
   test: {
     exclude: [...configDefaults.exclude, 'scratch/**'],
   },
+  }
 })
