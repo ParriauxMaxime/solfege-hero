@@ -69,6 +69,8 @@ The Tailscale node needs `.env` with `TS_AUTHKEY` (copied from the `maisons` rep
 
 ## Backlog
 
+**Custom domain + Cloudflare (waiting for the owner to buy a domain, decided 26 Oct 2026).** Code is ready (`scripts/site-url.mjs`, `VITE_SITE_URL`, `CNAME` emitted, Cloudflare beacon via `VITE_CF_BEACON`). When the domain exists: Cloudflare Registrar → DNS `CNAME @` and `www` → `parriauxmaxime.github.io` proxied, SSL mode Full, Always Use HTTPS; GitHub Settings → Pages custom domain + Enforce HTTPS; repository variables `SITE_URL=https://<domain>/` and `CF_BEACON_TOKEN` (Cloudflare Web Analytics, manual snippet); Google Search Console as a Domain property verified by DNS TXT, then submit `sitemap.xml`. Then redeploy and check HTTPS, OG previews (`npm run check:og`), share links on the new host.
+
 OMR phase 2: optional ONNX model (oemer-style segmentation, onnxruntime-web, downloaded on demand) for heads/stems/symbols, keeping the heuristic path as fallback. Phase 1 gaps: triplets (bracket ignored, measure flagged), ties/slurs not merged, chords keep the top note only, PDF page change only before recognition, flats outside the key drawn as sharps (model stores MIDI only), perspective/curled photos untested, 360 px review shows 1-2 measures per line.
 
 Remaining nits: hero portrait staff still smallish (2,75 beats ahead, lots of free vertical space); a hero challenge sent from a free game replays at the sender's final difficulty, so the melody differs from the sender's; strict octave physical keys always answer in the nearest window octave.
