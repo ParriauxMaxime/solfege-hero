@@ -64,17 +64,30 @@ export function changeWidth(previous: ClefAndKey, next: ClefAndKey): number {
   return CHANGE_PAD + (clefChanged ? INLINE_CLEF_WIDTH : 0) + signature
 }
 
+/** Where the first of the given items sits once the notes before it were dropped: its x and how many notes since the last bar line. */
+export interface TimelineAnchor {
+  x: number
+  sinceBar: number
+}
+
+/** The anchor of `items[index]`: laying out `items.slice(index)` from it keeps every x and bar line where they were. */
+export function anchorAt(items: readonly ClefAndKey[], index: number, anchor?: TimelineAnchor): TimelineAnchor {
+  const { noteX, bars } = layoutTimeline(items, anchor)
+  const lastBar = bars.filter((bar) => bar.index <= index).at(-1)
+  return { x: noteX[index] ?? 0, sinceBar: lastBar ? index - lastBar.index : index + (anchor?.sinceBar ?? 0) }
+}
+
 /** Positions of the notes written so far; a bar line follows every four notes and precedes every change of clef or key. */
-export function layoutTimeline(items: readonly ClefAndKey[]): TimelineLayout {
+export function layoutTimeline(items: readonly ClefAndKey[], anchor?: TimelineAnchor): TimelineLayout {
   const noteX: number[] = []
   const bars: BarLine[] = []
   const changes: ChangeBlock[] = []
-  let measureStart = 0
+  let measureStart = -(anchor?.sinceBar ?? 0)
   items.forEach((item, index) => {
     const previous = items[index - 1]
     const previousX = noteX[index - 1]
     if (!previous || previousX === undefined) {
-      noteX.push(firstNoteX(item.fifths))
+      noteX.push(anchor?.x ?? firstNoteX(item.fifths))
       return
     }
     const width = changeWidth(previous, item)
@@ -136,8 +149,8 @@ const MIN_VISIBLE_NOTES = 5
 const TRAILING_UNITS = 8
 
 /** Pixels per layout unit: as tall as the box allows, but small enough to show five notes after the widest header. */
-export function timelineScale(boxWidth: number, boxHeight: number, maxFifths: number): TimelineScale {
-  const unitsForNotes = firstNoteX(maxFifths) + (MIN_VISIBLE_NOTES - 1) * NOTE_SPACING + TRAILING_UNITS
+export function timelineScale(boxWidth: number, boxHeight: number, maxFifths: number, visibleNotes = MIN_VISIBLE_NOTES): TimelineScale {
+  const unitsForNotes = firstNoteX(maxFifths) + (visibleNotes - 1) * NOTE_SPACING + TRAILING_UNITS
   const byHeight = boxHeight / STAFF_VIEW_HEIGHT
   const byWidth = boxWidth / unitsForNotes
   const scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, byHeight, byWidth))

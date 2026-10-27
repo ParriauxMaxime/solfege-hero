@@ -242,12 +242,14 @@
     opacity: 0.8;
   }
 
-  :root:not([data-motion='full']) .staff.key-changed .staff-key {
+  :root:not([data-motion='full']) .staff.key-changed .staff-key,
+  :root:not([data-motion='full']) .timeline-header.key-changed .staff-key {
     animation: none;
   }
 }
 
-.staff.key-changed .staff-key {
+.staff.key-changed .staff-key,
+.timeline-header.key-changed .staff-key {
   animation: key-pulse 300ms ease-out;
   transform-box: fill-box;
   transform-origin: center;
@@ -264,6 +266,7 @@
   }
 }
 
-:root[data-motion='reduced'] .staff.key-changed .staff-key {
+:root[data-motion='reduced'] .staff.key-changed .staff-key,
+:root[data-motion='reduced'] .timeline-header.key-changed .staff-key {
   animation: none;
 }

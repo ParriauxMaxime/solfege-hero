@@ -4,6 +4,7 @@ import {
   CURRENT_NOTE_RATIO,
   NOTE_LEFT_EXTENT,
   NOTE_SPACING,
+  anchorAt,
   changeWidth,
   firstNoteX,
   headerWidth,
@@ -216,5 +217,51 @@ describe('timelineScale', () => {
   it('reports the visible width in layout units', () => {
     const { scale, visibleUnits } = timelineScale(400, 300, 0)
     expect(visibleUnits * scale).toBeCloseTo(400)
+  })
+})
+
+describe('history cap (anchorAt)', () => {
+  const bass = (fifths = 0): ClefAndKey => ({ clef: 'bass', fifths })
+  const mixed: ClefAndKey[] = [
+    ...run(5),
+    ...run(4, treble(-3)),
+    ...run(5, bass(-3)),
+    ...run(7, bass(2)),
+    ...run(3, treble()),
+    ...run(6, treble(5)),
+  ]
+
+  it('keeps every x, bar line and change where they were when old notes are dropped', () => {
+    const full = layoutTimeline(mixed)
+    for (const drop of [1, 3, 4, 5, 9, 14, 20, 25]) {
+      const anchor = anchorAt(mixed, drop)
+      const trimmed = layoutTimeline(mixed.slice(drop), anchor)
+      expect(trimmed.noteX).toEqual(full.noteX.slice(drop))
+      expect(trimmed.bars.map((bar) => ({ index: bar.index + drop, x: bar.x }))).toEqual(
+        full.bars.filter((bar) => bar.index > drop),
+      )
+      expect(trimmed.changes.map((change) => ({ ...change, index: change.index + drop }))).toEqual(
+        full.changes.filter((change) => change.index > drop),
+      )
+    }
+  })
+
+  it('stays stable when trimming is repeated one note at a time', () => {
+    const full = layoutTimeline(mixed)
+    let dropped = 0
+    let anchor = anchorAt(mixed, 0)
+    for (let step = 0; step < 20; step++) {
+      anchor = anchorAt(mixed.slice(dropped), 1, anchor)
+      dropped++
+      expect(layoutTimeline(mixed.slice(dropped), anchor).noteX).toEqual(full.noteX.slice(dropped))
+    }
+  })
+
+  it('gives the same scroll offset on the kept window as on the whole history', () => {
+    const full = layoutTimeline(mixed)
+    const drop = 10
+    const trimmed = layoutTimeline(mixed.slice(drop), anchorAt(mixed, drop))
+    const last = mixed.length - 1
+    expect(scrollOffset(trimmed.noteX, last - drop, 330)).toBe(scrollOffset(full.noteX, last, 330))
   })
 })

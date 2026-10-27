@@ -20,7 +20,9 @@ import {
   HEADER_KEY_X,
   INLINE_CLEF_SCALE,
   INLINE_CLEF_WIDTH,
+  BAR_OFFSET,
   NOTE_LEFT_EXTENT,
+  anchorAt,
   headerWidth,
   isUnderHeader,
   layoutTimeline,
@@ -29,6 +31,7 @@ import {
   timelineScale,
   type ChangeBlock,
   type ClefAndKey,
+  type TimelineAnchor,
 } from './timelineLayout'
 
 const ACCIDENTAL_OFFSET = -22
@@ -44,6 +47,10 @@ export interface TimelineItem extends ClefAndKey {
 export interface TimelineOptions {
   /** Widest key signature the staff will show, so the notes are sized to leave room for it. */
   maxFifths?: number
+  /** Endless play: only the last notes are kept, the older ones are dropped without moving the others. */
+  maxKept?: number
+  /** Notes the staff must show after the widest header; fewer notes make a bigger staff on a narrow card. */
+  visibleNotes?: number
 }
 
 export interface TimelinePoint {
@@ -54,7 +61,7 @@ export interface TimelinePoint {
 export interface TimelineStaff {
   element: HTMLElement
   /** Makes `index` the note to answer, scrolls to it and pins the clef and key of `item`; a hidden note shows only a question slot. */
-  setCurrent: (index: number, item: TimelineItem, options?: { hidden?: boolean }) => void
+  setCurrent: (index: number, item: TimelineItem, options?: { hidden?: boolean; keyChanged?: boolean }) => void
   /** A wrong key was tapped: the target turns red and keeps pulsing, the wrong note is not drawn. */
   markWrong: (index: number) => void
   /** The note was found: it stays in the timeline, muted when `firstTry`, else recovered (green with a red outline). Reveals a hidden note. */
@@ -106,15 +113,23 @@ function changeGlyphs(block: ChangeBlock, item: ClefAndKey): SVGGElement {
   return group
 }
 
+function markKey(glyph: SVGGElement): SVGGElement {
+  glyph.classList.add('staff-key')
+  return glyph
+}
+
 function slotGlyph(x: number): SVGEllipseElement {
   return svgElement('ellipse', { class: 'timeline-slot', cx: x, cy: stepY(SLOT_STEP), ...SLOT_RADIUS })
 }
 
-export function createTimelineStaff({ maxFifths = 0 }: TimelineOptions = {}): TimelineStaff {
-  const items: TimelineItem[] = []
-  const mistakes: number[] = []
+export function createTimelineStaff({ maxFifths = 0, maxKept = Infinity, visibleNotes }: TimelineOptions = {}): TimelineStaff {
+  const items = new Map<number, TimelineItem>()
+  const mistakes = new Map<number, number>()
   const nodes = new Map<number, NoteNode>()
-  const changeNodes: { group: SVGElement; barX: number }[] = []
+  const changeNodes: { index: number; group: SVGElement; barX: number }[] = []
+  let base = 0
+  let anchor: TimelineAnchor | undefined
+  let originX = 0
   let current = -1
   let cursor = 0
   let hiddenCurrent = false
@@ -135,13 +150,47 @@ export function createTimelineStaff({ maxFifths = 0 }: TimelineOptions = {}): Ti
   const element = el('div', 'timeline', stage)
   element.setAttribute('role', 'img')
 
+  function kept(upTo: number): TimelineItem[] {
+    const window: TimelineItem[] = []
+    for (let index = base; index <= upTo; index++) {
+      const item = items.get(index)
+      if (item) window.push(item)
+    }
+    return window
+  }
+
+  function layoutUpTo(index: number) {
+    const { noteX: xs, bars, changes } = layoutTimeline(kept(index), anchor)
+    return {
+      xs,
+      bars: bars.map((bar) => ({ ...bar, index: bar.index + base })),
+      changes: changes.map((change) => ({ ...change, index: change.index + base })),
+    }
+  }
+
   function noteX(index: number): number {
-    return layoutTimeline(items.slice(0, index + 1)).noteX[index] ?? 0
+    return layoutUpTo(index).xs[index - base] ?? 0
+  }
+
+  function dropOldest(): void {
+    const newBase = current - maxKept + 1
+    if (newBase <= base) return
+    const next = anchorAt(kept(current), newBase - base, anchor)
+    for (let index = base; index < newBase; index++) {
+      nodes.get(index)?.group.remove()
+      nodes.delete(index)
+      items.delete(index)
+      mistakes.delete(index)
+    }
+    while (changeNodes[0] && changeNodes[0].index < newBase) changeNodes.shift()?.group.remove()
+    base = newBase
+    anchor = next
+    originX = Math.max(0, next.x - NOTE_LEFT_EXTENT - BAR_OFFSET)
   }
 
   function buildGlyph(index: number): void {
     const node = nodes.get(index)
-    const item = items[index]
+    const item = items.get(index)
     if (!node || !item || node.glyphDrawn) return
     const step = staffStep(item.note, item.clef)
     node.group.append(noteGroup(item.note, step, item.fifths, noteX(index), {}, ACCIDENTAL_OFFSET))
@@ -158,7 +207,7 @@ export function createTimelineStaff({ maxFifths = 0 }: TimelineOptions = {}): Ti
 
   function refreshStates(): void {
     for (const [index, node] of nodes) {
-      const state = noteState(index, cursor, mistakes[index] ?? 0, hiddenCurrent)
+      const state = noteState(index, cursor, mistakes.get(index) ?? 0, hiddenCurrent)
       if (state !== 'hidden' && state !== 'hidden-missed') buildGlyph(index)
       node.group.dataset['state'] = state
     }
@@ -171,29 +220,30 @@ export function createTimelineStaff({ maxFifths = 0 }: TimelineOptions = {}): Ti
     const svg = sizedSvg('timeline-header-svg', width, scale)
     const background = svgElement('rect', { class: 'timeline-header-bg', x: 0, y: STAFF_VIEW_TOP, width, height: STAFF_VIEW_HEIGHT })
     svg.append(background, staffLines(0, width), clefAt(item.clef, HEADER_CLEF_X))
-    if (item.fifths !== 0) svg.append(keySignatureGlyph(item.clef, item.fifths, HEADER_KEY_X))
+    if (item.fifths !== 0) svg.append(markKey(keySignatureGlyph(item.clef, item.fifths, HEADER_KEY_X)))
     header.replaceChildren(svg)
     fade.style.left = `${width * scale}px`
     fade.style.width = `${HEADER_FADE * scale}px`
   }
 
   function drawLines(extent: number): void {
-    lines.replaceChildren(staffLines(0, extent))
+    lines.replaceChildren(staffLines(originX, extent))
   }
 
   function applyLayout(animate: boolean): void {
     if (boxWidth === 0 || current < 0) return
     const x = noteX(current)
     const extent = x + visibleUnits
-    notesSvg.setAttribute('viewBox', viewBox(extent))
-    notesSvg.setAttribute('width', String(extent * scale))
+    notesSvg.setAttribute('viewBox', `${originX} ${STAFF_VIEW_TOP} ${extent - originX} ${STAFF_VIEW_HEIGHT}`)
+    notesSvg.setAttribute('width', String((extent - originX) * scale))
+    notesSvg.style.marginLeft = `${originX * scale}px`
     notesSvg.setAttribute('height', String(STAFF_VIEW_HEIGHT * scale))
     drawLines(extent)
-    const { noteX: xs } = layoutTimeline(items.slice(0, current + 1))
-    const offset = scrollOffset(xs, current, visibleUnits)
+    const { xs } = layoutUpTo(current)
+    const offset = scrollOffset(xs, current - base, visibleUnits)
     const edge = headerWidth(shownHeader?.fifths ?? 0)
     for (const [index, node] of nodes) {
-      node.group.classList.toggle('timeline-covered', index < current && isUnderHeader((xs[index] ?? 0) - NOTE_LEFT_EXTENT, offset, edge))
+      node.group.classList.toggle('timeline-covered', index < current && isUnderHeader((xs[index - base] ?? 0) - NOTE_LEFT_EXTENT, offset, edge))
     }
     for (const change of changeNodes) change.group.classList.toggle('timeline-covered', isUnderHeader(change.barX, offset, edge))
     const smooth = animate && !motionReduced()
@@ -206,12 +256,12 @@ export function createTimelineStaff({ maxFifths = 0 }: TimelineOptions = {}): Ti
   }
 
   function applyScale(width: number, height: number): void {
-    const fitted = timelineScale(width, height, maxFifths)
+    const fitted = timelineScale(width, height, maxFifths, visibleNotes)
     scale = fitted.scale
     visibleUnits = fitted.visibleUnits
     boxWidth = width
     stage.style.height = `${STAFF_VIEW_HEIGHT * scale}px`
-    const item = items[current]
+    const item = items.get(current)
     if (item) {
       shownHeader = null
       drawHeader(item)
@@ -225,26 +275,26 @@ export function createTimelineStaff({ maxFifths = 0 }: TimelineOptions = {}): Ti
   resizeObserver.observe(element)
 
   function drawStructure(index: number): void {
-    const item = items[index]
+    const item = items.get(index)
     if (!item) return
-    const { bars, changes } = layoutTimeline(items.slice(0, index + 1))
+    const { bars, changes } = layoutUpTo(index)
     const block = changes.find((change) => change.index === index)
     if (block) {
       const group = changeGlyphs(block, item)
-      changeNodes.push({ group, barX: block.barX })
+      changeNodes.push({ index, group, barX: block.barX })
       barGroup.append(group)
     } else {
       const bar = bars.find((candidate) => candidate.index === index)
       if (!bar) return
       const line = barLine(bar.x)
       line.classList.add('timeline-change')
-      changeNodes.push({ group: line, barX: bar.x })
+      changeNodes.push({ index, group: line, barX: bar.x })
       barGroup.append(line)
     }
   }
 
   function describe(): void {
-    const item = items[current]
+    const item = items.get(current)
     const total = current + 1
     element.setAttribute('aria-label', item ? `Portée en clé ${CLEF_LABELS[item.clef]}, ${total} note${total > 1 ? 's' : ''}` : 'Portée')
   }
@@ -258,24 +308,26 @@ export function createTimelineStaff({ maxFifths = 0 }: TimelineOptions = {}): Ti
 
   return {
     element,
-    setCurrent(index, item, { hidden = false } = {}) {
-      items[index] = item
+    setCurrent(index, item, { hidden = false, keyChanged = false } = {}) {
+      items.set(index, item)
       current = index
       cursor = index
       hiddenCurrent = hidden
+      dropOldest()
       createNode(index)
       drawStructure(index)
       refreshStates()
       drawHeader(item)
+      header.classList.toggle('key-changed', keyChanged)
       describe()
       applyLayout(true)
     },
     markWrong(index) {
-      mistakes[index] = (mistakes[index] ?? 0) + 1
+      mistakes.set(index, (mistakes.get(index) ?? 0) + 1)
       refreshStates()
     },
     markAnswered(index, firstTry) {
-      mistakes[index] = firstTry ? 0 : Math.max(1, mistakes[index] ?? 0)
+      mistakes.set(index, firstTry ? 0 : Math.max(1, mistakes.get(index) ?? 0))
       if (index === cursor) {
         cursor = index + 1
         hiddenCurrent = false

@@ -6,7 +6,6 @@ import { capsFor } from '../level/level'
 import { midi, noteName } from '../music/notes'
 import type { Settings } from '../storage'
 import { createDrillGame, type Drill, type DrillOptions, type Game } from './drillGame'
-import { renderStaff } from './staff'
 
 const NEXT_DELAY_WRONG_MS = 900
 
@@ -16,6 +15,11 @@ export interface GameOptions extends DrillOptions {
 }
 export type { Game }
 
+function timelineMaxFifths(settings: Settings, plan: LearnKeyPlan): number {
+  if (plan.mode === 'fixed') return Math.abs(plan.fifths)
+  return settings.accidentals ? capsFor(settings.level).maxFifths : 0
+}
+
 function learnDrill(settings: Settings, plan: LearnKeyPlan, onEditKey: GameOptions['onEditKey']): Drill {
   const pool = buildPool(settings.clefs, settings.accidentals)
   const sampler = createLearnSampler(settings.clefs, settings.accidentals, Math.random, plan, capsFor(settings.level))
@@ -24,14 +28,14 @@ function learnDrill(settings: Settings, plan: LearnKeyPlan, onEditKey: GameOptio
     historyMode: 'learn',
     strictOctave: settings.strictOctave,
     wrongDelayMs: NEXT_DELAY_WRONG_MS,
+    timeline: { maxFifths: timelineMaxFifths(settings, plan) },
     bestTimed: (progress) => progress.bestTimed,
     withBestTimed: (correct) => ({ bestTimed: correct }),
     next(progress) {
       const { prompt, note, fifths, keyChanged } = sampler.next(pool, progress.notes)
-      const staff = renderStaff(prompt.clef, note, fifths)
-      if (keyChanged) staff.classList.add('key-changed')
       return {
-        staff,
+        timelineItem: { note, clef: prompt.clef, fifths },
+        keyChanged,
         historyId: promptId(prompt),
         padTarget: { clef: prompt.clef, pitch: prompt.pitch },
         keyPitch: midi(note),

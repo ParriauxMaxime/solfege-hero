@@ -10,9 +10,12 @@ import { icon } from './icons'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
 import { trackHiddenTime } from '../platform/visibility'
 import { createAnswerPad } from './answerPad'
+import { createTimelineStaff, type TimelineItem, type TimelineStaff } from './timelineStaff'
 
 const TIMED_SECONDS = 60
 const NEXT_DELAY_CORRECT_MS = 200
+const TIMELINE_KEPT_NOTES = 40
+const TIMELINE_VISIBLE_NOTES = 4
 
 export interface DrillOptions {
   settings: Settings
@@ -31,13 +34,18 @@ export interface Drill {
   /** Small tappable label top-centre of the HUD. */
   hudChip?: { label: string; onTap: (chronoRunning: boolean) => void }
   wrongDelayMs: number
+  /** Rounds are notes on one persistent scrolling staff (rounds carry a `timelineItem`) instead of a fresh staff each time. */
+  timeline?: { maxFifths: number }
   next: (progress: Progress) => DrillRound
   bestTimed: (progress: Progress) => number
   withBestTimed: (correct: number) => Partial<Progress>
 }
 
 export interface DrillRound {
-  staff: SVGSVGElement
+  staff?: SVGSVGElement
+  timelineItem?: TimelineItem
+  /** The key signature just changed: it pulses. */
+  keyChanged?: boolean
   /** Prompt id in the weekly note history: `clef:midi` or `keys:<fifths>`. */
   historyId: string
   /** Lets a strict octave keyboard show the octaves around a note. */
@@ -92,6 +100,9 @@ export function createDrillGame(
     : el('div', 'hud', el('div', 'hud-score', scoreValue), streak, multiplierValue, timerValue)
 
   const staffCard = el('div', 'staff-card')
+  let timeline: TimelineStaff | null = null
+  let roundIndex = 0
+  let missedCurrent = false
   const feedback = el('div', 'feedback')
   const pad = createAnswerPad(submitAnswer, settings.naming, settings.keyboardSpan, {
     strictOctave: drill.strictOctave,
@@ -101,9 +112,24 @@ export function createDrillGame(
   const effectsLayer = el('div', 'effects-layer')
   const element = el('section', `screen game ${drill.screenClass ?? ''}`.trim(), hud, staffCard, feedback, pad.element, flash, effectsLayer)
 
+  function resetTimeline(): void {
+    if (!drill.timeline) return
+    timeline?.destroy()
+    timeline = createTimelineStaff({ maxFifths: drill.timeline.maxFifths, maxKept: TIMELINE_KEPT_NOTES, visibleNotes: TIMELINE_VISIBLE_NOTES })
+    staffCard.replaceChildren(timeline.element)
+    roundIndex = 0
+    shown = null
+  }
+
   function showNext(): void {
+    if (timeline && shown) {
+      if (missedCurrent) timeline.markAnswered(roundIndex, false)
+      roundIndex++
+    }
+    missedCurrent = false
     shown = drill.next(progress)
-    staffCard.replaceChildren(shown.staff)
+    if (timeline && shown.timelineItem) timeline.setCurrent(roundIndex, shown.timelineItem, { keyChanged: shown.keyChanged })
+    else if (shown.staff) staffCard.replaceChildren(shown.staff)
     feedback.textContent = shown.question ?? ''
     feedback.className = shown.question ? 'feedback ask' : 'feedback'
     if (shown.padTarget) pad.setTarget(shown.padTarget.clef, shown.padTarget.pitch)
@@ -145,6 +171,7 @@ export function createDrillGame(
     window.clearInterval(ticker)
     timerValue.textContent = String(TIMED_SECONDS)
     renderScore()
+    resetTimeline()
     showNext()
   }
 
@@ -246,8 +273,9 @@ export function createDrillGame(
     feedback.className = 'feedback ok'
     restartAnimation(flash, 'flash-ok')
     restartAnimation(streakValue, 'bump')
-    const noteHead = staffCard.querySelector('.staff-note')
-    const origin = centerOf(noteHead ?? staffCard.querySelector('.staff-key') ?? staffCard)
+    if (timeline) timeline.markAnswered(roundIndex, true)
+    const noteHead = timeline ? null : staffCard.querySelector('.staff-note')
+    const origin = (timeline && timeline.notePoint(roundIndex)) || centerOf(noteHead ?? staffCard.querySelector('.staff-key') ?? staffCard)
     noteHead?.classList.add('pop')
     burstParticles(effectsLayer, origin)
     floatText(effectsLayer, origin, speedFactor > 1 ? `+${gained} ×${speedFactor} rapide !` : `+${gained}`)
@@ -268,6 +296,8 @@ export function createDrillGame(
     feedback.className = 'feedback bad'
     restartAnimation(flash, 'flash-bad')
     restartAnimation(staffCard, 'shake')
+    missedCurrent = true
+    timeline?.markWrong(roundIndex)
     if (brokenStreak > 0) {
       const dropped = el('span', 'streak-drop', String(brokenStreak))
       dropped.addEventListener('animationend', () => dropped.remove(), { once: true })
@@ -290,6 +320,7 @@ export function createDrillGame(
       pad.destroy()
       window.clearInterval(ticker)
       window.clearTimeout(nextTimeout)
+      timeline?.destroy()
     },
   }
 }
