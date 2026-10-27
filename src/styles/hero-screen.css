@@ -11,7 +11,7 @@
   font-size: 0.95rem;
 }
 
-@media (orientation: landscape) {
+@media (orientation: landscape) and (max-width: 899px), (orientation: landscape) and (max-height: 500px) {
   .hero,
   .game.hero:has(.answers.wide) {
     display: flex;
@@ -73,7 +73,7 @@
   height: 56px;
 }
 
-@media (orientation: landscape) {
+@media (orientation: landscape) and (max-width: 899px), (orientation: landscape) and (max-height: 500px) {
   .panel:has(> .setting) {
     max-width: 760px;
     display: grid;

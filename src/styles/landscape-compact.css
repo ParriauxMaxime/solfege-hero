@@ -1,4 +1,4 @@
-@media (orientation: landscape) and (max-height: 500px) and (max-width: 1023px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+@media (orientation: landscape) and (max-height: 500px) {
   .app:has(.game) {
     position: relative;
   }
@@ -145,15 +145,20 @@
 
   .game .answers {
     gap: 4px;
+    max-width: none;
+    margin: 0;
+    grid-template-rows: 1fr 1fr;
   }
 
   .game .answers .answer {
+    height: auto;
     min-height: 52px;
     border-radius: 8px;
     font-size: min(var(--key-font), 0.9rem);
   }
 
   .game .answers .answer.altered {
+    height: auto;
     min-height: 40px;
     font-size: min(var(--key-font-alt), 0.65rem);
   }

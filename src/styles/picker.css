@@ -105,7 +105,7 @@
   min-height: 72px;
 }
 
-@media (orientation: landscape) {
+@media (orientation: landscape) and (max-width: 899px), (orientation: landscape) and (max-height: 500px) {
   .picker {
     gap: 8px;
   }

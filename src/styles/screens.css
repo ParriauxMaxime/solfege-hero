@@ -326,7 +326,7 @@
   transform: translateX(20px);
 }
 
-@media (orientation: landscape) {
+@media (orientation: landscape) and (max-width: 899px), (orientation: landscape) and (max-height: 500px) {
   .settings-list {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

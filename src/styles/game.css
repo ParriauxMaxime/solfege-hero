@@ -195,15 +195,32 @@
   white-space: nowrap;
 }
 
-@media (orientation: portrait), (min-width: 1024px) and (pointer: fine) {
-  .answer {
-    min-height: max(var(--key-h), 64px);
-    font-size: min(var(--key-font), 0.9rem);
-  }
+.game {
+  --pad-key-h: clamp(56px, 9vh, 104px);
+}
 
-  .answer.altered {
-    font-size: min(var(--key-font-alt), 0.62rem);
-  }
+.game .answers {
+  flex: none;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto 12px;
+  grid-template-rows: calc(var(--pad-key-h) * 0.8) var(--pad-key-h);
+}
+
+.game .answers .answer {
+  min-height: 0;
+  height: var(--pad-key-h);
+  font-size: min(var(--key-font), 0.9rem);
+}
+
+.game .answers .answer.altered {
+  height: calc(var(--pad-key-h) * 0.8);
+  font-size: min(var(--key-font-alt), 0.62rem);
+}
+
+.game .staff-card .staff {
+  max-height: 276px;
 }
 
 .answers.blocked {
@@ -235,7 +252,7 @@
   color: var(--accent);
 }
 
-@media (orientation: landscape) and (max-width: 1023px), (orientation: landscape) and (pointer: coarse) {
+@media (orientation: landscape) and (max-height: 500px) {
   .game {
     max-width: none;
     display: grid;

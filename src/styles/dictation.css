@@ -69,7 +69,7 @@
   text-align: left;
 }
 
-@media (orientation: landscape) {
+@media (orientation: landscape) and (max-width: 899px), (orientation: landscape) and (max-height: 500px) {
   .panel.dictation-start {
     gap: 8px;
   }
