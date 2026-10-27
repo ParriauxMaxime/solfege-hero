@@ -206,6 +206,9 @@
   bottom: calc(env(safe-area-inset-bottom) + 96px);
   transform: translateX(-50%);
   z-index: 30;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  box-sizing: border-box;
   padding: 12px 22px;
   border-radius: 999px;
   background: var(--card-raised);

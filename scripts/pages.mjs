@@ -3,6 +3,7 @@ import { LANDING_ONLY, LEGACY_REDIRECTS, ROUTES, routeSegments } from './routes.
 
 const ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }
 const LANGUAGES = ['fr', 'en']
+const NOSCRIPT_EN = 'Solfège hero is a training app to learn to read music notes. JavaScript is required: enable it in your browser.'
 
 function escapeHtml(text) {
   return text.replace(/[&<>"]/g, (character) => ESCAPES[character])
@@ -63,6 +64,7 @@ export function renderRoutePage(indexHtml, { segment, lang, prefix = '', title, 
   html = setMeta(html, 'name', 'twitter:title', title)
   html = setMeta(html, 'name', 'twitter:description', description)
   html = setMeta(html, 'name', 'twitter:image', imageUrl)
+  if (lang === 'en') html = html.replace(/(<noscript>\s*<p[^>]*>)[^<]*(<\/p>)/, `$1\n        ${NOSCRIPT_EN}\n      $2`)
   return replaceOnce(
     html,
     /<div id="app">\s*<main(\s[^>]*)?>[\s\S]*?<\/main>/,

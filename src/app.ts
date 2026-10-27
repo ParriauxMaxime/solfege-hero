@@ -59,7 +59,7 @@ import { createStatsScreen } from './ui/stats'
 import { dayKeyOf } from './stats/dates'
 import { showToast } from './ui/toast'
 import { languageFromPath, screenFromPath, type LandingScreen, type Screen } from '../scripts/routes.mjs'
-import { detectLanguage, onLanguageChange, resolveLanguage, setLanguage, t, type MessageKey } from './i18n'
+import { detectLanguage, getLanguage, onLanguageChange, resolveLanguage, setLanguage, t, type MessageKey } from './i18n'
 import { appBase, routeUrl } from './share/links'
 
 type RouteName = Screen | LandingScreen
@@ -98,6 +98,8 @@ interface Destroyable {
 export function startApp(root: HTMLElement): void {
   let settings = loadSettings()
   const forcedLanguage = languageFromPath(location.pathname)
+  const pageLanguage = document.documentElement.lang
+  const pageTitle = document.title
   applyLanguage()
   let progress = loadProgress()
   let running: Destroyable | null = null
@@ -137,6 +139,7 @@ export function startApp(root: HTMLElement): void {
 
   function applyLanguage(): void {
     setLanguage(resolveLanguage(settings.language, detectLanguage(), forcedLanguage))
+    document.title = getLanguage() === pageLanguage ? pageTitle : t('app.documentTitle')
   }
 
   function refreshLanguage(): void {
