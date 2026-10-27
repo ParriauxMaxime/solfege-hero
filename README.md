@@ -11,7 +11,9 @@ Solfège hero mode: notes scroll to a hit zone over a metronome ([MP4 version](d
 
 <img src="docs/home.png" alt="Home screen" width="260">
 
-A note-reading trainer for phones. French UI, installable, works offline.
+A note-reading trainer for phones. Installable, works offline.
+
+Languages: French and English (auto-detected, switchable in Settings).
 
 - **Apprendre**: a note appears on the staff, tap its name as fast as you can.
 - **Armures**: read a key signature, name the key.

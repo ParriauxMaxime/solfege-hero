@@ -2,6 +2,7 @@ import { PAGE_IMAGES, PAGE_TEXTS } from './page-texts.mjs'
 import { LANDING_ONLY, LEGACY_REDIRECTS, ROUTES, routeSegments } from './routes.mjs'
 
 const ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }
+const LANGUAGES = ['fr', 'en']
 
 function escapeHtml(text) {
   return text.replace(/[&<>"]/g, (character) => ESCAPES[character])
@@ -17,14 +18,42 @@ function setMeta(html, attribute, key, value) {
   return replaceOnce(html, pattern, `<meta ${attribute}="${key}" content="${escapeHtml(value)}" />`, `<meta ${attribute}="${key}">`)
 }
 
-export function renderRoutePage(indexHtml, { segment, lang, title, description, h1, intro, image, imageAlt }, siteUrl) {
-  const pageUrl = `${siteUrl}${segment}/`
+/** Folder of a page: '' for the root home, 'learn/', 'en/', 'en/learn/'. */
+export function pagePath(prefix, segment) {
+  const parts = [prefix, segment].filter(Boolean)
+  return parts.length ? `${parts.join('/')}/` : ''
+}
+
+/** The three hreflang alternates of a page (x-default is the root page). */
+export function hreflangEntries(siteUrl, segment) {
+  return [
+    ...LANGUAGES.map((code) => ({ hreflang: code, href: `${siteUrl}${pagePath(code, segment)}` })),
+    { hreflang: 'x-default', href: `${siteUrl}${pagePath('', segment)}` },
+  ]
+}
+
+/** Adds the hreflang links right after the canonical link, replacing any existing ones. */
+export function addHreflang(html, siteUrl, segment = '') {
+  const links = hreflangEntries(siteUrl, segment).map(({ hreflang, href }) => `<link rel="alternate" hreflang="${hreflang}" href="${href}" />`)
+  const cleaned = html.replace(/\s*<link\s+rel="alternate"\s+hreflang="[^"]*"[^>]*>/g, '')
+  const canonical = /<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/
+  const found = canonical.exec(cleaned)
+  if (!found) throw new Error('index.html has no canonical link: the page generator needs updating')
+  return cleaned.replace(canonical, () => `${found[0]}\n    ${links.join('\n    ')}`)
+}
+
+export function renderRoutePage(indexHtml, { segment, lang, prefix = '', title, description, h1, intro, image, imageAlt }, siteUrl) {
+  const path = pagePath(prefix, segment)
+  const pageUrl = `${siteUrl}${path}`
   const imageUrl = `${siteUrl}og/${image}`
+  const depth = path.split('/').filter(Boolean).length
+  const base = depth ? `\n    <base href="${'../'.repeat(depth)}" />` : ''
   let html = indexHtml
   html = replaceOnce(html, /<html\s+lang="[^"]*"/, `<html lang="${escapeHtml(lang)}"`, '<html lang>')
-  html = replaceOnce(html, /<meta\s+charset="[^"]*"\s*\/?>/i, '<meta charset="UTF-8" />\n    <base href="../" />', '<meta charset>')
+  html = replaceOnce(html, /<meta\s+charset="[^"]*"\s*\/?>/i, `<meta charset="UTF-8" />${base}`, '<meta charset>')
   html = replaceOnce(html, /<title>[^<]*<\/title>/, `<title>${escapeHtml(title)}</title>`, '<title>')
   html = replaceOnce(html, /<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/, `<link rel="canonical" href="${pageUrl}" />`, 'canonical link')
+  html = addHreflang(html, siteUrl, segment)
   html = setMeta(html, 'name', 'description', description)
   html = setMeta(html, 'property', 'og:title', title)
   html = setMeta(html, 'property', 'og:description', description)
@@ -79,7 +108,9 @@ export function render404Page() {
       var isPage = known.indexOf(parts[parts.length - 1]) >= 0
       var needsSlash = isPage && !/\\/$/.test(path)
       if (isPage) parts.pop()
-      else parts = location.hostname.endsWith('github.io') ? parts.slice(0, 1) : []
+      var lang = Math.max(parts.lastIndexOf('fr'), parts.lastIndexOf('en'))
+      if (!isPage && lang >= 0) parts = parts.slice(0, lang + 1)
+      else if (!isPage) parts = location.hostname.endsWith('github.io') ? parts.slice(0, 1) : []
       var root = '/' + parts.join('/') + (parts.length ? '/' : '')
       location.replace((needsSlash ? path + '/' : root) + location.search + location.hash)
     </script>
@@ -94,20 +125,29 @@ export function render404Page() {
 `
 }
 
-export const ROUTE_PAGES = [...ROUTES, ...LANDING_ONLY].filter(({ segment }) => segment)
+const ALL_PAGES = [...ROUTES, ...LANDING_ONLY]
+export const ROUTE_PAGES = ALL_PAGES.filter(({ segment }) => segment)
 
-export function routePageOptions({ screen, segment }, texts = PAGE_TEXTS.fr) {
-  return { segment, lang: texts.lang, ...texts.pages[screen], image: PAGE_IMAGES[screen] }
+/** prefix '' = root page (French), 'fr' / 'en' = language folders; English og images live under og/en/. */
+export function routePageOptions({ screen, segment }, texts = PAGE_TEXTS.fr, prefix = '') {
+  const image = prefix === 'en' ? `en/${PAGE_IMAGES[screen]}` : PAGE_IMAGES[screen]
+  return { segment, prefix, lang: texts.lang, ...texts.pages[screen], image }
 }
 
-export function generateSitePages(indexHtml, siteUrl, texts = PAGE_TEXTS.fr) {
+export function generateSitePages(indexHtml, siteUrl) {
   const pages = ROUTE_PAGES.map((route) => ({
     fileName: `${route.segment}/index.html`,
-    source: renderRoutePage(indexHtml, routePageOptions(route, texts), siteUrl),
+    source: renderRoutePage(indexHtml, routePageOptions(route), siteUrl),
   }))
+  const localized = LANGUAGES.flatMap((code) =>
+    ALL_PAGES.map((route) => ({
+      fileName: `${pagePath(code, route.segment)}index.html`,
+      source: renderRoutePage(indexHtml, routePageOptions(route, PAGE_TEXTS[code], code), siteUrl),
+    })),
+  )
   const redirects = Object.entries(LEGACY_REDIRECTS).map(([legacy, segment]) => ({
     fileName: `${legacy}/index.html`,
     source: renderRedirectPage(segment, siteUrl),
   }))
-  return [...pages, ...redirects, { fileName: '404.html', source: render404Page() }]
+  return [...pages, ...localized, ...redirects, { fileName: '404.html', source: render404Page() }]
 }

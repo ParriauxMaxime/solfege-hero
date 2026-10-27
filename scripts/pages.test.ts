@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { PAGE_IMAGES, PAGE_TEXTS } from './page-texts.mjs'
-import { generateSitePages, render404Page, renderRedirectPage, renderRoutePage } from './pages.mjs'
+import { addHreflang, generateSitePages, render404Page, renderRedirectPage, renderRoutePage } from './pages.mjs'
 import { LANDING_ONLY, LEGACY_REDIRECTS, ROUTES } from './routes.mjs'
 import { renderSitemap, sitePaths } from './site-url.mjs'
 
@@ -143,7 +143,70 @@ describe('generateSitePages', () => {
   })
 })
 
+describe('language pages', () => {
+  const pages = generateSitePages(INDEX_HTML, SITE)
+  const source = (fileName: string) => pages.find((page) => page.fileName === fileName)?.source ?? ''
+
+  it('generates fr/ and en/ pages for home, routes and landing pages', () => {
+    for (const code of ['fr', 'en']) {
+      expect(source(`${code}/index.html`)).not.toBe('')
+      for (const { segment } of [...ROUTES, ...LANDING_ONLY]) if (segment) expect(source(`${code}/${segment}/index.html`)).not.toBe('')
+    }
+  })
+
+  it('sets lang, own canonical, translated texts and english og image', () => {
+    const html = source('en/learn/index.html')
+    expect(html).toContain('<html lang="en"')
+    expect(html).toContain(`<link rel="canonical" href="${SITE}en/learn/" />`)
+    expect(html).toContain(`<meta property="og:url" content="${SITE}en/learn/" />`)
+    expect(html).toContain(`<meta property="og:image" content="${SITE}og/en/og-learn.png" />`)
+    expect(html).toContain('<title>Learn the notes · Solfège hero</title>')
+    expect(source('fr/learn/index.html')).toContain('<html lang="fr"')
+    expect(source('fr/learn/index.html')).toContain(`content="${SITE}og/og-learn.png"`)
+  })
+
+  it('links the three hreflang alternates, x-default on the root page', () => {
+    for (const fileName of ['en/learn/index.html', 'fr/learn/index.html', 'learn/index.html']) {
+      const html = source(fileName)
+      expect(html).toContain(`<link rel="alternate" hreflang="fr" href="${SITE}fr/learn/" />`)
+      expect(html).toContain(`<link rel="alternate" hreflang="en" href="${SITE}en/learn/" />`)
+      expect(html).toContain(`<link rel="alternate" hreflang="x-default" href="${SITE}learn/" />`)
+    }
+    expect(source('learn/index.html')).toContain(`<link rel="canonical" href="${SITE}learn/" />`)
+    expect(source('en/index.html')).toContain(`<link rel="alternate" hreflang="x-default" href="${SITE}" />`)
+  })
+
+  it('adds hreflang to the home idempotently', () => {
+    const once = addHreflang(INDEX_HTML, SITE)
+    expect(count(once, 'hreflang=')).toBe(3)
+    expect(count(addHreflang(once, SITE), 'hreflang=')).toBe(3)
+  })
+
+  it('adjusts the base href to the folder depth', () => {
+    expect(source('en/learn/index.html')).toContain('<base href="../../" />')
+    expect(source('en/challenge/index.html')).toContain('<base href="../../" />')
+    expect(source('en/index.html')).toContain('<base href="../" />')
+    expect(source('fr/index.html')).toContain('<base href="../" />')
+    expect(new URL('./assets/index-abc.js', new URL('../../', `${SITE}en/learn/`)).href).toBe('https://x.test/solfege-hero/assets/index-abc.js')
+  })
+
+  it('has english texts for every page', () => {
+    for (const { screen } of [...ROUTES, ...LANDING_ONLY]) expect(PAGE_TEXTS.en.pages[screen]?.title).toBeTruthy()
+  })
+
+  it('keeps the 404 page aware of language folders', () => {
+    expect(render404Page()).toContain("lastIndexOf('en')")
+  })
+})
+
 describe('sitemap', () => {
+  it('lists root, fr and en pages with hreflang alternates', () => {
+    const sitemap = renderSitemap(SITE, '2026-01-01')
+    expect(sitemap).toContain(`<loc>${SITE}en/learn/</loc>`)
+    expect(sitemap).toContain(`<loc>${SITE}fr/</loc>`)
+    expect(sitemap).toContain(`<xhtml:link rel="alternate" hreflang="x-default" href="${SITE}learn/"/>`)
+  })
+
   it('lists every route and no legacy segment', () => {
     const sitemap = renderSitemap(SITE, '2026-01-01')
     for (const path of sitePaths()) expect(sitemap).toContain(`<loc>${SITE}${path}</loc>`)

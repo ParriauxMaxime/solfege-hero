@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { loadEnv } from 'vite'
-import { ROUTE_PAGES, generateSitePages, renderRedirectPage, renderRoutePage, routePageOptions } from './scripts/pages.mjs'
+import { PAGE_TEXTS } from './scripts/page-texts.mjs'
+import { ROUTE_PAGES, addHreflang, generateSitePages, renderRedirectPage, renderRoutePage, routePageOptions } from './scripts/pages.mjs'
 import { LEGACY_REDIRECTS } from './scripts/routes.mjs'
 import { customDomain, normalizeSiteUrl, renderHumans, renderRobots, renderSitemap } from './scripts/site-url.mjs'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -36,10 +37,13 @@ declare const process: { env: Record<string, string | undefined>; cwd(): string 
 const CF_BEACON_SRC = 'https://static.cloudflareinsights.com/beacon.min.js'
 
 function devPage(requestPath: string, siteUrl: string): string | null {
-  const segment = requestPath.replace(/^\/|\/$/g, '')
+  const [first = '', ...others] = requestPath.replace(/^\/|\/$/g, '').split('/')
+  const prefix = first === 'fr' || first === 'en' ? first : ''
+  const segment = prefix ? others.join('/') : [first, ...others].join('/')
   const raw = () => readFileSync(new URL('./index.html', import.meta.url), 'utf8')
-  const route = ROUTE_PAGES.find((candidate) => candidate.segment === segment)
-  if (route) return renderRoutePage(raw(), routePageOptions(route), siteUrl)
+  const route = [{ screen: 'home', segment: '' }, ...ROUTE_PAGES].find((candidate) => candidate.segment === segment)
+  if (route && (prefix || segment)) return renderRoutePage(raw(), routePageOptions(route as (typeof ROUTE_PAGES)[number], PAGE_TEXTS[prefix || 'fr'], prefix), siteUrl)
+  if (prefix) return null
   const redirect = LEGACY_REDIRECTS[segment]
   return redirect ? renderRedirectPage(redirect, siteUrl) : null
 }
@@ -78,7 +82,9 @@ function siteFiles(siteUrl: string, beaconToken: string): Plugin {
       const emit = (fileName: string, source: string) => this.emitFile({ type: 'asset', fileName, source })
       const index = bundle['index.html']
       if (index?.type !== 'asset') throw new Error('site-files must run after vite:build-html: index.html is not in the bundle')
-      for (const page of generateSitePages(String(index.source), siteUrl)) emit(page.fileName, page.source)
+      const homeHtml = String(index.source)
+      for (const page of generateSitePages(homeHtml, siteUrl)) emit(page.fileName, page.source)
+      index.source = addHreflang(homeHtml, siteUrl)
       emit('sitemap.xml', renderSitemap(siteUrl, lastmod))
       emit('robots.txt', renderRobots(siteUrl))
       emit('humans.txt', renderHumans(siteUrl))

@@ -9,7 +9,7 @@ export interface PageText {
 }
 export interface LanguageTexts {
   lang: string
-  pages: Partial<Record<Screen | LandingScreen, PageText>>
+  pages: Record<Screen | LandingScreen, PageText>
 }
 export const PAGE_IMAGES: Record<Screen | LandingScreen, string>
 export const PAGE_TEXTS: { fr: LanguageTexts; en: LanguageTexts } & Record<string, LanguageTexts>

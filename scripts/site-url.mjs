@@ -27,9 +27,22 @@ export function sitePaths() {
   return [...ROUTES, ...LANDING_ONLY].map(({ segment }) => (segment ? `${segment}/` : ''))
 }
 
+export const LANGUAGE_PREFIXES = ['fr', 'en']
+
+/** Every indexable path: the root pages, then the fr/ and en/ ones. */
+export function allSitePaths() {
+  return [...sitePaths(), ...LANGUAGE_PREFIXES.flatMap((prefix) => sitePaths().map((path) => `${prefix}/${path}`))]
+}
+
 export function renderSitemap(siteUrl, lastmod) {
-  const urls = sitePaths().map((path) => `  <url><loc>${siteUrl}${path}</loc><lastmod>${lastmod}</lastmod></url>`)
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`
+  const urls = allSitePaths().map((path) => {
+    const rest = path.replace(/^(fr|en)\/?/, '')
+    const alternates = [...LANGUAGE_PREFIXES.map((code) => [code, `${code}/${rest}`]), ['x-default', rest]]
+      .map(([code, target]) => `<xhtml:link rel="alternate" hreflang="${code}" href="${siteUrl}${target}"/>`)
+      .join('')
+    return `  <url><loc>${siteUrl}${path}</loc><lastmod>${lastmod}</lastmod>${alternates}</url>`
+  })
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls.join('\n')}\n</urlset>\n`
 }
 
 export function renderRobots(siteUrl) {

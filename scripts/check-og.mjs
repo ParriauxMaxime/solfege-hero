@@ -2,10 +2,10 @@ import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-import { normalizeSiteUrl, sitePaths } from './site-url.mjs'
+import { normalizeSiteUrl, allSitePaths } from './site-url.mjs'
 
 const SITE = normalizeSiteUrl(process.env.VITE_SITE_URL)
-const PAGES = sitePaths()
+const PAGES = allSitePaths()
 const REQUIRED = [
   'og:title',
   'og:description',
@@ -76,11 +76,17 @@ for (const page of PAGES) {
   let tags = new Map()
   let canonical
   let lang
+  let base
+  let hreflangs = new Map()
+  const prefix = /^(fr|en)\//.exec(page)?.[1] ?? ''
+  const rest = page.replace(/^(fr|en)\/?/, '')
   try {
     const html = (await loadBytes(`${page}${baseUrl ? '' : 'index.html'}`)).toString('utf8')
     tags = parseTags(html)
     canonical = /<link\s+rel="canonical"\s+href="([^"]*)"/i.exec(html)?.[1]
     lang = /<html\s[^>]*lang="([^"]+)"/i.exec(html)?.[1]
+    base = /<base\s+href="([^"]*)"/i.exec(html)?.[1]
+    for (const [, code, href] of html.matchAll(/<link\s+rel="alternate"\s+hreflang="([^"]+)"\s+href="([^"]*)"/gi)) hreflangs.set(code, href)
   } catch (error) {
     failures.push(`page not readable: ${error.message}`)
   }
@@ -90,6 +96,12 @@ for (const page of PAGES) {
 
   for (const key of REQUIRED) if (!tags.get(key)) failures.push(`missing ${key}`)
   if (!lang) failures.push('missing <html lang>')
+  else if (lang !== (prefix || 'fr')) failures.push(`<html lang> is ${lang}, expected ${prefix || 'fr'}`)
+  const expectedHreflangs = { fr: `${SITE}fr/${rest}`, en: `${SITE}en/${rest}`, 'x-default': `${SITE}${rest}` }
+  for (const [code, href] of Object.entries(expectedHreflangs)) if (hreflangs.get(code) !== href) failures.push(`hreflang ${code} is ${hreflangs.get(code)}, expected ${href}`)
+  const depth = page.split('/').filter(Boolean).length
+  if (depth > 0 && base !== '../'.repeat(depth)) failures.push(`<base href> is ${base}, expected ${'../'.repeat(depth)}`)
+  if (prefix === 'en' && !tags.get('og:image')?.includes('/og/en/')) failures.push(`og:image should be under og/en/: ${tags.get('og:image')}`)
   if (canonical !== tags.get('og:url')) failures.push(`canonical is ${canonical}, expected og:url ${tags.get('og:url')}`)
   checkUrl('og:url', tags.get('og:url'), failures)
   checkUrl('og:image', tags.get('og:image'), failures)

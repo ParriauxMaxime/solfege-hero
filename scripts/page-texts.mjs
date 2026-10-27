@@ -125,5 +125,112 @@ export const PAGE_TEXTS = {
       },
     },
   },
-  en: { lang: 'en', pages: {} },
+  en: {
+    lang: 'en',
+    pages: {
+      home: {
+        title: 'Solfège hero: learn to read music notes',
+        description:
+          'Free app to learn to read notes on the staff: treble, bass and alto clefs, timed series, survival, rhythm mode and MusicXML scores, offline.',
+        h1: 'Solfège hero',
+        intro:
+          'Free app to learn to read notes on the staff, offline. Learn, Key signatures, Series, Dictation, Survival, Solfège hero and Scores.',
+        imageAlt: 'Solfège hero: learn to read music notes',
+      },
+      learn: {
+        title: 'Learn the notes · Solfège hero',
+        description: 'Learn to read notes on the staff, one at a time, with a draw that adapts to your mistakes.',
+        h1: 'Learn the notes',
+        intro:
+          'One note at a time on the staff, to find on the keyboard. The draw is adaptive: missed or slow notes come back more often, with an optional 60 s timer.',
+        imageAlt: 'Learn to read notes on the staff',
+      },
+      keys: {
+        title: 'Key signatures · Solfège hero',
+        description: 'Recognise the key of a key signature: sharps and flats, major key or relative minor.',
+        h1: 'Key signatures',
+        intro:
+          'A key signature appears after the clef, with 0 to 7 sharps or flats. Answer with the major tonic, the relative minor or both, depending on the setting.',
+        imageAlt: 'Key signatures: recognise the key',
+      },
+      series: {
+        title: 'Series · Solfège hero',
+        description: 'Timed series of 20 notes, +5 s per mistake, with challenges to share with a friend.',
+        h1: 'Series',
+        intro:
+          'Twenty notes to read as fast as you can, with a 5 s penalty per mistake. Every series can be shared by link so a friend plays the same one and tries to beat your time.',
+        imageAlt: 'Series: 20 notes to read as fast as possible',
+      },
+      dictation: {
+        title: 'Music dictation · Solfège hero',
+        description: 'Music dictation: 20 notes to find by ear, against the clock, with challenges to share.',
+        h1: 'Music dictation',
+        intro:
+          'Twenty notes are played, to find by ear on the keyboard. Time is counted, 5 s are added per mistake, and the series can be shared as a challenge.',
+        imageAlt: 'Dictation: 20 notes to find by ear',
+      },
+      survival: {
+        title: 'Survival · Solfège hero',
+        description: 'Survival: 3 lives, a time limit per note and a rising difficulty. Last as long as you can.',
+        h1: 'Survival',
+        intro:
+          'Three lives, 3 s or 5 s per note with a draining bar. Difficulty goes up every 20 correct answers, and a score can be shared as a challenge.',
+        imageAlt: 'Survival: 3 lives, last longer',
+      },
+      hero: {
+        title: 'Solfège hero: read in rhythm',
+        description: 'A scrolling staff: play the notes in rhythm over a metronome, with 16-bar challenges to share.',
+        h1: 'Solfège hero',
+        intro:
+          'The staff scrolls and each note must be played at the right moment, with real durations and a metronome. The tempo adapts to how well you play, and a 16-bar challenge can be shared.',
+        imageAlt: 'Solfège hero: 16 bars in rhythm',
+      },
+      scores: {
+        title: 'Scores · Solfège hero',
+        description: 'Library of MusicXML scores to play in Solfège hero or as a series, with file, PDF and photo import.',
+        h1: 'Scores',
+        intro:
+          'A library of MusicXML scores to play in Solfège hero mode or as a series. Your MusicXML files, PDFs or photos can be imported and stay on your device.',
+        imageAlt: 'MusicXML scores to play',
+      },
+      stats: {
+        title: 'Stats · Solfège hero',
+        description: 'Progress stats: activity, accuracy and response time per mode, and the notes to work on.',
+        h1: 'Stats',
+        intro:
+          'A 16-week activity calendar and accuracy and response time curves for each mode. The hardest notes and key signatures are listed there.',
+        imageAlt: 'Progress stats on Solfège hero',
+      },
+      settings: {
+        title: 'Settings · Solfège hero',
+        description: 'Solfège hero settings: level, clefs, key signatures, display, sound and data backup.',
+        h1: 'Settings',
+        intro:
+          'Level, practised clefs and key signatures, display (theme, colour blindness, reduced motion) and sound are set here. Data can be saved and restored as JSON.',
+        imageAlt: 'Solfège hero settings',
+      },
+      daily: {
+        title: 'Daily challenge · Solfège hero',
+        description: 'Solfège hero daily challenge: the same series of notes for everyone today',
+        h1: 'Daily challenge',
+        intro:
+          'Every day, a series of 20 notes identical for all players, at a fixed level. Later attempts count as practice, and the link can be shared.',
+        imageAlt: 'Daily challenge: the same series for everyone',
+      },
+      challenge: {
+        title: 'Series challenge · Solfège hero',
+        description: 'A friend challenges you on Solfège hero: 20 notes, beat their time',
+        h1: 'Series challenge',
+        intro: 'A friend challenges you on Solfège hero: 20 notes, beat their time. Open the link to play the same series.',
+        imageAlt: 'Series challenge: 20 notes to read as fast as possible',
+      },
+      score: {
+        title: 'Shared score · Solfège hero',
+        description: 'A score shared on Solfège hero: open it and play it',
+        h1: 'Shared score',
+        intro: 'A score shared on Solfège hero: open it and play it. It can be added to your library.',
+        imageAlt: 'A shared score to play on Solfège hero',
+      },
+    },
+  },
 }

@@ -19,8 +19,27 @@ const pages = [
   { file: 'og-partition.png', accent: ['#2f86c6', '#2467a6'], title: 'Une partition pour toi', subtitle: 'Ouvre-la et joue-la dans Solfège hero', foot: 'Solfège hero · Partitions' },
 ]
 
+// English variants (public/og/en/<same name>): same design, same accent, translated texts.
+const english = {
+  'og.png': { title: 'Solfège hero', subtitle: 'Learn to read music notes', foot: 'Learn · Series · Dictation · Keys · Survival · Solfège hero · Scores' },
+  'og-learn.png': { title: 'Learn', subtitle: 'One note at a time, adaptive draw', foot: 'Solfège hero · Learn' },
+  'og-keys.png': { title: 'Key signatures', subtitle: 'Recognise the key of a signature', foot: 'Solfège hero · Key signatures' },
+  'og-series.png': { title: 'Series', subtitle: '20 timed notes, +5 s per mistake', foot: 'Solfège hero · Series' },
+  'og-scores.png': { title: 'Scores', subtitle: 'A MusicXML library to play', foot: 'Solfège hero · Scores' },
+  'og-defi.png': { title: 'A friend challenges you', subtitle: '20 notes, beat their time', foot: 'Solfège hero · Series' },
+  'og-dictee.png': { title: 'Dictation challenge', subtitle: '20 notes by ear, beat your friend’s time', foot: 'Solfège hero · Dictation' },
+  'og-survie.png': { title: 'Survival challenge', subtitle: '3 lives, last longer than your friend', foot: 'Solfège hero · Survival' },
+  'og-hero.png': { title: 'Solfège hero challenge', subtitle: '16 bars in rhythm, do better than your friend', foot: 'Solfège hero' },
+  'og-jour.png': { title: 'Daily challenge', subtitle: 'The same series for everyone today', foot: 'Solfège hero · Series' },
+  'og-partition.png': { title: 'A score for you', subtitle: 'Open it and play it in Solfège hero', foot: 'Solfège hero · Scores' },
+}
+const variants = [
+  ...pages.map((page) => ({ ...page, out: page.file })),
+  ...pages.map((page) => ({ ...page, ...english[page.file], out: `en/${page.file}` })),
+]
+
 const force = process.argv.includes('--force')
-const pending = force ? pages : pages.filter((page) => !existsSync(new URL(page.file, outDir)))
+const pending = force ? variants : variants.filter((page) => !existsSync(new URL(page.out, outDir)))
 if (pending.length === 0) {
   console.log('og images: all present, skipping (use --force to regenerate)')
   process.exit(0)
@@ -46,14 +65,14 @@ h1 { margin: 0; font-size: 96px; line-height: 1.05; font-weight: 800; letter-spa
 <div class="text"><h1>${title}</h1><div class="rule"></div><div class="sub">${subtitle}</div></div>
 <div class="foot">${foot}</div>`
 
-mkdirSync(fileURLToPath(outDir), { recursive: true })
+mkdirSync(fileURLToPath(new URL('en/', outDir)), { recursive: true })
 const { chromium } = await import('playwright-core')
 const browser = await chromium.launch({ channel: 'chrome' })
 const written = []
 for (const page of pending) {
   const tab = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 })
   await tab.setContent(html(page))
-  const path = fileURLToPath(new URL(page.file, outDir))
+  const path = fileURLToPath(new URL(page.out, outDir))
   await tab.screenshot({ path })
   await tab.close()
   written.push(path)

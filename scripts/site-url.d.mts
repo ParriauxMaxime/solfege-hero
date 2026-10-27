@@ -4,6 +4,8 @@ export function siteHost(siteUrl: string): string
 export function isGithubPagesHost(host: string): boolean
 export function customDomain(siteUrl: string): string | null
 export function sitePaths(): string[]
+export const LANGUAGE_PREFIXES: string[]
+export function allSitePaths(): string[]
 export function renderSitemap(siteUrl: string, lastmod: string): string
 export function renderRobots(siteUrl: string): string
 export function renderHumans(siteUrl: string): string
