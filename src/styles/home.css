@@ -323,6 +323,21 @@
   }
 }
 
+@media (orientation: portrait) and (min-width: 700px) {
+  .home-brand {
+    flex: none;
+    padding-top: 12px;
+  }
+
+  .home-logo {
+    width: 180px;
+  }
+
+  .home-title {
+    font-size: 2.4rem;
+  }
+}
+
 @media (orientation: landscape) {
   .home {
     gap: 8px;
