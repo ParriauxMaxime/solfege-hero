@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { setLanguage } from '../i18n'
 import { makeZip } from '../../scripts/zip.mjs'
 import { specBeats } from '../hero/meter'
 import type { NoteSpec } from '../hero/types'
@@ -127,7 +128,7 @@ describe('parseMusicXml rules', () => {
     const result = parseMusicXml(score(FULL_BAR))
     expect(result.score.name).toBe('Sans titre')
     expect(result.score.tempo).toBe(80)
-    expect(result.warnings).toContain('Tempo absent : 80 par défaut')
+    expect(result.warnings).toContain('Tempo absent : 80 par défaut')
   })
 
   it('prefers the work title over the movement title', () => {
@@ -151,7 +152,7 @@ describe('parseMusicXml rules', () => {
     expect(parseMusicXml(score(FULL_BAR, withClef('C', 3))).score.clef).toBe('alto')
     const tenor = parseMusicXml(score(FULL_BAR, withClef('C', 4)))
     expect(tenor.score.clef).toBe('treble')
-    expect(tenor.warnings).toContain('Clef non gérée : clef de sol utilisée')
+    expect(tenor.warnings).toContain('Clef non gérée : clef de sol utilisée')
   })
 
   it('ignores later clef, key and time changes with a warning', () => {
@@ -236,12 +237,24 @@ describe('parseMusicXml rules', () => {
       score([FULL_BAR[0] as string, note('C', 4, 'half'), FULL_BAR[0] as string]),
     )
     expect(parsed.notes.map((spec) => spec.pitch)).toEqual([60, 60, null, 60])
-    expect(warnings).toContain('Mesure 2 incomplète : complétée par un silence')
+    expect(warnings).toContain('Mesure 2 incomplète : complétée par un silence')
   })
 
   it('warns about notes the staff cannot show', () => {
     const { warnings } = parseMusicXml(score([note('C', 8, 'whole')]))
-    expect(warnings).toContain('1 note(s) hors de la portée affichable')
+    expect(warnings).toContain('1 note hors de la portée affichable')
+  })
+
+  it('warns in English when the language is English', () => {
+    setLanguage('en')
+    try {
+      const { warnings } = parseMusicXml(score([note('C', 8, 'whole')]))
+      expect(warnings).toContain('1 note outside the displayable staff')
+      expect(warnings).toContain('No tempo: defaulting to 80')
+      expect(() => parseMusicXml('<nope/>')).toThrow('Unreadable MusicXML file')
+    } finally {
+      setLanguage('fr')
+    }
   })
 })
 

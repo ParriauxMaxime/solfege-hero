@@ -1,3 +1,5 @@
+import { formatDate, formatPercent } from '../i18n/format'
+import { t } from '../i18n'
 import { dailyStreak, type DailyKey } from '../series/daily'
 import { formatTenthsUp } from '../series/share'
 import type { PlayMode, Progress } from '../storage'
@@ -111,7 +113,7 @@ function logoStaff(): SVGSVGElement {
 
 function renderLogo(): HTMLElement {
   const title = el('h1', 'home-title', 'Solfège hero')
-  return el('div', 'home-brand', logoStaff(), title, el('p', 'home-tagline', 'Apprendre à lire les notes sur la portée'))
+  return el('div', 'home-brand', logoStaff(), title, el('p', 'home-tagline', t('home.tagline')))
 }
 
 function flame(): SVGSVGElement {
@@ -121,7 +123,7 @@ function flame(): SVGSVGElement {
 }
 
 function streakStat(days: number): Node {
-  return el('span', 'home-stat', days > 0 ? el('b', 'home-stat-value', flame(), `${days} j`) : el('b', 'home-stat-value', NONE))
+  return el('span', 'home-stat', days > 0 ? el('b', 'home-stat-value', flame(), t('home.streakDays', { days })) : el('b', 'home-stat-value', NONE))
 }
 
 function valueStat({ value, label }: Stat): Node {
@@ -133,22 +135,25 @@ function statsRow(first: Stat, streak: number): HTMLElement {
 }
 
 function accuracyStat(progress: Progress): Stat {
-  const records = Object.values(progress.notes)
+  return accuracyOf(Object.values(progress.notes))
+}
+
+function accuracyOf(records: { attempts: number; correct: number }[]): Stat {
   const attempts = records.reduce((sum, record) => sum + record.attempts, 0)
   const correct = records.reduce((sum, record) => sum + record.correct, 0)
-  return { value: attempts > 0 ? `${Math.round((100 * correct) / attempts)} %` : NONE, label: 'précision' }
+  return { value: attempts > 0 ? formatPercent(Math.round((100 * correct) / attempts) / 100) : NONE, label: t('home.accuracy') }
 }
 
 function shortDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+  return formatDate(timestamp, { day: 'numeric', month: 'short' })
 }
 
 function scoresStats(scores: Score[]): Node[] {
   const lastImport = Math.max(0, ...scores.map((score) => score.importedAt))
   return [
-    valueStat({ value: String(scores.length), label: 'partitions' }),
+    valueStat({ value: String(scores.length), label: t('home.scores') }),
     el('span', 'home-stat-sep', '·'),
-    valueStat({ value: lastImport > 0 ? shortDate(lastImport) : NONE, label: 'import' }),
+    valueStat({ value: lastImport > 0 ? shortDate(lastImport) : NONE, label: t('home.lastImport') }),
   ]
 }
 
@@ -156,13 +161,13 @@ function dailyBanner(progress: Progress, today: DailyKey): HTMLElement {
   const attemptMs = progress.daily.attempts[today]?.totalMs ?? null
   const status =
     attemptMs === null
-      ? el('span', 'home-card-note', '20 notes')
+      ? el('span', 'home-card-note', t('home.daily.notes'))
       : el('span', 'home-card-note inline-icon', glyph('check'), formatTenthsUp(attemptMs))
   const streak = dailyStreak(Object.keys(progress.daily.attempts), today)
   return el(
     'span',
     'home-banner-body',
-    el('span', 'home-card-text', el('strong', 'home-card-title', 'Défi du jour'), status),
+    el('span', 'home-card-text', el('strong', 'home-card-title', t('home.daily.title')), status),
     ...(streak > 0 ? [el('span', 'home-stats', streakStat(streak))] : []),
   )
 }
@@ -172,10 +177,7 @@ function streakOf(progress: Progress, mode: PlayMode, today: DailyKey): number {
 }
 
 function keysAccuracyStat(progress: Progress): Stat {
-  const records = Object.values(progress.keys)
-  const attempts = records.reduce((sum, record) => sum + record.attempts, 0)
-  const correct = records.reduce((sum, record) => sum + record.correct, 0)
-  return { value: attempts > 0 ? `${Math.round((100 * correct) / attempts)} %` : NONE, label: 'précision' }
+  return accuracyOf(Object.values(progress.keys))
 }
 
 function cardSpecs(progress: Progress, today: DailyKey): CardSpec[] {
@@ -184,43 +186,43 @@ function cardSpecs(progress: Progress, today: DailyKey): CardSpec[] {
     {
       choice: 'apprendre',
       accent: 'violet',
-      title: 'Apprendre',
+      title: t('home.modes.learn'),
       stats: statsRow(accuracyStat(progress), streakOf(progress, 'learn', today)),
       icon: ICONS.apprendre,
     },
     {
       choice: 'series',
       accent: 'mint',
-      title: 'Séries',
-      stats: statsRow({ value: best(progress.series.bestMs, formatTenthsUp), label: 'temps' }, streakOf(progress, 'series', today)),
+      title: t('home.modes.series'),
+      stats: statsRow({ value: best(progress.series.bestMs, formatTenthsUp), label: t('home.time') }, streakOf(progress, 'series', today)),
       icon: ICONS.series,
     },
     {
       choice: 'dictation',
       accent: 'fuchsia',
-      title: 'Dictée',
-      stats: statsRow({ value: best(progress.dictation.bestMs, formatTenthsUp), label: 'temps' }, streakOf(progress, 'dictation', today)),
+      title: t('home.modes.dictation'),
+      stats: statsRow({ value: best(progress.dictation.bestMs, formatTenthsUp), label: t('home.time') }, streakOf(progress, 'dictation', today)),
       icon: ICONS.dictation,
     },
     {
       choice: 'keys',
       accent: 'teal',
-      title: 'Armures',
+      title: t('home.modes.keys'),
       stats: statsRow(keysAccuracyStat(progress), streakOf(progress, 'keys', today)),
       icon: ICONS.keys,
     },
     {
       choice: 'survival',
       accent: 'rose',
-      title: 'Survie',
-      stats: statsRow({ value: best(progress.survival.bestScore), label: 'score' }, streakOf(progress, 'survival', today)),
+      title: t('home.modes.survival'),
+      stats: statsRow({ value: best(progress.survival.bestScore), label: t('home.score') }, streakOf(progress, 'survival', today)),
       icon: ICONS.survival,
     },
     {
       choice: 'hero',
       accent: 'sunset',
-      title: 'Solfège hero',
-      stats: statsRow({ value: best(progress.hero.bestScore), label: 'score' }, streakOf(progress, 'hero', today)),
+      title: t('home.modes.hero'),
+      stats: statsRow({ value: best(progress.hero.bestScore), label: t('home.score') }, streakOf(progress, 'hero', today)),
       icon: ICONS.hero,
     },
   ]
@@ -256,15 +258,15 @@ export function createHome({ progress, today, scores, onChoose, onSettings, onSt
   }
   const partitionsStats = el('span', 'home-stats', ...scoresStats([]))
   void scores.then((list) => partitionsStats.replaceChildren(...scoresStats(list)))
-  const partitionsCard = card('partitions', 'ocean', 7, onChoose, el('span', 'home-card-text', el('strong', 'home-card-title', 'Partitions'), partitionsStats))
+  const partitionsCard = card('partitions', 'ocean', 7, onChoose, el('span', 'home-card-text', el('strong', 'home-card-title', t('home.modes.scores')), partitionsStats))
   const cards = el(
     'div',
     'home-cards',
     card('daily', 'gold', 0, onChoose, dailyBanner(progress, today)),
     ...cardSpecs(progress, today).map((spec, index) => specCard(spec, index + 1, onChoose)),
     partitionsCard,
-    utilityCard('settings', 'Réglages', onSettings),
-    utilityCard('stats', 'Statistiques', onStats, answers > 0 ? `${answers} réponses` : undefined),
+    utilityCard('settings', t('home.settings'), onSettings),
+    utilityCard('stats', t('home.stats'), onStats, answers > 0 ? t('home.answers', { count: answers }) : undefined),
   )
   cards.firstElementChild?.classList.add('home-daily')
   partitionsCard.classList.add('home-wide')

@@ -1,18 +1,20 @@
+import { t, type MessageKey } from '../../i18n'
+import { formatPercent } from '../../i18n/format'
 import type { OmrStage } from '../../omr/types'
 import { button, el } from '../dom'
 import { icon } from '../icons'
 
 export type ProgressStep = 'read' | OmrStage
 
-const STEP_LABELS: Record<ProgressStep, string> = {
-  read: 'Lecture du fichier',
-  preprocess: 'Redressement de l’image',
-  staves: 'Détection des portées',
-  symbols: 'Lecture des symboles',
-  music: 'Hauteurs et rythmes',
-}
+const STEP_KEYS = {
+  read: 'omr.progress.steps.read',
+  preprocess: 'omr.progress.steps.preprocess',
+  staves: 'omr.progress.steps.staves',
+  symbols: 'omr.progress.steps.symbols',
+  music: 'omr.progress.steps.music',
+} satisfies Record<ProgressStep, MessageKey>
 
-const STEPS = Object.keys(STEP_LABELS) as ProgressStep[]
+const STEPS = Object.keys(STEP_KEYS) as ProgressStep[]
 
 export interface ProgressScreen {
   element: HTMLElement
@@ -31,13 +33,13 @@ export function createProgress({ onCancel, onBack }: ProgressOptions): ProgressS
   bar.setAttribute('role', 'progressbar')
   bar.setAttribute('aria-valuemin', '0')
   bar.setAttribute('aria-valuemax', '100')
-  const percentLabel = el('span', 'omr-percent', '0 %')
-  const items = new Map<ProgressStep, HTMLElement>(STEPS.map((step) => [step, el('li', 'omr-step', STEP_LABELS[step])]))
-  const heading = el('h2', '', 'Lecture de la partition')
+  const percentLabel = el('span', 'omr-percent', formatPercent(0))
+  const items = new Map<ProgressStep, HTMLElement>(STEPS.map((step) => [step, el('li', 'omr-step', t(STEP_KEYS[step]))]))
+  const heading = el('h2', '', t('omr.progress.heading'))
   const errorText = el('p', 'omr-error')
   errorText.hidden = true
-  const cancel = button('segment-button', 'Annuler', onCancel)
-  const back = button('primary', 'Retour', onBack)
+  const cancel = button('segment-button', t('omr.progress.cancel'), onCancel)
+  const back = button('primary', t('omr.progress.back'), onBack)
   back.hidden = true
   const element = el('section', 'omr-progress', heading, el('div', 'omr-bar-row', bar, percentLabel), el('ol', 'omr-steps', ...items.values()), errorText, cancel, back)
 
@@ -53,11 +55,11 @@ export function createProgress({ onCancel, onBack }: ProgressOptions): ProgressS
     const rounded = Math.round(percent)
     fill.style.width = `${rounded}%`
     bar.setAttribute('aria-valuenow', String(rounded))
-    percentLabel.textContent = `${rounded} %`
+    percentLabel.textContent = formatPercent(rounded / 100)
   }
 
   function fail(message: string): void {
-    heading.textContent = 'Lecture impossible'
+    heading.textContent = t('omr.progress.failed')
     errorText.textContent = message
     errorText.hidden = false
     cancel.hidden = true

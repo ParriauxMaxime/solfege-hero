@@ -1,10 +1,11 @@
+import { formatDate } from '../i18n/format'
 import { dailyKey } from '../series/daily'
 import type { DayKey, WeekKey } from './history'
 
 const MS_PER_DAY = 86_400_000
 const DAY_FORMAT = /^(\d{4})-(\d{2})-(\d{2})$/
 const WEEK_FORMAT = /^(\d{4})-W(\d{2})$/
-const MONTHS = ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc']
+const MONDAY = '2024-01-01'
 
 function utcOf(day: DayKey): Date {
   return new Date(`${day}T00:00:00Z`)
@@ -64,8 +65,21 @@ export function addWeeks(week: WeekKey, count: number): WeekKey {
   return weekKeyOf(addDays(mondayOf(week), count * 7))
 }
 
-/** « 24 oct » */
+function withoutAbbreviationDots(text: string): string {
+  return text.replaceAll('.', '')
+}
+
+/** « 24 oct » / « 24 Oct » */
 export function shortDateLabel(day: DayKey): string {
-  const date = utcOf(day)
-  return `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]}`
+  return withoutAbbreviationDots(formatDate(utcOf(day), { day: 'numeric', month: 'short', timeZone: 'UTC' }))
+}
+
+/** « oct » / « Oct » */
+export function shortMonthLabel(day: DayKey): string {
+  return withoutAbbreviationDots(formatDate(utcOf(day), { month: 'short', timeZone: 'UTC' }))
+}
+
+/** Narrow weekday letter, Monday = 0 … Sunday = 6: « L » / « M ». */
+export function weekdayInitial(index: number): string {
+  return formatDate(utcOf(addDays(MONDAY, index)), { weekday: 'narrow', timeZone: 'UTC' })
 }

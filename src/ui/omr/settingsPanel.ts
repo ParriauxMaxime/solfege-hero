@@ -1,4 +1,5 @@
 import type { TimeSignature } from '../../hero/types'
+import { t } from '../../i18n'
 import type { Clef } from '../../music/notes'
 import { el } from '../dom'
 import { createStaffPicker } from './staffPicker'
@@ -22,18 +23,13 @@ export interface SettingsHandlers {
   staff: (staffIndex: number) => Promise<boolean>
 }
 
-const CLEF_CHOICES: { value: Clef; label: string }[] = [
-  { value: 'treble', label: 'Sol' },
-  { value: 'bass', label: 'Fa' },
-  { value: 'alto', label: 'Ut 3' },
-]
 const COMMON_TIMES = ['2/4', '3/4', '4/4', '5/4', '2/2', '3/8', '6/8', '9/8', '12/8']
 const MAX_NAME_LENGTH = 80
 const MIN_TEMPO = 40
 const MAX_TEMPO = 200
 
 export function keyLabel(fifths: number): string {
-  if (fifths === 0) return 'Aucune'
+  if (fifths === 0) return t('omr.settings.noKey')
   return fifths > 0 ? `${fifths} ♯` : `${-fifths} ♭`
 }
 
@@ -77,17 +73,22 @@ export function createSettingsPanel(values: SettingsValues, handlers: SettingsHa
   })
 
   const keys = Array.from({ length: 15 }, (_, index) => index - 7).map((fifths) => ({ value: String(fifths), label: keyLabel(fifths) }))
+  const clefChoices: { value: Clef; label: string }[] = [
+    { value: 'treble', label: t('omr.settings.clefs.treble') },
+    { value: 'bass', label: t('omr.settings.clefs.bass') },
+    { value: 'alto', label: t('omr.settings.clefs.alto') },
+  ]
   const times = new Set([...COMMON_TIMES, timeLabel(values.time)])
   const timeOptions = [...times].map((label) => ({ value: label, label }))
 
   return el(
     'div',
     'omr-settings-body',
-    field('Titre', name),
-    field('Clé', select(CLEF_CHOICES, values.clef, (value) => handlers.clef(value as Clef))),
-    field('Armure', select(keys, String(values.key), (value) => handlers.key(Number(value)))),
-    field('Chiffrage', select(timeOptions, timeLabel(values.time), (value) => handlers.time(parseTime(value)))),
-    field('Tempo', tempo),
+    field(t('omr.settings.title'), name),
+    field(t('omr.settings.clef'), select(clefChoices, values.clef, (value) => handlers.clef(value as Clef))),
+    field(t('omr.settings.key'), select(keys, String(values.key), (value) => handlers.key(Number(value)))),
+    field(t('omr.settings.time'), select(timeOptions, timeLabel(values.time), (value) => handlers.time(parseTime(value)))),
+    field(t('omr.settings.tempo'), tempo),
     createStaffPicker(values.staffIndex, handlers.staff).element,
   )
 }

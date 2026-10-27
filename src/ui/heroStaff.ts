@@ -1,4 +1,5 @@
 import { COMMON_TIME } from '../hero/types'
+import { t } from '../i18n'
 import type { HeroNote, TimeSignature } from '../hero/types'
 import { barClicks, barLength } from '../hero/meter'
 import { inlineAccidental } from '../music/keySignature'
@@ -213,7 +214,7 @@ export function createScrollingStaff(
     viewBox: `0 ${CONTENT_TOP} ${viewWidth} ${CONTENT_HEIGHT}`,
     preserveAspectRatio: 'xMinYMid meet',
     role: 'img',
-    'aria-label': 'Portée défilante',
+    'aria-label': t('hero.staffLabel'),
   })
   const clipRect = svgElement('rect', { x: clipLeft })
   const clip = svgElement('clipPath', { id: CLIP_ID })

@@ -1,3 +1,4 @@
+import { formatDate } from '../i18n/format'
 import { DEFAULT_SERIES_DIFFICULTY, type RandomSeriesConfig } from './series'
 
 /** A calendar day in Paris, written "YYYYMMDD". */
@@ -36,7 +37,7 @@ export function dailyKey(date: Date): DailyKey {
 }
 
 export function dailyLabel(key: DailyKey): string {
-  return `${key.slice(6, 8)}/${key.slice(4, 6)}/${key.slice(0, 4)}`
+  return formatDate(dateOf(key), { timeZone: 'UTC', day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 export function dailyConfig(key: DailyKey): RandomSeriesConfig {

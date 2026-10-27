@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import { MAX_LIVES } from './game'
 
 const HEART_KEPT = '❤️'
@@ -9,12 +10,12 @@ export function heartsText(lives: number): string {
 }
 
 export function noteCount(count: number): string {
-  return `${count} note${count > 1 ? 's' : ''}`
+  return t('survival.notes', { count })
 }
 
 export function survivalShareText(input: { seed: number; score: number; lives: number; callToAction?: string }): string {
   return [
-    `Solfège hero · Survie #${input.seed} · 🎯 ${noteCount(input.score)} · ${heartsText(input.lives)}`,
-    input.callToAction ?? 'Bats-moi !',
+    t('share.survivalLine', { seed: String(input.seed), notes: noteCount(input.score), hearts: heartsText(input.lives) }),
+    input.callToAction ?? t('share.cta'),
   ].join('\n')
 }

@@ -1,4 +1,5 @@
 import type { Sound } from '../../audio/sound'
+import { t } from '../../i18n'
 import type { Duration, TimeSignature } from '../../hero/types'
 import type { Accidental } from '../../music/keySignature'
 import { scoreId } from '../../music/musicxml'
@@ -60,7 +61,6 @@ const UNCERTAIN_BAR_TOP = 52
 const UNCERTAIN_BAR_HEIGHT = 8
 const SCROLL_MARGIN = 8
 const SVG_NS = 'http://www.w3.org/2000/svg'
-const DEFAULT_NAME = 'Partition importée'
 
 function cssColour(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
@@ -83,10 +83,10 @@ export function createReview({ source, result, sound, onSave, onClose, onRerun }
   const crop = createSourceCrop(source)
   const sheetBox = el('div', 'omr-sheet')
   const staffLabel = el('span', 'omr-staff-label')
-  const previousStaff = iconButton('chevron-left', () => goToStaff(currentStaff - 1), 'Portée précédente')
-  const nextStaff = iconButton('chevron-right', () => goToStaff(currentStaff + 1), 'Portée suivante')
-  const playButton = iconButton('play', togglePlayback, 'Écouter')
-  const saveButton = button('primary omr-save', 'Enregistrer', save)
+  const previousStaff = iconButton('chevron-left', () => goToStaff(currentStaff - 1), t('omr.review.previousStaff'))
+  const nextStaff = iconButton('chevron-right', () => goToStaff(currentStaff + 1), t('omr.review.nextStaff'))
+  const playButton = iconButton('play', togglePlayback, t('omr.review.listen'))
+  const saveButton = button('primary omr-save', t('omr.review.save'), save)
   saveButton.prepend(icon('check'))
   saveButton.classList.add('inline-icon')
 
@@ -99,7 +99,7 @@ export function createReview({ source, result, sound, onSave, onClose, onRerun }
       playing = index
       markPlaying()
       setIcon(playButton, index === null ? 'play' : 'stop')
-      playButton.setAttribute('aria-label', index === null ? 'Écouter' : 'Arrêter')
+      playButton.setAttribute('aria-label', index === null ? t('omr.review.listen') : t('omr.review.stop'))
     },
   })
 
@@ -147,24 +147,24 @@ export function createReview({ source, result, sound, onSave, onClose, onRerun }
   )
 
   const warningCount = result.warnings.length
-  const warnings = el('details', 'omr-details', el('summary', '', `Avertissements (${warningCount})`, icon('chevron-down')), el('ul', 'omr-warnings', ...result.warnings.map((warning) => el('li', '', warning))))
+  const warnings = el('details', 'omr-details', el('summary', '', t('omr.review.warnings', { count: warningCount }), icon('chevron-down')), el('ul', 'omr-warnings', ...result.warnings.map((warning) => el('li', '', warning))))
   warnings.hidden = warningCount === 0
-  const settingsDetails = el('details', 'omr-details', el('summary', '', 'Réglages', icon('chevron-down')), settings)
+  const settingsDetails = el('details', 'omr-details', el('summary', '', t('omr.review.settings'), icon('chevron-down')), settings)
   const legend = el(
     'p',
     'omr-legend',
     ...[
-      ['high', 'sûre'],
-      ['medium', 'à vérifier'],
-      ['low', 'douteuse'],
+      ['high', t('omr.review.sure')],
+      ['medium', t('omr.review.check')],
+      ['low', t('omr.review.doubtful')],
     ].map(([band, label]) => el('span', 'omr-legend-item', el('i', `omr-swatch ${band}`), label as string)),
-    el('span', 'omr-legend-item', el('i', 'omr-swatch bar'), 'mesure à revoir'),
+    el('span', 'omr-legend-item', el('i', 'omr-swatch bar'), t('omr.review.measureToReview')),
   )
 
   const element = el(
     'section',
     'omr-review',
-    el('header', 'omr-header', iconButton('close', onClose, 'Annuler'), el('h2', '', 'Vérification'), saveButton),
+    el('header', 'omr-header', iconButton('close', onClose, t('omr.review.cancel')), el('h2', '', t('omr.review.title')), saveButton),
     el(
       'div',
       'omr-main',
@@ -253,7 +253,7 @@ export function createReview({ source, result, sound, onSave, onClose, onRerun }
 
   function refreshChrome(): void {
     const count = result.staves.length
-    staffLabel.textContent = count === 0 ? 'Aucune portée' : `Portée ${currentStaff + 1} / ${count}`
+    staffLabel.textContent = count === 0 ? t('omr.review.noStaff') : t('omr.review.staffLabel', { current: currentStaff + 1, total: count })
     previousStaff.disabled = currentStaff <= 0
     nextStaff.disabled = currentStaff >= count - 1
     saveButton.disabled = !notes.some((entry) => entry.spec.pitch !== null)
@@ -307,7 +307,7 @@ export function createReview({ source, result, sound, onSave, onClose, onRerun }
   }
 
   async function askRerun(staffIndex: number): Promise<boolean> {
-    if (edited && !(await confirmOverlay(element, 'Relire la portée choisie effacera tes corrections.', 'Relire', 'Garder mes corrections'))) return false
+    if (edited && !(await confirmOverlay(element, t('omr.review.rerunConfirm'), t('omr.review.rerun'), t('omr.review.keepCorrections')))) return false
     playback.stop()
     onRerun(staffIndex)
     return true
@@ -331,7 +331,7 @@ export function createReview({ source, result, sound, onSave, onClose, onRerun }
   function save(): void {
     playback.stop()
     const melody = currentScore()
-    onSave({ ...melody, id: scoreId(melody), name: name.trim() || DEFAULT_NAME, tempo })
+    onSave({ ...melody, id: scoreId(melody), name: name.trim() || t('omr.defaultName'), tempo })
   }
 
   function fitSheet(): void {

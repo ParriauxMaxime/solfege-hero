@@ -1,4 +1,5 @@
 import type { Sound } from '../../audio/sound'
+import { t } from '../../i18n'
 import type { GrayImage, OmrResult } from '../../omr/types'
 import type { NewScore } from '../../storage/scores'
 import { confirmOverlay } from '../confirm'
@@ -14,9 +15,6 @@ import { createReview } from './review'
 import type { Review } from './review'
 import type { PdfSession } from '../../omr/pdf'
 import { decodePhoto, isPdf, openPdf, readableError, readFile, renderPage, renderPreview } from './source'
-
-const REDUCED_MESSAGE = 'Image réduite pour ce téléphone'
-const NOTHING_READ_MESSAGE = 'Aucune portée ni note reconnue : cadre bien la partition, à plat et bien éclairée.'
 
 /** Closes the import even when the browser never delivers the popstate that history.back() should trigger. */
 const POP_FALLBACK_MS = 250
@@ -34,7 +32,7 @@ export function openOmrImport({ file, sound, onSave }: OmrImportOptions): void {
   const modal = el('div', 'omr-modal')
   modal.setAttribute('role', 'dialog')
   modal.setAttribute('aria-modal', 'true')
-  modal.setAttribute('aria-label', 'Importer une partition')
+  modal.setAttribute('aria-label', t('omr.dialogLabel'))
   let source: GrayImage | null = null
   let sourcePage = 0
   let pdf: PdfSession | null = null
@@ -74,7 +72,7 @@ export function openOmrImport({ file, sound, onSave }: OmrImportOptions): void {
   }
 
   async function requestClose(): Promise<void> {
-    if (!review?.hasEdits() || (await confirmOverlay(modal, 'Abandonner cette lecture ? Tes corrections seront perdues.', 'Abandonner', 'Continuer'))) closeNow()
+    if (!review?.hasEdits() || (await confirmOverlay(modal, t('omr.abandon.message'), t('omr.abandon.confirm'), t('omr.abandon.keep')))) closeNow()
   }
 
   function onPopState(): void {
@@ -147,15 +145,15 @@ export function openOmrImport({ file, sound, onSave }: OmrImportOptions): void {
         if (mine !== run) return
         source = rendered.gray
         sourcePage = page
-        if (rendered.reduced) showToast(REDUCED_MESSAGE)
+        if (rendered.reduced) showToast(t('omr.reduced'))
       }
-      if (!source) throw new Error('image manquante')
+      if (!source) throw new Error(t('omr.missingImage'))
       progress.update('preprocess', 0)
       job = startRecognition(source, staffIndex, progress.update)
       const result = await job.result
       if (mine !== run) return
       if (result.staves.length === 0 || !result.score.notes.some((note) => note.pitch !== null)) {
-        progress.fail(result.warnings[0] ?? NOTHING_READ_MESSAGE)
+        progress.fail(result.warnings[0] ?? t('omr.nothingRead'))
         return
       }
       showReview(result)
@@ -177,7 +175,7 @@ export function openOmrImport({ file, sound, onSave }: OmrImportOptions): void {
         void recognise()
       },
       onSave: (score) => {
-        void onSave(score).then(closeNow, (error) => showToast(error instanceof Error ? error.message : 'Enregistrement impossible'))
+        void onSave(score).then(closeNow, (error) => showToast(error instanceof Error ? error.message : t('omr.saveFailed')))
       },
     })
     show(created.element)
@@ -196,7 +194,7 @@ export function openOmrImport({ file, sound, onSave }: OmrImportOptions): void {
       }
       const photo = await decodePhoto(file)
       source = photo.gray
-      if (photo.reduced) showToast(REDUCED_MESSAGE)
+      if (photo.reduced) showToast(t('omr.reduced'))
       await recognise()
     } catch (error) {
       if (!closed) failScreen(readableError(error, isPdf(file) ? 'pdf' : 'photo'))

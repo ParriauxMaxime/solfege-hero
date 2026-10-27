@@ -1,7 +1,9 @@
 import type { Score } from '../hero/types'
+import { t } from '../i18n'
 import { toMusicXml } from '../music/musicxmlExport'
 import { copyText } from '../platform/clipboard'
 import { encodeScoreBlob, scoreLinkHash } from '../scores/link'
+import { scoreTitle } from '../scores/title'
 import { appBase, landingUrl } from '../share/links'
 import { button, el } from './dom'
 import { showToast } from './toast'
@@ -16,7 +18,7 @@ function isAbort(error: unknown): boolean {
 
 function fileName(score: ShareableScore): string {
   const safe = score.name.replace(/[^\p{L}\p{N} _-]+/gu, '').trim().replace(/\s+/g, '-')
-  return `${safe || 'partition'}.musicxml`
+  return `${safe || t('common.share.defaultFileName')}.musicxml`
 }
 
 export async function shareLink({ title, text, url }: { title: string; text: string; url: string }): Promise<void> {
@@ -28,15 +30,15 @@ export async function shareLink({ title, text, url }: { title: string; text: str
       if (isAbort(error)) return
     }
   }
-  showToast((await copyText(`${text}\n${url}`)) ? 'Copié !' : 'Copie impossible')
+  showToast((await copyText(`${text}\n${url}`)) ? t('common.share.copied') : t('common.share.copyFailed'))
 }
 
 export async function copyLink(url: string): Promise<void> {
-  showToast((await copyText(url)) ? 'Lien copié !' : 'Copie impossible')
+  showToast((await copyText(url)) ? t('common.share.linkCopied') : t('common.share.copyFailed'))
 }
 
 export function shareRow(label: string, onShare: () => void, onCopy: () => void, shareClass = 'primary'): HTMLElement {
-  return el('div', 'share-row', button(shareClass, label, onShare), button('segment-button', 'Copier le lien', onCopy))
+  return el('div', 'share-row', button(shareClass, label, onShare), button('segment-button', t('common.share.copyLink'), onCopy))
 }
 
 export function downloadScoreFile(score: ShareableScore): void {
@@ -71,9 +73,9 @@ export async function shareScore(score: ShareableScore): Promise<void> {
   if (await shareFile(score)) return
   const url = await scoreLink(score)
   if (url) {
-    await shareLink({ title: 'Solfège hero : partition', text: `Partition « ${score.name} » sur Solfège hero`, url })
+    await shareLink({ title: t('common.share.scoreTitle'), text: t('common.share.scoreText', { name: scoreTitle(score.name) }), url })
     return
   }
-  showToast('Partition trop longue pour un lien, envoie le fichier .musicxml')
+  showToast(t('common.share.scoreTooLong'))
   downloadScoreFile(score)
 }

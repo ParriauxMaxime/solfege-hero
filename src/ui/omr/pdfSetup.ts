@@ -1,3 +1,4 @@
+import { t } from '../../i18n'
 import { button, el, iconButton } from '../dom'
 import { createStaffPicker } from './staffPicker'
 
@@ -15,8 +16,8 @@ export function createPdfSetup({ pageCount, preview, initialPreview, staffIndex,
   let page = 1
   const canvas = el('canvas', 'omr-page-preview')
   const label = el('span', 'omr-page-label')
-  const previous = iconButton('chevron-left', () => go(page - 1), 'Page précédente')
-  const next = iconButton('chevron-right', () => go(page + 1), 'Page suivante')
+  const previous = iconButton('chevron-left', () => go(page - 1), t('omr.setup.previousPage'))
+  const next = iconButton('chevron-right', () => go(page + 1), t('omr.setup.nextPage'))
   const staff = createStaffPicker(staffIndex, () => true)
 
   function draw(bitmap: ImageBitmap): void {
@@ -27,7 +28,7 @@ export function createPdfSetup({ pageCount, preview, initialPreview, staffIndex,
   }
 
   function refresh(): void {
-    label.textContent = `Page ${page} / ${pageCount}`
+    label.textContent = t('omr.setup.pageLabel', { page, total: pageCount })
     previous.disabled = page <= 1
     next.disabled = page >= pageCount
   }
@@ -54,11 +55,11 @@ export function createPdfSetup({ pageCount, preview, initialPreview, staffIndex,
   return el(
     'section',
     'omr-setup',
-    el('header', 'omr-header', el('h2', '', 'Choisir la page'), iconButton('close', onClose, 'Fermer')),
+    el('header', 'omr-header', el('h2', '', t('omr.setup.title')), iconButton('close', onClose, t('omr.setup.close'))),
     el('div', 'omr-page-frame', canvas),
     pager,
     staff.element,
-    el('p', 'omr-hint', 'Pour un piano ou un chant, la mélodie est le plus souvent sur la portée du haut (1).'),
-    button('primary big', 'Lire la partition', () => onStart(page, staff.value())),
+    el('p', 'omr-hint', t('omr.setup.hint')),
+    button('primary big', t('omr.setup.read'), () => onStart(page, staff.value())),
   )
 }

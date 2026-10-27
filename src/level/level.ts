@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import type { Difficulty } from '../music/generator'
 import { ledgerStepRange } from '../music/notes'
 import type { SurvivalDelay } from '../survival/game'
@@ -61,28 +62,28 @@ export function capsFor(level: number): LevelCaps {
 }
 
 export function tierName(level: number): string {
-  if (level < 25) return 'Débutant'
-  if (level < 50) return 'Apprenti'
-  if (level < 75) return 'Lecteur'
-  return 'Virtuose'
+  if (level < 25) return t('level.tier.beginner')
+  if (level < 50) return t('level.tier.apprentice')
+  if (level < 75) return t('level.tier.reader')
+  return t('level.tier.virtuoso')
 }
 
 function describeKeys(maxFifths: number): string {
-  if (maxFifths === 0) return 'Pas d’armure'
-  if (maxFifths >= ALL_KEYS_FIFTHS) return 'Toutes les armures'
-  return `Armures jusqu’à ${maxFifths}♯/${maxFifths}♭`
+  if (maxFifths === 0) return t('level.caps.noKeys')
+  if (maxFifths >= ALL_KEYS_FIFTHS) return t('level.caps.allKeys')
+  return t('level.caps.keysUpTo', { count: maxFifths })
 }
 
 function describeLedgerLines(ledgerLines: number): string {
-  if (ledgerLines === 0) return 'pas de ligne supplémentaire'
-  return `${ledgerLines} ${ledgerLines === 1 ? 'ligne supplémentaire' : 'lignes supplémentaires'}`
+  if (ledgerLines === 0) return t('level.caps.noLedger')
+  return t('level.caps.ledger', { count: ledgerLines })
 }
 
 export function describeCaps(caps: NoteCaps): string {
   return [
     describeKeys(caps.maxFifths),
     describeLedgerLines(caps.ledgerLines),
-    caps.inlineAccidentals ? 'altérations' : 'pas d’altérations',
+    caps.inlineAccidentals ? t('level.caps.accidentals') : t('level.caps.noAccidentals'),
   ].join(' · ')
 }
 

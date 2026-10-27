@@ -1,4 +1,5 @@
-import { dailyLabel, type DailyKey } from '../series/daily'
+import { t } from '../i18n'
+import { DAILY_LEVEL, dailyLabel, type DailyKey } from '../series/daily'
 import { formatTenthsUp } from '../series/share'
 import { button, el } from './dom'
 import { icon } from './icons'
@@ -14,17 +15,17 @@ export interface DailyIntroOptions {
 
 export function createDailyIntro({ key, ranked, attemptMs, onStart }: DailyIntroOptions): HTMLElement {
   const label = dailyLabel(key)
-  const headline = ranked ? label : `Défi du ${label} (hors délai)`
-  const details = ranked ? '20 notes, clé de sol, armures' : 'Entraînement, non compté dans ton score'
+  const headline = ranked ? label : t('daily.late', { date: label })
+  const details = ranked ? t('daily.rankedDetails') : t('daily.practiceDetails')
   const played = ranked && attemptMs !== null
   return el(
     'section',
     'screen panel challenge-intro',
-    el('h1', '', 'Défi du jour'),
+    el('h1', '', t('daily.title')),
     el('p', 'challenge-headline', headline),
     el('p', 'result-best', details),
-    el('p', 'result-best', 'Niveau 50 pour tout le monde'),
-    played ? el('p', 'result-record inline-icon', icon('check'), `Ton score du jour : ${formatTenthsUp(attemptMs)}`) : '',
-    button('primary big', played ? 'Rejouer (entraînement)' : 'Jouer', onStart),
+    el('p', 'result-best', t('daily.level', { level: DAILY_LEVEL })),
+    played ? el('p', 'result-record inline-icon', icon('check'), t('daily.yourScore', { time: formatTenthsUp(attemptMs) })) : '',
+    button('primary big', played ? t('daily.replayPractice') : t('daily.play'), onStart),
   )
 }

@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import { scoreId } from '../music/musicxml'
 import { CLEFS, type Clef } from '../music/notes'
 import type { Duration, NoteSpec, Score } from '../hero/types'
@@ -20,7 +21,6 @@ const MAX_TIME_BEATS = 32
 const BEAT_TYPES = [1, 2, 4, 8, 16, 32]
 const BEATS_PRECISION = 1e4
 const MAX_MIDI = 127
-const DEFAULT_NAME = 'Sans titre'
 
 type CompactNote = [pitch: number, duration: number, dots?: number, beats?: number]
 
@@ -110,7 +110,7 @@ function sanitize(value: unknown): DecodedScore | null {
   return {
     ...melody,
     id: scoreId(melody),
-    name: name || DEFAULT_NAME,
+    name: name || t('library.untitled'),
     tempo: Math.min(MAX_TEMPO, Math.max(MIN_TEMPO, Math.round(tempo))),
   }
 }

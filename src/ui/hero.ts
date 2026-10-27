@@ -29,7 +29,10 @@ import { multiplier } from '../game/scoring'
 import { answerPitch, defaultWindowStart, isCorrectAnswer, recordExactPitch, type Answer } from '../game/strictOctave'
 import { noteName, type Clef, type Note } from '../music/notes'
 import { vibrate } from '../platform/haptics'
+import { t, type MessageKey } from '../i18n'
+import { formatPercent } from '../i18n/format'
 import { resolveNaming } from '../i18n/naming'
+import { scoreTitle } from '../scores/title'
 import { recordHistory, type Progress, type Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
 import { button, el, iconButton, setIcon } from './dom'
@@ -53,7 +56,7 @@ const QUIT_CONFIRM_MS = 3000
 const NEUTRAL_FLASH_MS = 150
 const FLOAT_OFFSET_PX = 40
 const DEAD_TAP_LABEL_GAP_PX = 14
-const JUDGEMENT_LABELS: Record<Judgement, string> = { parfait: 'Parfait', bien: 'Bien', rate: 'Raté' }
+const JUDGEMENT_KEYS = { parfait: 'hero.judgement.parfait', bien: 'hero.judgement.bien', rate: 'hero.judgement.rate' } satisfies Record<Judgement, MessageKey>
 
 export interface HeroOptions {
   settings: Settings
@@ -141,14 +144,14 @@ export function createHero({
   const multiplierValue = el('span', 'multiplier', '×1')
   const bpmValue = el('span', 'bpm-value', String(tempo.bpm))
   const bpm = el('div', 'bpm', bpmValue, el('small', '', 'BPM'))
-  const pauseButton = iconButton('pause', pause, 'Pause')
+  const pauseButton = iconButton('pause', pause, t('hero.hud.pause'))
   const muteButton = iconButton(
     'sound-on',
     () => {
       onToggleMute()
       renderMute()
     },
-    'Son',
+    t('hero.hud.sound'),
   )
   renderMute()
   const stars = el('span', 'difficulty', renderStars(difficulty.level))
@@ -262,7 +265,7 @@ export function createHero({
     const zone = staff.element.querySelector('.hero-hit-zone') ?? staff.element
     const { x } = centerOf(zone)
     const { top } = zone.getBoundingClientRect()
-    floatText(effectsLayer, { x, y: top - DEAD_TAP_LABEL_GAP_PX }, nearest && nearest.beat < nowBeat ? 'Trop tard' : 'Trop tôt', 'neutral')
+    floatText(effectsLayer, { x, y: top - DEAD_TAP_LABEL_GAP_PX }, nearest && nearest.beat < nowBeat ? t('hero.tooLate') : t('hero.tooEarly'), 'neutral')
   }
 
   function tap(chosen: Answer): void {
@@ -333,7 +336,7 @@ export function createHero({
     if (next.level !== difficulty.level) {
       stars.textContent = renderStars(next.level)
       restartAnimation(stars, 'bump')
-      floatText(effectsLayer, centerOf(stars), `Niveau ${next.level}`, next.level > difficulty.level ? 'good' : 'neutral')
+      floatText(effectsLayer, centerOf(stars), t('hero.level', { level: next.level }), next.level > difficulty.level ? 'good' : 'neutral')
     }
     difficulty = next
   }
@@ -365,7 +368,7 @@ export function createHero({
     const origin = staff.notePoint(id)
     if (origin) {
       burstParticles(effectsLayer, origin)
-      floatText(effectsLayer, { x: origin.x, y: origin.y - FLOAT_OFFSET_PX }, `${JUDGEMENT_LABELS[judgement]} +${gained}`)
+      floatText(effectsLayer, { x: origin.x, y: origin.y - FLOAT_OFFSET_PX }, `${t(JUDGEMENT_KEYS[judgement])} +${gained}`)
     }
     if (milestone !== null) {
       sound.milestone()
@@ -391,8 +394,8 @@ export function createHero({
     over = true
     recordRunHistory()
     const judgedCount = sessionHits + sessionMisses
-    const perfectRatio = judgedCount > 0 ? `${Math.round((sessionPerfects / judgedCount) * 100)} %` : '–'
-    const stat = (label: string, value: string | number) => el('p', 'result-best', `${label} : ${value}`)
+    const perfectRatio = judgedCount > 0 ? formatPercent(Math.round((sessionPerfects / judgedCount) * 100) / 100) : '–'
+    const stat = (key: MessageKey, value: string | number) => el('p', 'result-best', t(key, { value }))
     const result = currentResult()
     const target = challenge?.against ?? null
     const won = target ? heroChallengeWon(result, target) : null
@@ -400,13 +403,13 @@ export function createHero({
     const card = el(
       'div',
       'result series-end',
-      target ? verdict(result, target, won === true) : el('h2', '', melody?.name ?? 'Terminé'),
-      ...(target ? [versus(result, target)] : [el('p', 'result-score series-total', String(score.score)), el('p', 'result-best', 'points')]),
-      stat('Réussite', `${result.percent} %`),
-      stat('Meilleure série', score.bestStreak),
-      stat('Parfaits', perfectRatio),
-      stat('Réussies', sessionHits),
-      stat('Ratées', sessionMisses),
+      target ? verdict(result, target, won === true) : el('h2', '', melody ? scoreTitle(melody.name) : t('hero.result.done')),
+      ...(target ? [versus(result, target)] : [el('p', 'result-score series-total', String(score.score)), el('p', 'result-best', t('hero.result.points'))]),
+      stat('hero.result.success', formatPercent(result.percent / 100)),
+      stat('hero.result.bestStreak', score.bestStreak),
+      stat('hero.result.perfects', perfectRatio),
+      stat('hero.result.hits', sessionHits),
+      stat('hero.result.misses', sessionMisses),
       el('div', 'result-actions', ...resultActions(target)),
     )
     card.classList.toggle('win', won === true)
@@ -438,18 +441,18 @@ export function createHero({
     if (won) {
       sound.milestone()
       burstConfetti(effectsLayer)
-      return el('p', 'verdict win', 'Gagné !')
+      return el('p', 'verdict win', t('hero.result.won'))
     }
-    return el('p', 'verdict lose', `Perdu : ${describeGap(mine, target)}`)
+    return el('p', 'verdict lose', t('hero.result.lost', { gap: describeGap(mine, target) }))
   }
 
   function versus(mine: HeroResult, target: HeroResult): HTMLElement {
-    const line = ({ percent, score: points }: HeroResult) => `${percent} % · ${points} pts`
+    const line = ({ percent, score: points }: HeroResult) => t('hero.result.line', { percent, points })
     return el(
       'div',
       'versus stacked',
-      el('span', 'versus-you', `Toi : ${line(mine)}`),
-      el('span', 'versus-friend', `Ami : ${line(target)}`),
+      el('span', 'versus-you', t('hero.result.you', { line: line(mine) })),
+      el('span', 'versus-friend', t('hero.result.friend', { line: line(target) })),
     )
   }
 
@@ -478,7 +481,7 @@ export function createHero({
     sharing = true
     try {
       const { config, result } = challengeToShare()
-      await shareLink({ title: 'Solfège hero : défi hero', text: heroShareText({ config, result }), url: challengeLink() })
+      await shareLink({ title: t('hero.share.title'), text: heroShareText({ config, result }), url: challengeLink() })
     } finally {
       sharing = false
     }
@@ -487,11 +490,11 @@ export function createHero({
   function resultActions(target: HeroResult | null): HTMLElement[] {
     const home = button('segment-button', homeLabel, onHome)
     if (challenge) {
-      const label = target ? 'Partager mon résultat' : 'Défier un ami'
-      return [shareRow(label, () => void share(), () => void copyLink(challengeLink())), button('segment-button', 'Réessayer ce défi', onRetry), home]
+      const label = target ? t('hero.result.shareMine') : t('hero.result.challengeFriend')
+      return [shareRow(label, () => void share(), () => void copyLink(challengeLink())), button('segment-button', t('hero.result.retry'), onRetry), home]
     }
-    const replay = button('primary', 'Rejouer', onReplay)
-    return melody ? [replay, home] : [replay, shareRow('Défier un ami', () => void share(), () => void copyLink(challengeLink()), 'segment-button'), home]
+    const replay = button('primary', t('hero.result.replay'), onReplay)
+    return melody ? [replay, home] : [replay, shareRow(t('hero.result.challengeFriend'), () => void share(), () => void copyLink(challengeLink()), 'segment-button'), home]
   }
 
   function freezeWhileBlocked(blocked: boolean): void {
@@ -510,17 +513,17 @@ export function createHero({
     frozenByRotation = false
     frozenBeat ??= currentBeat()
     let quitArmed = false
-    const quit = button('danger', 'Quitter', () => {
+    const quit = button('danger', t('hero.pause.quit'), () => {
       if (quitArmed) {
         recordRunHistory()
         onQuit()
         return
       }
       quitArmed = true
-      quit.textContent = 'Vraiment quitter ?'
+      quit.textContent = t('hero.pause.quitConfirm')
       window.setTimeout(() => {
         quitArmed = false
-        quit.textContent = 'Quitter'
+        quit.textContent = t('hero.pause.quit')
       }, QUIT_CONFIRM_MS)
     })
     const overlay = el(
@@ -529,15 +532,15 @@ export function createHero({
       el(
         'div',
         'result',
-        el('h2', '', 'Pause'),
-        button('primary', 'Reprendre', () => {
+        el('h2', '', t('hero.pause.title')),
+        button('primary', t('hero.pause.resume'), () => {
           overlay.remove()
           resume()
         }),
         ...(challenge
           ? []
           : [
-              button('segment-button', 'Terminer', () => {
+              button('segment-button', t('hero.pause.finish'), () => {
                 overlay.remove()
                 finish(currentBeat())
               }),

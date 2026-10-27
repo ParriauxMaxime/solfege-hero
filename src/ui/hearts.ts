@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import { MAX_LIVES } from '../survival/game'
 import { el } from './dom'
 import { svgElement } from './glyphs'
@@ -22,7 +23,7 @@ export function createHearts(): Hearts {
   const hearts = Array.from({ length: MAX_LIVES }, heart)
   const element = el('div', 'hearts', ...hearts)
   element.setAttribute('role', 'img')
-  element.setAttribute('aria-label', `${MAX_LIVES} vies`)
+  element.setAttribute('aria-label', t('survival.hearts', { count: MAX_LIVES }))
 
   return {
     element,
@@ -34,7 +35,7 @@ export function createHearts(): Hearts {
         svgElement('path', { d: LEFT_HALF, fill: 'currentColor', class: 'heart-half left' }),
         svgElement('path', { d: RIGHT_HALF, fill: 'currentColor', class: 'heart-half right' }),
       )
-      element.setAttribute('aria-label', `${hearts.filter((candidate) => !candidate.classList.contains('lost')).length} vies restantes`)
+      element.setAttribute('aria-label', t('survival.heartsLeft', { count: hearts.filter((candidate) => !candidate.classList.contains('lost')).length }))
     },
   }
 }

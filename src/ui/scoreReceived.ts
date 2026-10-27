@@ -1,15 +1,16 @@
 import type { Score } from '../hero/types'
+import { t, type MessageKey } from '../i18n'
 import type { Clef } from '../music/notes'
 import { formatTenths } from '../series/share'
 import { button, el } from './dom'
 
-const CLEF_LABELS: Record<Clef, string> = { treble: 'Clé de sol', bass: 'Clé de fa', alto: 'Clé d’ut 3' }
+const CLEF_KEYS = { treble: 'hero.clef.treble', bass: 'hero.clef.bass', alto: 'hero.clef.alto' } satisfies Record<Clef, MessageKey>
 
 type ReceivedScore = Pick<Score, 'name' | 'clef' | 'key' | 'timeSignature' | 'notes'>
 
 export function describeScore(score: ReceivedScore): string[] {
-  const key = score.key === 0 ? 'Sans armure' : score.key > 0 ? `${score.key}♯` : `${-score.key}♭`
-  return [CLEF_LABELS[score.clef], key, `${score.timeSignature.beats}/${score.timeSignature.beatType}`]
+  const key = score.key === 0 ? t('library.noKey') : score.key > 0 ? `${score.key}♯` : `${-score.key}♭`
+  return [t(CLEF_KEYS[score.clef]), key, `${score.timeSignature.beats}/${score.timeSignature.beatType}`]
 }
 
 function pitchedCount(score: ReceivedScore): number {
@@ -26,11 +27,11 @@ export function createScoreReceived({ score, onAdd, onPlay }: ScoreReceivedOptio
   return el(
     'section',
     'screen panel challenge-intro',
-    el('h1', '', 'Partition reçue'),
-    el('p', 'challenge-headline', `${score.name}, ${pitchedCount(score)} notes`),
+    el('h1', '', t('library.received.title')),
+    el('p', 'challenge-headline', t('library.received.headline', { name: score.name, count: pitchedCount(score) })),
     el('div', 'chips', ...describeScore(score).map((chip) => el('span', 'chip', chip))),
-    button('primary big', 'Jouer', onPlay),
-    button('segment-button', 'Ajouter à ma bibliothèque', onAdd),
+    button('primary big', t('library.received.play'), onPlay),
+    button('segment-button', t('library.received.add'), onAdd),
   )
 }
 
@@ -44,9 +45,9 @@ export function createScoreChallengeIntro({ score, timeS, onStart }: ScoreChalle
   return el(
     'section',
     'screen panel challenge-intro',
-    el('h1', '', 'Défi'),
-    el('p', 'challenge-headline', `Ton ami a fait ${formatTenths(timeS * 1000)} sur « ${score.name} », à toi !`),
+    el('h1', '', t('library.received.challengeTitle')),
+    el('p', 'challenge-headline', t('library.received.challengeHeadline', { time: formatTenths(timeS * 1000), name: score.name })),
     el('div', 'chips', ...describeScore(score).map((chip) => el('span', 'chip', chip))),
-    button('primary big', 'Commencer', onStart),
+    button('primary big', t('library.received.start'), onStart),
   )
 }

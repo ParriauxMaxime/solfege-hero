@@ -181,7 +181,7 @@ describe('survival share text', () => {
 
   it('formats the title line and the call to action', () => {
     const text = survivalShareText({ seed: 1234, score: 47, lives: 1 })
-    expect(text).toBe('Solfège hero · Survie #1234 · 🎯 47 notes · ❤️🖤🖤\nBats-moi !')
+    expect(text).toBe('Solfège hero · Survie #1234 · 🎯 47 notes · ❤️🖤🖤\nBats-moi !')
   })
 
   it('uses the singular for one note', () => {

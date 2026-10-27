@@ -1,3 +1,32 @@
 import type { Messages } from '../../messages'
 
-export const dictation: Messages['dictation'] = {}
+export const dictation: Messages['dictation'] = {
+  title: 'Dictation',
+  challengeTitle: 'Dictation challenge',
+  howTitle: 'How it works',
+  how: 'Listen to each note and find it on the keyboard. Notes are hidden, +5 s per mistake.',
+  reference: 'Reference note',
+  referenceHint: '{note} played twice before the first note',
+  levelChip: 'Level {level} · {tier}',
+  play: 'Play',
+  start: 'Start',
+  open: 'Take the challenge!',
+  friendTime: 'Your friend did {time}, your turn!',
+  replay: 'Replay',
+  unlock: 'Tap the screen to enable sound',
+  done: 'Dictation complete',
+  replays: '{count, plural, one {# replay} other {# replays}}',
+  win: 'You won!',
+  lose: 'Lost… by {gap}',
+  you: 'You {score}',
+  friend: 'Friend {score}',
+  newRecord: 'New record!',
+  record: 'Best: {time}',
+  firstTry: '{hits}/{total} on the first try',
+  penalty: '(+{seconds} s)',
+  shareResult: 'Share my result',
+  challengeFriend: 'Challenge a friend',
+  retry: 'Retry this challenge',
+  replayGame: 'Play again',
+  home: 'Home',
+}

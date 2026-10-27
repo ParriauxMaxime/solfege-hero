@@ -4,6 +4,7 @@ import { answerPitch, type Answer } from '../game/strictOctave'
 import { recordLevelAnswer, type LevelUpdate } from '../level/auto'
 import type { Clef, Note } from '../music/notes'
 import { vibrate } from '../platform/haptics'
+import { t } from '../i18n'
 import { resolveNaming } from '../i18n/naming'
 import { recordHistory, type Progress, type Settings } from '../storage'
 import { button, el } from './dom'
@@ -95,7 +96,7 @@ export function createDrillGame(
   timerValue.hidden = !settings.timed
   const chip = drill.hudChip
   const hudChip = chip ? button('hud-chip', chip.label, () => chip.onTap(deadline !== null)) : null
-  hudChip?.setAttribute('aria-label', `Armure : ${chip?.label ?? ''}. Modifier`)
+  hudChip?.setAttribute('aria-label', t('learn.keyChip', { label: chip?.label ?? '' }))
   const hud = hudChip
     ? el('div', 'hud with-chip', el('div', 'hud-score', scoreValue), hudChip, el('div', 'hud-right', streak, multiplierValue, timerValue))
     : el('div', 'hud', el('div', 'hud-score', scoreValue), streak, multiplierValue, timerValue)
@@ -213,11 +214,11 @@ export function createDrillGame(
       el(
         'div',
         'result',
-        el('h2', '', 'Temps écoulé'),
+        el('h2', '', t('learn.game.timeUp')),
         el('p', 'result-score', String(score.correct)),
-        el('p', '', score.correct > 1 ? 'bonnes réponses' : 'bonne réponse'),
-        el('p', record ? 'result-record' : 'result-best', record ? 'Nouveau record !' : `Record : ${best}`),
-        button('primary', 'Rejouer', () => {
+        el('p', '', t('learn.game.correct', { count: score.correct })),
+        el('p', record ? 'result-record' : 'result-best', record ? t('learn.game.newRecord') : t('learn.game.record', { best })),
+        button('primary', t('learn.game.replay'), () => {
           overlay.remove()
           startRound()
         }),
@@ -279,7 +280,7 @@ export function createDrillGame(
     const origin = (timeline && timeline.notePoint(roundIndex)) || centerOf(noteHead ?? staffCard.querySelector('.staff-key') ?? staffCard)
     noteHead?.classList.add('pop')
     burstParticles(effectsLayer, origin)
-    floatText(effectsLayer, origin, speedFactor > 1 ? `+${gained} ×${speedFactor} rapide !` : `+${gained}`)
+    floatText(effectsLayer, origin, speedFactor > 1 ? t('learn.game.fast', { gained, factor: speedFactor }) : `+${gained}`)
     if (milestone !== null) {
       sound.milestone()
       vibrate([30, 40, 30, 40, 80])

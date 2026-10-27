@@ -1,3 +1,4 @@
+import type { Language } from '../i18n'
 import type { ImportResult } from '../music/musicxml'
 
 export interface GrayImage {
@@ -60,6 +61,8 @@ export interface OmrResult {
 /** Message to the OMR worker: the gray page, whose buffer is transferred, not copied. */
 export interface OmrWorkerRequest {
   image: GrayImage
+  /** Language of the warnings, since the worker has no settings of its own. */
+  language?: Language
   staffIndexInSystem?: number
 }
 

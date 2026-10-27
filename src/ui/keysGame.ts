@@ -1,5 +1,6 @@
 import { createKeysSampler, keyAnswerPitchClass, keyStatsId, type KeyPrompt } from '../game/keysSampler'
 import { recordAnswer } from '../game/sampler'
+import { t, type MessageKey } from '../i18n'
 import { capsFor } from '../level/level'
 import { resolveNaming } from '../i18n/naming'
 import { keyFullName, keyMnemonic, type KeyQuality } from '../music/keySignature'
@@ -10,19 +11,21 @@ import { renderKeySignatureStaff } from './staff'
 
 const WRONG_DELAY_MS = 2600
 
-const QUESTIONS: Record<KeyQuality, string> = { major: 'Gamme majeure ?', minor: 'Relatif mineur ?' }
+const QUESTION_KEYS = { major: 'keys.question.major', minor: 'keys.question.minor' } satisfies Record<KeyQuality, MessageKey>
 
 /** What the player should have answered, the relative minor too when both are in play. */
 function revealText({ fifths, ask }: KeyPrompt, mode: Settings['keysMode'], naming: Naming): string {
   const major = keyFullName(fifths, 'major', naming)
   const minor = keyFullName(fifths, 'minor', naming)
-  if (mode === 'both') return ask === 'major' ? `${major} · relatif ${minor}` : `${minor} · relatif de ${major}`
+  if (mode === 'both') {
+    return ask === 'major' ? t('keys.reveal.majorWithRelative', { major, minor }) : t('keys.reveal.minorWithRelative', { major, minor })
+  }
   return ask === 'major' ? major : minor
 }
 
 function hintText({ fifths, ask }: KeyPrompt, naming: Naming): string {
   const mnemonic = keyMnemonic(fifths, naming)
-  return ask === 'major' ? mnemonic : `${keyFullName(fifths, 'major', naming)} : ${mnemonic}`
+  return ask === 'major' ? mnemonic : t('keys.hint', { major: keyFullName(fifths, 'major', naming), mnemonic })
 }
 
 function keysDrill(settings: Settings): Drill {
@@ -44,7 +47,7 @@ function keysDrill(settings: Settings): Drill {
         keyPitch: answer,
         isCorrect: (chosen) => chosen.pitchClass === answer,
         sounding: null,
-        question: QUESTIONS[prompt.ask],
+        question: t(QUESTION_KEYS[prompt.ask]),
         correctText: keyFullName(prompt.fifths, prompt.ask, resolveNaming(settings.naming)),
         wrongText: revealText(prompt, settings.keysMode, resolveNaming(settings.naming)),
         hint: hintText(prompt, resolveNaming(settings.naming)),

@@ -1,3 +1,4 @@
+import { getLanguage, t } from '../i18n'
 import {
   HIGHEST_STEP,
   LETTERS,
@@ -131,14 +132,22 @@ function spelledTonic(fifths: number, quality: KeyQuality): { letter: Letter; al
   return { letter: FIFTHS_LETTERS[index] as Letter, alter: Math.floor(position / 7) }
 }
 
-/** `Mi`, `Do♯`, `Si♭`: the tonic as the key signature spells it. */
+/** English key names always use letters; French follows the requested naming. */
+function effectiveNaming(naming: KeyNaming): KeyNaming {
+  return getLanguage() === 'en' ? 'english' : naming
+}
+
+/** `Mi`, `Do♯`, `Si♭` (`E`, `C♯`, `B♭` in English): the tonic as the key signature spells it. */
 export function keyTonicName(fifths: number, quality: KeyQuality, naming: KeyNaming = 'latin'): string {
   const { letter, alter } = spelledTonic(fifths, quality)
-  return `${naming === 'latin' ? LATIN_LETTERS[letter] : letter}${alter === 1 ? '♯' : alter === -1 ? '♭' : ''}`
+  return `${effectiveNaming(naming) === 'latin' ? LATIN_LETTERS[letter] : letter}${alter === 1 ? '♯' : alter === -1 ? '♭' : ''}`
 }
 
 export function keyFullName(fifths: number, quality: KeyQuality, naming: KeyNaming = 'latin'): string {
-  return `${keyTonicName(fifths, quality, naming)} ${quality === 'major' ? 'majeur' : 'mineur'}`
+  return t('music.keyName', {
+    tonic: keyTonicName(fifths, quality, naming),
+    quality: t(quality === 'major' ? 'music.major' : 'music.minor'),
+  })
 }
 
 export function signatureLabel(fifths: number): string {
@@ -147,8 +156,8 @@ export function signatureLabel(fifths: number): string {
 
 /** How to read the major key off a signature. */
 export function keyMnemonic(fifths: number, naming: KeyNaming = 'latin'): string {
-  if (fifths === 0) return 'Aucune altération : Do'
-  if (fifths > 0) return 'dernier ♯ + ½ ton'
-  if (fifths === -1) return naming === 'latin' ? 'Fa' : 'F'
-  return 'avant-dernier ♭'
+  if (fifths === 0) return t('music.mnemonicNone')
+  if (fifths > 0) return t('music.mnemonicSharps')
+  if (fifths === -1) return effectiveNaming(naming) === 'latin' ? t('music.mnemonicOneFlat') : 'F'
+  return t('music.mnemonicFlats')
 }

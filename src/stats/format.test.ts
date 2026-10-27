@@ -1,29 +1,47 @@
-import { describe, expect, it } from 'vitest'
-import { formatAxisSeconds, formatSeconds, formatSignedPoints, formatSignedSeconds } from './format'
+import { afterEach, describe, expect, it } from 'vitest'
+import { setLanguage } from '../i18n'
+import { formatAxisSeconds, formatPercent, formatSeconds, formatSignedInteger, formatSignedPoints, formatSignedSeconds } from './format'
 import { isWeak, trendDescription, weakestFirst } from './rank'
 import { dataTicks } from './scale'
-import { summarySentence } from './summary'
+import { metricLabel, summarySentence } from './summary'
+
+const NNBSP = ' '
+
+afterEach(() => setLanguage('fr'))
 
 describe('format', () => {
   it('uses a decimal comma and a real minus', () => {
-    expect(formatSeconds(42300)).toBe('42,3 s')
-    expect(formatSignedSeconds(-3100)).toBe('−3,1 s')
+    expect(formatSeconds(42300)).toBe(`42,3${NNBSP}s`)
+    expect(formatSignedSeconds(-3100)).toBe(`−3,1${NNBSP}s`)
     expect(formatSignedPoints(5.2)).toBe('+5 pts')
     expect(formatSignedPoints(-1)).toBe('−1 pt')
-    expect(formatAxisSeconds(0.5)).toBe('0,5 s')
+    expect(formatSignedInteger(-4)).toBe('−4')
+    expect(formatSignedInteger(0.2)).toBe('0')
+    expect(formatAxisSeconds(0.5)).toBe(`0,5${NNBSP}s`)
+    expect(formatPercent(88.4)).toBe(`88${NNBSP}%`)
+  })
+
+  it('uses a decimal point and no percent space in English', () => {
+    setLanguage('en')
+    expect(formatSeconds(42300)).toBe('42.3 s')
+    expect(formatSignedSeconds(-3100)).toBe('−3.1 s')
+    expect(formatSignedPoints(5.2)).toBe('+5 pts')
+    expect(formatSignedPoints(-1)).toBe('−1 pt')
+    expect(formatAxisSeconds(0.5)).toBe('0.5 s')
+    expect(formatPercent(88.4)).toBe('88%')
   })
 })
 
 describe('summarySentence', () => {
   it('writes precision with delta', () => {
     expect(summarySentence('learn', 'precision', 7, { current: 88, previous: 83, delta: 5 })).toBe(
-      'Précision 7 derniers jours 88 % (+5 pts vs 7 jours avant)',
+      `Précision 7 derniers jours 88${NNBSP}% (+5 pts vs 7 jours avant)`,
     )
   })
 
   it('writes series times and omits the parenthesis without previous', () => {
     expect(summarySentence('series', 'best', 30, { current: 41200, previous: 44300, delta: -3100 })).toBe(
-      'Meilleur temps 30 derniers jours 41,2 s (−3,1 s vs 30 jours avant)',
+      `Meilleur temps 30 derniers jours 41,2${NNBSP}s (−3,1${NNBSP}s vs 30 jours avant)`,
     )
     expect(summarySentence('hero', 'best', 30, { current: 54, previous: null, delta: null })).toBe('Meilleur score 30 derniers jours 54')
   })
@@ -32,6 +50,18 @@ describe('summarySentence', () => {
     expect(summarySentence('hero', 'best', 7, { current: null, previous: null, delta: null })).toBe(
       'Pas encore de données sur cette période',
     )
+  })
+
+  it('writes the same sentences in English', () => {
+    setLanguage('en')
+    expect(summarySentence('learn', 'precision', 7, { current: 88, previous: 83, delta: 5 })).toBe(
+      'Accuracy, last 7 days: 88% (+5 pts vs previous 7 days)',
+    )
+    expect(summarySentence('series', 'best', 30, { current: 41200, previous: 41200, delta: 0 })).toBe(
+      'Best time, last 30 days: 41.2 s (steady vs previous 30 days)',
+    )
+    expect(summarySentence('hero', 'best', 7, { current: null, previous: null, delta: null })).toBe('No data for this period yet')
+    expect(metricLabel('hero', 'best')).toBe('Best score')
   })
 })
 
@@ -67,5 +97,7 @@ describe('rank', () => {
 
   it('describes trends', () => {
     expect(trendDescription(down)).toBe('en baisse de 20 pts')
+    setLanguage('en')
+    expect(trendDescription(down)).toBe('down 20 pts')
   })
 })

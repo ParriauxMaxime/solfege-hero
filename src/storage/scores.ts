@@ -1,4 +1,5 @@
 import { COMMON_TIME, DURATION_BEATS, type Duration, type NoteSpec, type Score, type ScoreSource, type TimeSignature } from '../hero/types'
+import { t } from '../i18n'
 import { MELODIES } from '../music/melodies'
 import { scoreId } from '../music/musicxml'
 import { CLEFS, type Clef } from '../music/notes'
@@ -68,7 +69,7 @@ function sanitizeScore(raw: NewScore): NewScore {
     .slice(0, MAX_NOTES)
     .map(sanitizeSpec)
     .filter((spec): spec is NoteSpec => spec !== null)
-  if (!notes.some((spec) => spec.pitch !== null)) throw new Error('Aucune note trouvée')
+  if (!notes.some((spec) => spec.pitch !== null)) throw new Error(t('library.errors.noNotes'))
 
   const name = typeof raw.name === 'string' ? raw.name.trim().slice(0, MAX_NAME_LENGTH) : ''
   const melody = {
@@ -80,7 +81,7 @@ function sanitizeScore(raw: NewScore): NewScore {
   return {
     ...melody,
     id: scoreId(melody),
-    name: name || 'Sans titre',
+    name: name || t('library.untitled'),
     tempo: clampInteger(raw.tempo, MIN_TEMPO, MAX_TEMPO, 80),
   }
 }
@@ -110,7 +111,7 @@ export function createScoreLibrary(backend: ScoreBackend, initialBuiltins: Score
       return score
     },
     async remove(id) {
-      if (isBuiltin(id)) throw new Error('Les partitions intégrées ne peuvent pas être supprimées')
+      if (isBuiltin(id)) throw new Error(t('library.errors.builtinNotDeletable'))
       await backend.delete(id)
     },
     registerBuiltin(raw) {

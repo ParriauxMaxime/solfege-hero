@@ -1,4 +1,5 @@
 import type { Duration } from '../../hero/types'
+import { t, type MessageKey } from '../../i18n'
 import type { Accidental } from '../../music/keySignature'
 import { button, el, setIcon } from '../dom'
 import type { IconName } from '../icons'
@@ -26,25 +27,26 @@ export interface EditTools {
   refresh: (state: ToolState | null) => void
 }
 
-const DURATIONS: { duration: Duration; icon: IconName; label: string }[] = [
-  { duration: 'whole', icon: 'note-whole', label: 'Ronde' },
-  { duration: 'half', icon: 'note-half', label: 'Blanche' },
-  { duration: 'quarter', icon: 'note-quarter', label: 'Noire' },
-  { duration: 'eighth', icon: 'note-eighth', label: 'Croche' },
-  { duration: 'sixteenth', icon: 'note-sixteenth', label: 'Double croche' },
+const DURATIONS: { duration: Duration; icon: IconName; label: MessageKey }[] = [
+  { duration: 'whole', icon: 'note-whole', label: 'omr.tools.whole' },
+  { duration: 'half', icon: 'note-half', label: 'omr.tools.half' },
+  { duration: 'quarter', icon: 'note-quarter', label: 'omr.tools.quarter' },
+  { duration: 'eighth', icon: 'note-eighth', label: 'omr.tools.eighth' },
+  { duration: 'sixteenth', icon: 'note-sixteenth', label: 'omr.tools.sixteenth' },
 ]
 
-const ACCIDENTALS: { accidental: Accidental; icon: IconName; label: string }[] = [
-  { accidental: 'sharp', icon: 'sharp', label: 'Dièse' },
-  { accidental: 'natural', icon: 'natural', label: 'Bécarre' },
-  { accidental: 'flat', icon: 'flat', label: 'Bémol' },
+const ACCIDENTALS: { accidental: Accidental; icon: IconName; label: MessageKey }[] = [
+  { accidental: 'sharp', icon: 'sharp', label: 'omr.tools.sharp' },
+  { accidental: 'natural', icon: 'natural', label: 'omr.tools.natural' },
+  { accidental: 'flat', icon: 'flat', label: 'omr.tools.flat' },
 ]
 
 export function createEditTools(actions: ToolActions): EditTools {
   const tools: { button: HTMLButtonElement; active: (state: ToolState) => boolean; needsPitch: boolean }[] = []
 
-  function tool(name: IconName, label: string, onClick: () => void, active: (state: ToolState) => boolean = () => false, needsPitch = false): HTMLButtonElement {
+  function tool(name: IconName, labelKey: MessageKey, onClick: () => void, active: (state: ToolState) => boolean = () => false, needsPitch = false): HTMLButtonElement {
     const element = button('omr-tool', '', onClick)
+    const label = t(labelKey)
     element.setAttribute('aria-label', label)
     element.title = label
     setIcon(element, name)
@@ -53,21 +55,21 @@ export function createEditTools(actions: ToolActions): EditTools {
   }
 
   const group = (...children: HTMLElement[]) => el('div', 'omr-tool-group', ...children)
-  const hint = el('p', 'omr-tools-hint', 'Touche une note pour la modifier')
+  const hint = el('p', 'omr-tools-hint', t('omr.tools.hint'))
   const buttons = el(
     'div',
     'omr-tools',
     group(
       ...DURATIONS.map(({ duration, icon, label }) => tool(icon, label, () => actions.duration(duration), (state) => state.duration === duration)),
-      tool('dot', 'Point', actions.dot, (state) => state.dotted),
-      tool('rest', 'Note ou silence', actions.rest, (state) => !state.pitched),
+      tool('dot', 'omr.tools.dot', actions.dot, (state) => state.dotted),
+      tool('rest', 'omr.tools.rest', actions.rest, (state) => !state.pitched),
     ),
     group(
-      tool('arrow-up', 'Monter d’un cran', () => actions.move(1), undefined, true),
-      tool('arrow-down', 'Descendre d’un cran', () => actions.move(-1), undefined, true),
+      tool('arrow-up', 'omr.tools.up', () => actions.move(1), undefined, true),
+      tool('arrow-down', 'omr.tools.down', () => actions.move(-1), undefined, true),
       ...ACCIDENTALS.map(({ accidental, icon, label }) => tool(icon, label, () => actions.accidental(accidental), (state) => state.accidental === accidental, true)),
-      tool('plus', 'Insérer après', actions.insert),
-      tool('trash', 'Supprimer', actions.remove),
+      tool('plus', 'omr.tools.insert', actions.insert),
+      tool('trash', 'omr.tools.remove', actions.remove),
     ),
   )
   const element = el('div', 'omr-tools-box', hint, buttons)

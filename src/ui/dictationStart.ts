@@ -1,14 +1,15 @@
+import { t, type MessageKey } from '../i18n'
+import { resolveNaming } from '../i18n/naming'
 import { tierName } from '../level/level'
 import type { DictationChallenge } from '../dictation/challenge'
-import type { Clef } from '../music/notes'
+import { pitchClassLabel, type Clef } from '../music/notes'
 import { formatTenths } from '../series/share'
 import type { Settings } from '../storage'
 import { button, el } from './dom'
 import { levelPill } from './levelPill'
 
-const CLEF_NAMES: Record<Clef, string> = { treble: 'Sol', bass: 'Fa', alto: 'Ut 3' }
-const CLEF_LABELS: Record<Clef, string> = { treble: 'Clé de sol', bass: 'Clé de fa', alto: 'Clé d’ut 3' }
-const HOW_IT_WORKS = 'Écoute chaque note et trouve-la sur le clavier. Les notes sont cachées, +5 s par erreur.'
+const CLEF_NAME_KEYS = { treble: 'learn.clefName.treble', bass: 'learn.clefName.bass', alto: 'learn.clefName.alto' } satisfies Record<Clef, MessageKey>
+const CLEF_LABEL_KEYS = { treble: 'learn.clefLabel.treble', bass: 'learn.clefLabel.bass', alto: 'learn.clefLabel.alto' } satisfies Record<Clef, MessageKey>
 
 export interface DictationStartOptions {
   settings: Settings
@@ -24,12 +25,18 @@ export interface DictationChallengeIntroOptions {
   onStart: () => void
 }
 
-function referenceRow(reference: boolean, onToggle: (next: boolean) => void): HTMLElement {
+function howItWorks(): HTMLElement {
+  return el('p', 'dictation-how', el('strong', '', t('dictation.howTitle')), ` ${t('dictation.how')}`)
+}
+
+function referenceRow(settings: Settings, onToggle: (next: boolean) => void): HTMLElement {
+  const reference = settings.dictationReference
   const toggle = button('toggle', '', () => onToggle(!reference))
   toggle.setAttribute('role', 'switch')
   toggle.setAttribute('aria-checked', String(reference))
-  toggle.setAttribute('aria-label', 'Note de référence')
-  const label = el('span', 'settings-label', 'Note de référence', el('small', 'settings-hint', 'Do joué deux fois avant la première note'))
+  toggle.setAttribute('aria-label', t('dictation.reference'))
+  const hint = t('dictation.referenceHint', { note: pitchClassLabel(0, resolveNaming(settings.naming)) })
+  const label = el('span', 'settings-label', t('dictation.reference'), el('small', 'settings-hint', hint))
   return el('div', 'settings-row dictation-reference', label, toggle)
 }
 
@@ -38,18 +45,18 @@ export function createDictationStart({ settings: initial, onChange, onPlay, onOp
   const element = el('section', 'screen panel learn-start dictation-start')
 
   function render(): void {
-    const clefNames = settings.clefs.map((clef) => CLEF_NAMES[clef]).join(', ')
+    const clefNames = settings.clefs.map((clef) => t(CLEF_NAME_KEYS[clef])).join(', ')
     element.replaceChildren(
-      el('h1', 'learn-title', 'Dictée'),
+      el('h1', 'learn-title', t('dictation.title')),
       levelPill(settings.level, onOpenSettings),
-      el('p', 'dictation-how', el('strong', '', 'Comment ça marche'), ` ${HOW_IT_WORKS}`),
-      referenceRow(settings.dictationReference, (dictationReference) => {
+      howItWorks(),
+      referenceRow(settings, (dictationReference) => {
         settings = { ...settings, dictationReference }
         onChange({ dictationReference })
         render()
       }),
-      el('p', 'learn-clefs', `Clés : ${clefNames} `, button('link-button', 'Modifier', onOpenSettings)),
-      button('primary learn-play', 'Jouer', onPlay),
+      el('p', 'learn-clefs', `${t('learn.clefs', { names: clefNames })} `, button('link-button', t('learn.edit'), onOpenSettings)),
+      button('primary learn-play', t('dictation.play'), onPlay),
     )
   }
 
@@ -61,21 +68,21 @@ export function createDictationChallengeIntro({ challenge, settings: initial, on
   let settings = initial
   const { config, timeS } = challenge
   const element = el('section', 'screen panel challenge-intro dictation-start')
-  const headline = timeS === null ? 'Relève le défi !' : `Ton ami a fait ${formatTenths(timeS * 1000)}, à toi !`
-  const chips = [CLEF_LABELS[config.clef], `Niveau ${config.level} · ${tierName(config.level)}`]
 
   function render(): void {
+    const headline = timeS === null ? t('dictation.open') : t('dictation.friendTime', { time: formatTenths(timeS * 1000) })
+    const chips = [t(CLEF_LABEL_KEYS[config.clef]), t('dictation.levelChip', { level: config.level, tier: tierName(config.level) })]
     element.replaceChildren(
-      el('h1', '', 'Défi Dictée'),
+      el('h1', '', t('dictation.challengeTitle')),
       el('p', 'challenge-headline', headline),
       el('div', 'chips', ...chips.map((chip) => el('span', 'chip', chip))),
-      el('p', 'dictation-how', el('strong', '', 'Comment ça marche'), ` ${HOW_IT_WORKS}`),
-      referenceRow(settings.dictationReference, (dictationReference) => {
+      howItWorks(),
+      referenceRow(settings, (dictationReference) => {
         settings = { ...settings, dictationReference }
         onChange({ dictationReference })
         render()
       }),
-      button('primary big', 'Commencer', onStart),
+      button('primary big', t('dictation.start'), onStart),
     )
   }
 

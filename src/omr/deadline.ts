@@ -1,3 +1,5 @@
+import { t } from '../i18n'
+
 export const FILE_READ_TIMEOUT_MS = 20_000
 export const PHOTO_DECODE_TIMEOUT_MS = 40_000
 export const PDF_RENDER_TIMEOUT_MS = 60_000
@@ -5,7 +7,7 @@ export const RECOGNITION_TIMEOUT_MS = 60_000
 
 export class StageTimeout extends Error {
   constructor(ms: number) {
-    super(`délai dépassé (${Math.round(ms / 1000)} s)`)
+    super(t('omr.errors.timeout', { seconds: Math.round(ms / 1000) }))
   }
 }
 

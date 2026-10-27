@@ -1,3 +1,4 @@
+import { t } from '../../i18n'
 import { shortDateLabel } from '../../stats/dates'
 import type { DayKey } from '../../stats/history'
 import { dateTicks } from '../../stats/ticks'
@@ -56,8 +57,8 @@ function dataTable(options: LineChartOptions): HTMLElement {
   const rows = options.points
     .filter((point): point is ChartPoint & { value: number } => point.value !== null)
     .map((point) => el('tr', '', el('td', '', shortDateLabel(point.day)), el('td', '', options.format(point.value))))
-  const table = el('table', 'chart-table', el('thead', '', el('tr', '', el('th', '', 'Date'), el('th', '', options.valueHeader))), el('tbody', '', ...rows))
-  return el('details', 'chart-data', el('summary', '', 'Voir les données'), table)
+  const table = el('table', 'chart-table', el('thead', '', el('tr', '', el('th', '', t('stats.chart.date')), el('th', '', options.valueHeader))), el('tbody', '', ...rows))
+  return el('details', 'chart-data', el('summary', '', t('stats.chart.viewData')), table)
 }
 
 export function createLineChart(options: LineChartOptions): HTMLElement {

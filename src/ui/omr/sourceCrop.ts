@@ -1,3 +1,4 @@
+import { t } from '../../i18n'
 import type { Box, GrayImage } from '../../omr/types'
 import { el } from '../dom'
 
@@ -42,7 +43,7 @@ function grayTile(source: GrayImage, left: number, top: number, right: number, b
 export function createSourceCrop(source: GrayImage): SourceCrop {
   const canvas = el('canvas', 'omr-crop-canvas')
   const element = el('div', 'omr-crop', canvas)
-  element.setAttribute('aria-label', 'Portée de la photo')
+  element.setAttribute('aria-label', t('omr.review.cropLabel'))
 
   function show(staff: Box | null, note: Box | null): void {
     element.hidden = !staff

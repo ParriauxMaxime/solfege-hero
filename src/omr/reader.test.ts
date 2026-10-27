@@ -89,8 +89,8 @@ describe('recognize on drawn staves', () => {
     const page = systemPage()
     notesAt(page, voice, [0])
     const result = recognize(page)
-    expect(result.warnings).toContain('Clé non reconnue : clé de sol supposée.')
-    expect(result.warnings).toContain('Signature rythmique non reconnue : 4/4 supposé.')
+    expect(result.warnings).toContain('Clé non reconnue : clé de sol supposée.')
+    expect(result.warnings).toContain('Signature rythmique non reconnue : 4/4 supposé.')
   })
 
   it('reports boxes in source-image coordinates and progress by stage', () => {

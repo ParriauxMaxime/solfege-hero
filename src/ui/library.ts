@@ -1,6 +1,8 @@
 import type { Score } from '../hero/types'
+import { t, type MessageKey } from '../i18n'
 import type { Clef } from '../music/notes'
 import { importScoreFile } from '../music/musicxml'
+import { scoreTitle } from '../scores/title'
 import { appBase } from '../share/links'
 import { catalogueUrl, fetchCatalogueIndex, withoutCatalogued, type CatalogueEntry } from '../storage/catalogue'
 import type { Sound } from '../audio/sound'
@@ -20,8 +22,7 @@ export interface LibraryOptions {
   onPlaySeries: (score: Score) => void
 }
 
-const CLEF_LABELS: Record<Clef, string> = { treble: 'Sol', bass: 'Fa', alto: 'Ut 3' }
-const EMPTY_MESSAGE = 'Aucune partition importée. Trouve des fichiers MusicXML sur MuseScore, IMSLP… ou lis un PDF ou une photo.'
+const CLEF_KEYS = { treble: 'library.clef.treble', bass: 'library.clef.bass', alto: 'library.clef.alto' } satisfies Record<Clef, MessageKey>
 
 function keyLabel(fifths: number): string {
   if (fifths === 0) return '—'
@@ -57,13 +58,13 @@ export function createLibrary({ library, sound, onPlayHero, onPlaySeries }: Libr
   const imageInput = hiddenFileInput('.pdf,application/pdf,image/*', (file) => void readImage(file))
   const cameraInput = hiddenFileInput('image/*', (file) => void readImage(file), 'environment')
 
-  const importButton = button('primary library-import', 'Importer', () => input.click())
-  const header = el('div', 'library-header', el('h1', '', 'Partitions'), importButton, input)
+  const importButton = button('primary library-import', t('library.import'), () => input.click())
+  const header = el('div', 'library-header', el('h1', '', t('library.title')), importButton, input)
   const imageButtons = el(
     'div',
     'library-image-imports',
-    iconLabelButton('segment-button', 'document', 'Importer un PDF ou une photo', () => imageInput.click()),
-    iconLabelButton('segment-button', 'camera', 'Prendre une photo', () => cameraInput.click()),
+    iconLabelButton('segment-button', 'document', t('library.importImage'), () => imageInput.click()),
+    iconLabelButton('segment-button', 'camera', t('library.takePhoto'), () => cameraInput.click()),
     imageInput,
     cameraInput,
   )
@@ -82,7 +83,7 @@ export function createLibrary({ library, sound, onPlayHero, onPlaySeries }: Libr
       el('ul', '', ...warnings.map((warning) => el('li', '', warning))),
       iconButton('close', () => {
         notice.hidden = true
-      }, 'Fermer'),
+      }, t('library.close')),
     )
   }
 
@@ -90,15 +91,15 @@ export function createLibrary({ library, sound, onPlayHero, onPlaySeries }: Libr
     try {
       const { score, warnings } = await importScoreFile(file.name, await file.arrayBuffer())
       if ((await library.list()).some((existing) => existing.id === score.id)) {
-        showToast('Déjà dans ta bibliothèque')
+        showToast(t('library.alreadyIn'))
         return
       }
       await library.add(score, 'file')
-      showToast(`Partition ajoutée : ${score.name}`)
+      showToast(t('library.added', { name: score.name }))
       showWarnings(warnings)
       await renderList()
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Import impossible')
+      showToast(error instanceof Error ? error.message : t('library.importFailed'))
     }
   }
 
@@ -110,7 +111,7 @@ export function createLibrary({ library, sound, onPlayHero, onPlaySeries }: Libr
   async function saveRecognised(score: NewScore): Promise<void> {
     const known = (await library.list()).some((existing) => existing.id === score.id)
     const stored = await library.add(score, 'omr')
-    showToast(known ? 'Déjà dans ta bibliothèque' : `Partition ajoutée : ${stored.name}`)
+    showToast(known ? t('library.alreadyIn') : t('library.added', { name: stored.name }))
     await renderList()
   }
 
@@ -125,26 +126,33 @@ export function createLibrary({ library, sound, onPlayHero, onPlaySeries }: Libr
   }
 
   async function remove(score: Score): Promise<void> {
-    if (!(await confirmOverlay(element, `Supprimer « ${score.name} » ?`, 'Supprimer', 'Annuler'))) return
+    if (!(await confirmOverlay(element, t('library.confirmDelete', { name: scoreTitle(score.name) }), t('library.delete'), t('library.cancel')))) return
     await library.remove(score.id)
     await renderList()
   }
 
   function scoreCard(score: Score, composer?: string): HTMLElement {
     const builtin = score.source === 'builtin'
-    const meta = [...(composer ? [composer] : []), CLEF_LABELS[score.clef], keyLabel(score.key), `${score.timeSignature.beats}/${score.timeSignature.beatType}`, `${noteCount(score)} notes`]
+    const title = scoreTitle(score.name)
+    const meta = [
+      ...(composer ? [composer] : []),
+      t(CLEF_KEYS[score.clef]),
+      keyLabel(score.key),
+      `${score.timeSignature.beats}/${score.timeSignature.beatType}`,
+      t('library.notes', { count: noteCount(score) }),
+    ]
     const actions = el(
       'div',
       'score-actions',
-      button('primary', 'Hero', () => onPlayHero(score)),
-      button('primary', 'Série', () => onPlaySeries(score)),
+      button('primary', t('library.hero'), () => onPlayHero(score)),
+      button('primary', t('library.series'), () => onPlaySeries(score)),
     )
-    actions.append(iconButton('link', () => void share(score), `Partager ${score.name}`))
-    if (!builtin) actions.append(iconButton('trash', () => void remove(score), `Supprimer ${score.name}`))
+    actions.append(iconButton('link', () => void share(score), t('library.shareScore', { name: title })))
+    if (!builtin) actions.append(iconButton('trash', () => void remove(score), t('library.deleteScore', { name: title })))
     return el(
       'article',
       'score-card',
-      el('div', 'score-main', el('h3', 'score-title', score.name), builtin ? el('span', 'badge', 'intégrée') : score.source === 'omr' ? el('span', 'badge', 'scan') : ''),
+      el('div', 'score-main', el('h3', 'score-title', title), builtin ? el('span', 'badge', t('library.builtin')) : score.source === 'omr' ? el('span', 'badge', t('library.scan')) : ''),
       el('div', 'score-meta', ...meta.map((item) => el('span', 'chip', item))),
       actions,
     )
@@ -161,7 +169,7 @@ export function createLibrary({ library, sound, onPlayHero, onPlaySeries }: Libr
       catalogueScores.set(entry.file, registered)
       return registered
     } catch {
-      showToast('Partition indisponible pour le moment')
+      showToast(t('library.unavailable'))
       return null
     }
   }
@@ -174,13 +182,13 @@ export function createLibrary({ library, sound, onPlayHero, onPlaySeries }: Libr
     return el(
       'article',
       'score-card',
-      el('div', 'score-main', el('h3', 'score-title', entry.title), el('span', 'badge', 'intégrée')),
+      el('div', 'score-main', el('h3', 'score-title', entry.title), el('span', 'badge', t('library.builtin'))),
       el('div', 'score-meta', ...(entry.composer ? [el('span', 'chip', entry.composer)] : [])),
       el(
         'div',
         'score-actions',
-        button('primary', 'Hero', () => void play(onPlayHero)()),
-        button('primary', 'Série', () => void play(onPlaySeries)()),
+        button('primary', t('library.hero'), () => void play(onPlayHero)()),
+        button('primary', t('library.series'), () => void play(onPlaySeries)()),
       ),
     )
   }
@@ -193,7 +201,7 @@ export function createLibrary({ library, sound, onPlayHero, onPlaySeries }: Libr
       catalogue,
     )
     list.replaceChildren(
-      ...(imported.length > 0 ? imported.map((score) => scoreCard(score)) : [el('p', 'library-empty', EMPTY_MESSAGE)]),
+      ...(imported.length > 0 ? imported.map((score) => scoreCard(score)) : [el('p', 'library-empty', t('library.empty'))]),
       ...builtin.map((score) => scoreCard(score)),
       ...catalogue.map((entry) => {
         const score = catalogueScores.get(entry.file)

@@ -1,4 +1,5 @@
 import { barLength } from '../hero/meter'
+import { t } from '../i18n'
 import { COMMON_TIME, type Duration, type Melody, type NoteSpec, type TimeSignature } from '../hero/types'
 import { ALL_KEYS_FIFTHS, signatureWeight, type NoteCaps } from '../level/level'
 import { seededRandom } from '../random'
@@ -573,7 +574,7 @@ export function generateMelodyWithPlan(seed: number, options: GeneratorOptions):
 
   return {
     melody: {
-      name: `Mélodie ${seed}`,
+      name: t('music.melodyName', { seed: String(seed) }),
       clef: options.clef,
       key,
       tempo: 60 + 10 * options.difficulty,

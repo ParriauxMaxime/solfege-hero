@@ -1,8 +1,11 @@
+import { t, type MessageKey } from '../i18n'
+import { formatNumber, formatPercent as formatRatio } from '../i18n/format'
+import { resolveNaming, type NamingSetting } from '../i18n/naming'
 import { accuracy, promptId } from '../game/sampler'
 import { ALL_SIGNATURES, keyStatsId } from '../game/keysSampler'
 import { mostMissedPitches, successRate } from '../game/strictOctave'
 import { keyFullName, signatureLabel } from '../music/keySignature'
-import { CLEFS, PITCH_CLASS_NAMES, pitchClass, pitchesInRange, type Clef } from '../music/notes'
+import { CLEFS, pitchClass, pitchClassLabel, pitchesInRange, type Clef } from '../music/notes'
 import { dailyKey, dailyStreak } from '../series/daily'
 import { formatTenthsUp } from '../series/share'
 import { overview } from '../stats/aggregate'
@@ -12,31 +15,38 @@ import { LOWER_BEST_IS_BETTER, type DayKey, type HistoryMode } from '../stats/hi
 import { metricsFor, progressionPoints, windowSummary, type Metric } from '../stats/progression'
 import { isWeak, trendDescription, weakestFirst } from '../stats/rank'
 import { dataTicks, PERCENT_TICKS } from '../stats/scale'
-import { EMPTY_MESSAGE, metricLabel, summarySentence } from '../stats/summary'
+import { emptyMessage, metricLabel, summarySentence } from '../stats/summary'
 import { noteTrend, type Trend } from '../stats/trend'
 import type { Progress } from '../storage'
 import { createHeatmap } from './charts/heatmap'
 import { createLineChart } from './charts/lineChart'
 import { button, el } from './dom'
 import { icon } from './icons'
-import { plural } from './plural'
 
 export interface StatsOptions {
   progress: Progress
   onReset: () => Progress
   onBack: () => void
   today?: DayKey
+  naming?: NamingSetting
 }
 
 type ProgressionMode = Extract<HistoryMode, 'learn' | 'keys' | 'series' | 'dictation' | 'survival' | 'hero'>
 type NotesFilter = 'all' | 'weak'
 
-const CLEF_TITLES: Record<Clef, string> = { treble: 'Clé de sol', bass: 'Clé de fa', alto: 'Clé d’ut 3' }
-const MODE_LABELS: Record<ProgressionMode, string> = { learn: 'Apprendre', keys: 'Armures', series: 'Séries', dictation: 'Dictée', survival: 'Survie', hero: 'Hero' }
+const CLEF_KEYS = { treble: 'stats.notes.treble', bass: 'stats.notes.bass', alto: 'stats.notes.alto' } satisfies Record<Clef, MessageKey>
+const MODE_KEYS = {
+  learn: 'stats.modes.learn',
+  keys: 'stats.modes.keys',
+  series: 'stats.modes.series',
+  dictation: 'stats.modes.dictation',
+  survival: 'stats.modes.survival',
+  hero: 'stats.modes.hero',
+} satisfies Record<ProgressionMode, MessageKey>
 const MODE_ORDER: ProgressionMode[] = ['learn', 'keys', 'series', 'dictation', 'survival', 'hero']
 const RANGES = [7, 30, 90]
 const DEFAULT_RANGE = 30
-const FILTER_LABELS: Record<NotesFilter, string> = { all: 'Toutes', weak: 'Faibles' }
+const FILTER_KEYS = { all: 'stats.notes.all', weak: 'stats.notes.weak' } satisfies Record<NotesFilter, MessageKey>
 const MAX_HUE = 130
 const MOST_MISSED_SHOWN = 8
 const MS_PER_SECOND = 1000
@@ -57,7 +67,7 @@ function isTimeMetric(mode: HistoryMode, metric: Metric): boolean {
 }
 
 function chartTitle(mode: ProgressionMode, metric: Metric): string {
-  return metric === 'meanMs' ? 'Temps moyen de réponse' : metricLabel(mode, metric)
+  return metric === 'meanMs' ? t('stats.metrics.meanTitle') : metricLabel(mode, metric)
 }
 
 function segmented<T extends string | number>(
@@ -91,13 +101,13 @@ function tintedRow(row: RankedRow): HTMLElement {
     element.append(el('span', '', '–'), el('span', '', ''))
   } else {
     element.style.setProperty('--tint', `hsl(${Math.round(row.ratio * MAX_HUE)} 60% 28%)`)
-    element.append(el('span', '', `${Math.round(row.ratio * 100)} %`), el('span', '', row.detail))
+    element.append(el('span', '', formatRatio(row.ratio)), el('span', '', row.detail))
   }
   element.append(trendArrow(row.trend))
   return element
 }
 
-export function createStatsScreen({ progress: initial, onReset, onBack, today: forcedToday }: StatsOptions): HTMLElement {
+export function createStatsScreen({ progress: initial, onReset, onBack, today: forcedToday, naming = 'auto' }: StatsOptions): HTMLElement {
   const element = el('section', 'screen panel stats')
   const today = forcedToday ?? dayKeyOf(new Date())
   const thisWeek = weekKeyOf(today)
@@ -122,15 +132,15 @@ export function createStatsScreen({ progress: initial, onReset, onBack, today: f
     return el(
       'div',
       'summary summary-4',
-      summary(plural(answered, 'réponse', 'réponses'), answered.toLocaleString('fr-FR')),
-      summary(plural(totals.daysPlayed, 'jour joué', 'jours joués'), totals.daysPlayed),
-      summary(plural(totals.currentStreak, 'jour d’affilée', 'jours d’affilée'), totals.currentStreak),
-      summary('meilleure série (jours)', totals.bestStreak),
+      summary(t('stats.tiles.answers', { count: answered }), formatNumber(answered)),
+      summary(t('stats.tiles.daysPlayed', { count: totals.daysPlayed }), totals.daysPlayed),
+      summary(t('stats.tiles.streakDays', { count: totals.currentStreak }), totals.currentStreak),
+      summary(t('stats.tiles.bestStreakDays'), totals.bestStreak),
     )
   }
 
   function activitySection(): HTMLElement {
-    return el('section', 'stats-section', el('h2', '', 'Activité'), createHeatmap(progress.history, today))
+    return el('section', 'stats-section', el('h2', '', t('stats.activity.title')), createHeatmap(progress.history, today))
   }
 
   function chartFor(progressionMode: ProgressionMode, metric: Metric): HTMLElement {
@@ -142,17 +152,20 @@ export function createStatsScreen({ progress: initial, onReset, onBack, today: f
     const values = points.flatMap((point) => (point.value === null ? [] : [point.value]))
     const title = chartTitle(progressionMode, metric)
     const format = (value: number) => (metric === 'precision' ? formatPercent(value) : time ? formatSeconds(value * MS_PER_SECOND) : String(Math.round(value)))
-    const formatTick = (value: number) => (metric === 'precision' ? `${value} %` : time ? formatAxisSeconds(value) : String(value))
+    const formatTick = (value: number) => (metric === 'precision' ? formatPercent(value) : time ? formatAxisSeconds(value) : String(value))
     const windowed = windowSummary(progress.history, progressionMode, metric, today, range)
-    const headline = windowed.current === null ? 'aucune donnée' : `${format(time ? windowed.current / MS_PER_SECOND : windowed.current)}, ${values.length} ${plural(values.length, 'jour joué', 'jours joués')}`
+    const headline =
+      windowed.current === null
+        ? t('stats.progression.noData')
+        : t('stats.progression.headline', { value: format(time ? windowed.current / MS_PER_SECOND : windowed.current), count: values.length })
     const chart = createLineChart({
       title,
       points,
       yTicks: metric === 'precision' ? PERCENT_TICKS : dataTicks(values, metric === 'best' && !time),
       format,
       formatTick,
-      ariaSummary: `${title} ${MODE_LABELS[progressionMode]}, ${range} derniers jours : ${headline}`,
-      emptyMessage: EMPTY_MESSAGE,
+      ariaSummary: t('stats.progression.ariaSummary', { title, mode: t(MODE_KEYS[progressionMode]), days: String(range), headline }),
+      emptyMessage: emptyMessage(),
       valueHeader: title,
       height: metric === 'meanMs' ? 110 : 140,
     })
@@ -168,27 +181,27 @@ export function createStatsScreen({ progress: initial, onReset, onBack, today: f
     const empty = progressionPoints(progress.history, mode, firstMetric, today, range).every((point) => point.value === null)
     const charts = (empty ? [firstMetric] : metrics).map((metric) => chartFor(mode, metric))
     progressionSection.replaceChildren(
-      el('h2', '', 'Progression'),
+      el('h2', '', t('stats.progression.title')),
       el(
         'div',
         'progress-controls',
         segmented(
-          MODE_ORDER.map((value) => ({ value, label: MODE_LABELS[value] })),
+          MODE_ORDER.map((value) => ({ value, label: t(MODE_KEYS[value]) })),
           mode,
           (value) => {
             mode = value
             renderProgression()
           },
-          'Mode',
+          t('stats.progression.mode'),
         ),
         segmented(
-          RANGES.map((value) => ({ value, label: `${value} j` })),
+          RANGES.map((value) => ({ value, label: t('stats.progression.range', { days: String(value) }) })),
           range,
           (value) => {
             range = value
             renderProgression()
           },
-          'Période',
+          t('stats.progression.period'),
         ),
       ),
       ...charts,
@@ -205,15 +218,15 @@ export function createStatsScreen({ progress: initial, onReset, onBack, today: f
       const record = progress.notes[id]
       const ratio = accuracy(record)
       return {
-        name: `${PITCH_CLASS_NAMES[pitchClass(pitch)]} ${Math.floor(pitch / 12) - 1}`,
+        name: `${pitchClassLabel(pitchClass(pitch), resolveNaming(naming))} ${Math.floor(pitch / 12) - 1}`,
         ratio,
-        detail: record ? `${(record.avgMs / 1000).toFixed(1)} s` : '',
+        detail: record ? formatSeconds(record.avgMs) : '',
         trend: noteTrend(progress.noteHistory, id, thisWeek),
       }
     })
     const shown = filter === 'weak' ? rows.filter(isWeak) : rows
-    const body = shown.length > 0 ? ranked(shown) : [el('p', 'result-best', 'Aucune note faible, bravo !')]
-    return el('div', 'clef-section', el('h3', '', CLEF_TITLES[clef]), ...body)
+    const body = shown.length > 0 ? ranked(shown) : [el('p', 'result-best', t('stats.notes.noWeak'))]
+    return el('div', 'clef-section', el('h3', '', t(CLEF_KEYS[clef])), ...body)
   }
 
   function strictOctaveSection(): HTMLElement {
@@ -222,27 +235,27 @@ export function createStatsScreen({ progress: initial, onReset, onBack, today: f
       const ratio = successRate(record)
       const row = el('div', 'note-row', el('span', 'note-name', label))
       row.style.setProperty('--tint', `hsl(${Math.round(ratio * MAX_HUE)} 60% 28%)`)
-      row.append(el('span', '', `${Math.round(ratio * 100)} %`), el('span', '', `${record.correct}/${record.attempts}`))
+      row.append(el('span', '', formatRatio(ratio)), el('span', '', `${record.correct}/${record.attempts}`))
       return row
     })
-    const empty = Object.keys(progress.pitches).length === 0 ? 'Active l’octave stricte dans les réglages et joue.' : 'Aucune hauteur ratée, bravo !'
-    return el('div', 'clef-section', el('h3', '', 'Octave stricte'), ...(rows.length > 0 ? rows : [el('p', 'result-best', empty)]))
+    const empty = Object.keys(progress.pitches).length === 0 ? t('stats.notes.strictOff') : t('stats.notes.strictNone')
+    return el('div', 'clef-section', el('h3', '', t('stats.notes.strictTitle')), ...(rows.length > 0 ? rows : [el('p', 'result-best', empty)]))
   }
 
   function renderNotes(): void {
     const clefs = CLEFS.filter((clef) => hasData(progress, clef))
     notesSection.replaceChildren(
-      el('h2', '', 'Notes'),
+      el('h2', '', t('stats.notes.title')),
       segmented(
-        (Object.keys(FILTER_LABELS) as NotesFilter[]).map((value) => ({ value, label: FILTER_LABELS[value] })),
+        (Object.keys(FILTER_KEYS) as NotesFilter[]).map((value) => ({ value, label: t(FILTER_KEYS[value]) })),
         filter,
         (value) => {
           filter = value
           renderNotes()
         },
-        'Filtre',
+        t('stats.notes.filter'),
       ),
-      ...(clefs.length > 0 ? clefs.map(clefSection) : [el('p', 'result-best', 'Joue Apprendre pour voir tes progrès.')]),
+      ...(clefs.length > 0 ? clefs.map(clefSection) : [el('p', 'result-best', t('stats.notes.empty'))]),
       strictOctaveSection(),
     )
   }
@@ -261,8 +274,8 @@ export function createStatsScreen({ progress: initial, onReset, onBack, today: f
         },
       ]
     })
-    const empty = el('p', 'result-best', 'Joue Armures pour voir tes progrès.')
-    return el('section', 'stats-section', el('h2', '', 'Armures'), el('div', 'clef-section', ...(rows.length > 0 ? ranked(rows) : [empty])))
+    const empty = el('p', 'result-best', t('stats.keys.empty'))
+    return el('section', 'stats-section', el('h2', '', t('stats.keys.title')), el('div', 'clef-section', ...(rows.length > 0 ? ranked(rows) : [empty])))
   }
 
   function block(title: string, ...items: HTMLElement[]): HTMLElement {
@@ -272,54 +285,60 @@ export function createStatsScreen({ progress: initial, onReset, onBack, today: f
   function challengesSection(): HTMLElement {
     const { hero, series, dictation, survival, daily } = progress
     const judged = hero.hits + hero.misses
-    const perfectRatio = judged > 0 ? `${Math.round((hero.perfects / judged) * 100)} %` : '–'
+    const perfectRatio = judged > 0 ? formatRatio(hero.perfects / judged) : '–'
     const todayAttempt = daily.attempts[dailyKey(new Date())]
     const streak = dailyStreak(Object.keys(daily.attempts), dailyKey(new Date()))
     const played = Object.keys(daily.attempts).length
+    const bestTime = (ms: number) => summary(t('stats.challenges.bestTime'), ms > 0 ? formatTenthsUp(ms) : '–')
     const wonLost = (won: number, lost: number) => [
-      summary(plural(won, 'défi gagné', 'défis gagnés'), won),
-      summary(plural(lost, 'défi perdu', 'défis perdus'), lost),
+      summary(t('stats.challenges.wonLabel', { count: won }), won),
+      summary(t('stats.challenges.lostLabel', { count: lost }), lost),
     ]
     return el(
       'section',
       'stats-section',
-      el('h2', '', 'Défis'),
-      block('Records', summary('meilleur 60 s', progress.bestTimed), summary('série de bonnes réponses', progress.bestStreak), summary('meilleur 60 s Armures', progress.keysBestTimed)),
+      el('h2', '', t('stats.challenges.title')),
       block(
-        'Séries',
-        summary('meilleur temps', series.bestMs > 0 ? formatTenthsUp(series.bestMs) : '–'),
-        summary(plural(series.played, 'série jouée', 'séries jouées'), series.played),
+        t('stats.challenges.records'),
+        summary(t('stats.challenges.best60'), progress.bestTimed),
+        summary(t('stats.challenges.bestCorrectStreak'), progress.bestStreak),
+        summary(t('stats.challenges.best60Keys'), progress.keysBestTimed),
+      ),
+      block(
+        t('stats.challenges.series'),
+        bestTime(series.bestMs),
+        summary(t('stats.challenges.seriesPlayed', { count: series.played }), series.played),
         ...wonLost(series.won, series.lost),
       ),
       block(
-        'Dictée',
-        summary('meilleur temps', dictation.bestMs > 0 ? formatTenthsUp(dictation.bestMs) : '–'),
-        summary(plural(dictation.played, 'dictée jouée', 'dictées jouées'), dictation.played),
-        summary(plural(dictation.replays, 'réécoute', 'réécoutes'), dictation.replays),
+        t('stats.challenges.dictation'),
+        bestTime(dictation.bestMs),
+        summary(t('stats.challenges.dictationPlayed', { count: dictation.played }), dictation.played),
+        summary(t('stats.challenges.replays', { count: dictation.replays }), dictation.replays),
         ...wonLost(dictation.won, dictation.lost),
       ),
       block(
-        'Survie',
-        summary('meilleur score', survival.bestScore),
-        summary(plural(survival.played, 'partie jouée', 'parties jouées'), survival.played),
+        t('stats.challenges.survival'),
+        summary(t('stats.challenges.bestScore'), survival.bestScore),
+        summary(t('stats.challenges.survivalPlayed', { count: survival.played }), survival.played),
         ...wonLost(survival.challengesWon, survival.challengesLost),
       ),
       block(
-        'Solfège hero',
-        summary('meilleur score', hero.bestScore),
-        summary('meilleure série', hero.bestStreak),
-        summary('BPM max', hero.maxBpm),
-        summary('parfaits', perfectRatio),
-        summary(plural(hero.hits, 'réussie', 'réussies'), hero.hits),
-        summary(plural(hero.misses, 'ratée', 'ratées'), hero.misses),
+        t('stats.challenges.hero'),
+        summary(t('stats.challenges.bestScore'), hero.bestScore),
+        summary(t('stats.challenges.heroBestStreak'), hero.bestStreak),
+        summary(t('stats.challenges.heroMaxBpm'), hero.maxBpm),
+        summary(t('stats.challenges.heroPerfects'), perfectRatio),
+        summary(t('stats.challenges.heroHits', { count: hero.hits }), hero.hits),
+        summary(t('stats.challenges.heroMisses', { count: hero.misses }), hero.misses),
         ...wonLost(hero.challengesWon, hero.challengesLost),
       ),
       block(
-        'Défi du jour',
-        summary(plural(streak, 'jour d’affilée', 'jours d’affilée'), streak),
-        summary('meilleur temps', daily.bestMs > 0 ? formatTenthsUp(daily.bestMs) : '–'),
-        summary(plural(played, 'jour joué', 'jours joués'), played),
-        summary('aujourd’hui', todayAttempt ? checked(formatTenthsUp(todayAttempt.totalMs)) : 'à jouer'),
+        t('stats.challenges.daily'),
+        summary(t('stats.tiles.streakDays', { count: streak }), streak),
+        bestTime(daily.bestMs),
+        summary(t('stats.tiles.daysPlayed', { count: played }), played),
+        summary(t('stats.challenges.dailyToday'), todayAttempt ? checked(formatTenthsUp(todayAttempt.totalMs)) : t('stats.challenges.dailyToPlay')),
       ),
     )
   }
@@ -328,7 +347,7 @@ export function createStatsScreen({ progress: initial, onReset, onBack, today: f
     renderProgression()
     renderNotes()
     element.replaceChildren(
-      el('h1', '', 'Statistiques'),
+      el('h1', '', t('stats.title')),
       headerTiles(),
       activitySection(),
       progressionSection,
@@ -338,13 +357,13 @@ export function createStatsScreen({ progress: initial, onReset, onBack, today: f
       el(
         'div',
         'actions sticky-actions',
-        button('danger', 'Réinitialiser', () => {
-          if (confirm('Effacer toute la progression ?')) {
+        button('danger', t('stats.reset'), () => {
+          if (confirm(t('stats.resetConfirm'))) {
             progress = onReset()
             render()
           }
         }),
-        button('primary', 'Retour', onBack),
+        button('primary', t('stats.back'), onBack),
       ),
     )
   }

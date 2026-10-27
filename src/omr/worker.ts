@@ -1,3 +1,4 @@
+import { setLanguage, t } from '../i18n'
 import { recognize } from './recognize'
 import type { OmrStage, OmrWorkerMessage, OmrWorkerRequest } from './types'
 
@@ -21,9 +22,10 @@ function describe(error: unknown): string {
 }
 
 self.addEventListener('unhandledrejection', (event) => scope.postMessage({ type: 'error', message: describe((event as PromiseRejectionEvent).reason) }))
-self.addEventListener('messageerror', () => scope.postMessage({ type: 'error', message: 'image illisible par le worker' }))
+self.addEventListener('messageerror', () => scope.postMessage({ type: 'error', message: t('omr.errors.imageUnreadable') }))
 
 scope.onmessage = ({ data }) => {
+  if (data.language) setLanguage(data.language)
   try {
     const result = recognize(data.image, {
       staffIndexInSystem: data.staffIndexInSystem,

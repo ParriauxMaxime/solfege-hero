@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import { nearestPitchInWindow, windowStartFor, type Answer } from '../game/strictOctave'
 import { isNatural, pitchClass, pitchClassLabel, type Clef, type Naming } from '../music/notes'
 import { el, trackPressed } from './dom'
@@ -11,7 +12,6 @@ const LANDSCAPE = '(orientation: landscape)'
 const PORTRAIT = '(orientation: portrait)'
 const STRICT_SPAN: KeyboardSpan = 2
 const FIRST_WINDOW_START = 60
-const ROTATE_MESSAGE = 'Tourne ton téléphone : l’octave stricte demande le mode paysage.'
 
 export type PadFlash = (typeof FLASH_CLASSES)[number]
 
@@ -66,7 +66,7 @@ function pitchClassForKey(event: KeyboardEvent): number | undefined {
 }
 
 function rotateNotice(): HTMLElement {
-  return el('p', 'rotate-notice', icon('rotate'), ROTATE_MESSAGE)
+  return el('p', 'rotate-notice', icon('rotate'), t('learn.rotate'))
 }
 
 export function createAnswerPad(

@@ -1,1 +1,22 @@
-export const home = {} as const
+export const home = {
+  tagline: 'Apprendre à lire les notes sur la portée',
+  streakDays: '{days} j',
+  accuracy: 'précision',
+  time: 'temps',
+  score: 'score',
+  scores: 'partitions',
+  lastImport: 'import',
+  daily: { title: 'Défi du jour', notes: '20 notes' },
+  modes: {
+    learn: 'Apprendre',
+    series: 'Séries',
+    dictation: 'Dictée',
+    keys: 'Armures',
+    survival: 'Survie',
+    hero: 'Solfège hero',
+    scores: 'Partitions',
+  },
+  settings: 'Réglages',
+  stats: 'Statistiques',
+  answers: '{count, plural, one {# réponse} other {# réponses}}',
+} as const

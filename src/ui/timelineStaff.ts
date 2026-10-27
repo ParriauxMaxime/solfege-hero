@@ -1,3 +1,4 @@
+import { t, type MessageKey } from '../i18n'
 import { motionReduced } from '../platform/appearance'
 import { staffStep } from '../music/notes'
 import type { Clef, Note } from '../music/notes'
@@ -38,7 +39,7 @@ const ACCIDENTAL_OFFSET = -22
 const HEADER_CLEF_X = 4
 const SLOT_STEP = 4
 const SLOT_RADIUS = { rx: 12, ry: 8 }
-const CLEF_LABELS: Record<Clef, string> = { treble: 'de sol', bass: 'de fa', alto: 'd’ut' }
+const CLEF_OF_KEYS = { treble: 'learn.clefOf.treble', bass: 'learn.clefOf.bass', alto: 'learn.clefOf.alto' } satisfies Record<Clef, MessageKey>
 
 export interface TimelineItem extends ClefAndKey {
   note: Note
@@ -296,7 +297,7 @@ export function createTimelineStaff({ maxFifths = 0, maxKept = Infinity, visible
   function describe(): void {
     const item = items.get(current)
     const total = current + 1
-    element.setAttribute('aria-label', item ? `Portée en clé ${CLEF_LABELS[item.clef]}, ${total} note${total > 1 ? 's' : ''}` : 'Portée')
+    element.setAttribute('aria-label', item ? t('learn.aria.timeline', { clef: t(CLEF_OF_KEYS[item.clef]), count: total }) : t('learn.aria.timelineEmpty'))
   }
 
   function restartPop(group: SVGGElement): void {

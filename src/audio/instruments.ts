@@ -1,18 +1,28 @@
-export const INSTRUMENTS = ['sine', 'piano', 'organ', 'guitar'] as const
+import { t, type MessageKey } from '../i18n'
+
+export const INSTRUMENTS =['sine', 'piano', 'organ', 'guitar'] as const
 export type Instrument = (typeof INSTRUMENTS)[number]
 
-export const INSTRUMENT_LABELS: Record<Instrument, string> = {
-  sine: 'Sinusoïde pure',
-  piano: 'Piano',
-  organ: 'Orgue',
-  guitar: 'Guitare',
+const LABEL_KEYS = {
+  sine: 'instruments.label.sine',
+  piano: 'instruments.label.piano',
+  organ: 'instruments.label.organ',
+  guitar: 'instruments.label.guitar',
+} satisfies Record<Instrument, MessageKey>
+
+const DESCRIPTION_KEYS = {
+  sine: 'instruments.description.sine',
+  piano: 'instruments.description.piano',
+  organ: 'instruments.description.organ',
+  guitar: 'instruments.description.guitar',
+} satisfies Record<Instrument, MessageKey>
+
+export function instrumentLabel(instrument: Instrument): string {
+  return t(LABEL_KEYS[instrument])
 }
 
-export const INSTRUMENT_DESCRIPTIONS: Record<Instrument, string> = {
-  sine: 'Un son pur et doux',
-  piano: 'Attaque nette, résonance longue',
-  organ: 'Son tenu et chaleureux',
-  guitar: 'Corde pincée, claire et vive',
+export function instrumentDescription(instrument: Instrument): string {
+  return t(DESCRIPTION_KEYS[instrument])
 }
 
 const MAX_PLUCK_SECONDS = 2

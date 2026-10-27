@@ -1,3 +1,6 @@
+import { t } from '../i18n'
+import { dailyLabel, type DailyKey } from './daily'
+
 const MS_PER_SECOND = 1000
 const SECONDS_PER_MINUTE = 60
 
@@ -33,6 +36,32 @@ const DEFAULT_SQUARES: ShareSquares = { ok: '🟩', bad: '🟥' }
 
 export const COLORBLIND_SQUARES: ShareSquares = { ok: '🟦', bad: '🟧' }
 
+export type ShareDialogKind = 'daily' | 'series' | 'survival' | 'dictation'
+
+export function shareDialogTitle(kind: ShareDialogKind): string {
+  return t(`share.dialog.${kind}`)
+}
+
+export function seriesShareTitle(seed: number): string {
+  return t('share.title.series', { seed: String(seed) })
+}
+
+export function scoreShareTitle(name: string): string {
+  return t('share.title.score', { name })
+}
+
+export function dictationShareTitle(seed: number): string {
+  return t('share.title.dictation', { seed: String(seed) })
+}
+
+export function dailyShareTitle(key: DailyKey): string {
+  return t('share.title.daily', { date: dailyLabel(key) })
+}
+
+export function dailyCallToAction(): string {
+  return t('share.ctaDaily')
+}
+
 export function shareText(input: {
   /** What was played, after "Solfège hero · ", e.g. "Série #4821". */
   title: string
@@ -40,16 +69,16 @@ export function shareText(input: {
   totalMs: number
   penaltyMs: number
   squares?: ShareSquares
-  /** Closing line, "Bats-moi !" by default. */
+  /** Closing line, « Bats-moi ! » by default. */
   callToAction?: string
 }): string {
   const { ok, bad } = input.squares ?? DEFAULT_SQUARES
-  const penalty = input.penaltyMs > 0 ? ` (+${input.penaltyMs / MS_PER_SECOND} s)` : ''
-  const firstTry = input.results.filter(Boolean).length
+  const hits = input.results.filter(Boolean).length
+  const counts = { hits, total: input.results.length, seconds: input.penaltyMs / MS_PER_SECOND }
   return [
-    `Solfège hero · ${input.title} · ⏱ ${formatTenthsUp(input.totalMs)}`,
+    t('share.header', { title: input.title, time: formatTenthsUp(input.totalMs) }),
     input.results.map((result) => (result ? ok : bad)).join(''),
-    `${firstTry}/${input.results.length} du premier coup${penalty}`,
-    input.callToAction ?? 'Bats-moi !',
+    t(input.penaltyMs > 0 ? 'share.firstTryPenalty' : 'share.firstTry', counts),
+    input.callToAction ?? t('share.cta'),
   ].join('\n')
 }

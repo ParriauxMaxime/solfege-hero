@@ -1,4 +1,5 @@
 import { hashText } from '../hash'
+import { t } from '../i18n'
 import { barLength, specBeats } from '../hero/meter'
 import {
   COMMON_TIME,
@@ -86,10 +87,10 @@ function readDocument(xml: string): XmlElement {
   try {
     root = parseXml(xml)
   } catch {
-    throw new Error('Fichier MusicXML illisible')
+    throw new Error(t('library.errors.unreadableXml'))
   }
-  if (root.name === 'score-timewise') throw new Error('Format partwise attendu')
-  if (root.name !== 'score-partwise') throw new Error('Fichier MusicXML illisible')
+  if (root.name === 'score-timewise') throw new Error(t('library.errors.partwiseExpected'))
+  if (root.name !== 'score-partwise') throw new Error(t('library.errors.unreadableXml'))
   return root
 }
 
@@ -157,7 +158,7 @@ function readTitle(root: XmlElement): string {
 export function parseMusicXml(xml: string): ImportResult {
   const root = readDocument(xml)
   const part = child(root, 'part')
-  if (!part) throw new Error('Aucune note trouvée')
+  if (!part) throw new Error(t('library.errors.noNotes'))
 
   const warnings: string[] = []
   const warn = (message: string) => {
@@ -188,9 +189,9 @@ export function parseMusicXml(xml: string): ImportResult {
           const read = readClef(clefElement)
           if (clef === null) {
             clef = read.clef
-            if (!read.supported) warn('Clef non gérée : clef de sol utilisée')
+            if (!read.supported) warn(t('library.warnings.unsupportedClef'))
           } else if (read.clef !== clef) {
-            warn('Changement de clef ignoré')
+            warn(t('library.warnings.clefChange'))
           }
         }
 
@@ -198,7 +199,7 @@ export function parseMusicXml(xml: string): ImportResult {
         if (!Number.isNaN(fifths)) {
           const read = Math.max(-MAX_FIFTHS, Math.min(MAX_FIFTHS, fifths))
           if (key === null) key = read
-          else if (read !== key) warn('Changement d’armure ignoré')
+          else if (read !== key) warn(t('library.warnings.keyChange'))
         }
 
         const beats = Number.parseInt(textOf(element, 'time/beats') ?? '', 10)
@@ -207,10 +208,10 @@ export function parseMusicXml(xml: string): ImportResult {
           if (beats > 0 && beatType > 0) {
             if (time === null) time = { beats, beatType }
             else if (time.beats !== beats || time.beatType !== beatType) {
-              warn('Changement de mesure ignoré')
+              warn(t('library.warnings.timeChange'))
             }
           } else if (time === null) {
-            warn('Signature rythmique non gérée : 4/4 utilisé')
+            warn(t('library.warnings.unsupportedTime'))
           }
         }
       } else if (element.name === 'direction' || element.name === 'sound') {
@@ -237,7 +238,7 @@ export function parseMusicXml(xml: string): ImportResult {
         const wholeMeasureRest = child(element, 'rest')?.attributes.measure === 'yes'
         const length = readLength(element, divisions, wholeMeasureRest)
         if (!length) {
-          warn('Note sans durée ignorée')
+          warn(t('library.warnings.noDuration'))
           continue
         }
         written += length.played
@@ -259,23 +260,23 @@ export function parseMusicXml(xml: string): ImportResult {
       const isLast = measureIndex === measures.length - 1
       if (isPickup) notes.splice(measureStart, 0, ...restsFor(missing))
       else notes.push(...restsFor(missing))
-      if (!isPickup && !isLast) warn(`Mesure ${label} incomplète : complétée par un silence`)
+      if (!isPickup && !isLast) warn(t('library.warnings.shortMeasure', { label }))
     } else if (missing < -EPSILON) {
-      warn(`Mesure ${label} trop longue`)
+      warn(t('library.warnings.longMeasure', { label }))
     }
   })
 
   const pitched = notes.filter((spec) => spec.pitch !== null)
-  if (pitched.length === 0) throw new Error('Aucune note trouvée')
+  if (pitched.length === 0) throw new Error(t('library.errors.noNotes'))
 
-  if (clef === null) warn('Clef absente : clef de sol utilisée')
-  if (tempo === null) warn(`Tempo absent : ${DEFAULT_TEMPO} par défaut`)
-  if (time === null) warn('Signature rythmique absente : 4/4 utilisé')
+  if (clef === null) warn(t('library.warnings.noClef'))
+  if (tempo === null) warn(t('library.warnings.noTempo', { tempo: DEFAULT_TEMPO }))
+  if (time === null) warn(t('library.warnings.noTime'))
 
   const finalClef: Clef = clef ?? 'treble'
   const inRange = new Set(pitchesInRange(finalClef, true))
   const outside = pitched.filter((spec) => !inRange.has(spec.pitch as number)).length
-  if (outside > 0) warn(`${outside} note(s) hors de la portée affichable`)
+  if (outside > 0) warn(t('library.warnings.outOfRange', { count: outside }))
 
   const melody = {
     clef: finalClef,
@@ -312,7 +313,7 @@ async function readArchive(data: ArrayBuffer): Promise<string> {
     (name) => !name.startsWith('META-INF/') && /\.(xml|musicxml)$/i.test(name),
   )
   const content = files.get(declared ?? '') ?? files.get(fallback ?? '')
-  if (!content) throw new Error('Aucune partition trouvée dans l’archive')
+  if (!content) throw new Error(t('library.errors.noScoreInArchive'))
   return new TextDecoder().decode(content)
 }
 

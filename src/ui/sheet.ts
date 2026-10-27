@@ -1,4 +1,5 @@
 import { barLength, specBeats } from '../hero/meter'
+import { t } from '../i18n'
 import { COMMON_TIME } from '../hero/types'
 import type { HeroNote, Melody, NoteSpec, TimeSignature } from '../hero/types'
 import { keyAlteration, spellInKey } from '../music/keySignature'
@@ -249,7 +250,7 @@ export function renderSheet(score: SheetScore, options: SheetOptions): Sheet {
     width: options.width,
     height: pages * pageHeight,
     role: 'img',
-    'aria-label': 'Partition',
+    'aria-label': t('library.sheetLabel'),
   })
   if (options.ink) svg.setAttribute('color', options.ink)
   if (options.background) svg.append(svgElement('rect', { width: options.width, height: pages * pageHeight, fill: options.background }))

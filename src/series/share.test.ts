@@ -48,7 +48,7 @@ describe('shareText', () => {
         'Solfège hero · Série #4821 · ⏱ 0:47.3',
         '🟩🟩🟩🟥🟩🟩🟩🟩🟩🟩🟩🟥🟩🟩🟩🟩🟩🟩🟩🟩',
         '18/20 du premier coup (+10 s)',
-        'Bats-moi !',
+        'Bats-moi !',
       ].join('\n'),
     )
   })

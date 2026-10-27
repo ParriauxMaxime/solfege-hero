@@ -1,17 +1,19 @@
+import { t } from '../i18n'
 import { formatPercent, formatSeconds, formatSignedInteger, formatSignedPoints, formatSignedSeconds } from './format'
 import type { Metric, WindowSummary } from './progression'
 import { LOWER_BEST_IS_BETTER, type HistoryMode } from './history'
 
-export const EMPTY_MESSAGE = 'Pas encore de données sur cette période'
-
-const LABELS: Record<Metric, string> = { precision: 'Précision', meanMs: 'Temps moyen', best: 'Meilleur score' }
+export function emptyMessage(): string {
+  return t('stats.progression.empty')
+}
 
 function isTimeBest(mode: HistoryMode, metric: Metric): boolean {
   return metric === 'meanMs' || (metric === 'best' && LOWER_BEST_IS_BETTER[mode])
 }
 
 export function metricLabel(mode: HistoryMode, metric: Metric): string {
-  return metric === 'best' && isTimeBest(mode, metric) ? 'Meilleur temps' : LABELS[metric]
+  if (metric === 'best') return t(isTimeBest(mode, metric) ? 'stats.metrics.bestTime' : 'stats.metrics.best')
+  return t(metric === 'precision' ? 'stats.metrics.precision' : 'stats.metrics.meanMs')
 }
 
 function formatValue(metric: Metric, mode: HistoryMode, value: number): string {
@@ -26,9 +28,13 @@ function formatDelta(metric: Metric, mode: HistoryMode, delta: number): string {
 
 /** « Précision 7 derniers jours 88 % (+5 pts vs 7 jours avant) » */
 export function summarySentence(mode: HistoryMode, metric: Metric, days: number, summary: WindowSummary): string {
-  if (summary.current === null) return EMPTY_MESSAGE
-  const head = `${metricLabel(mode, metric)} ${days} derniers jours ${formatValue(metric, mode, summary.current)}`
+  if (summary.current === null) return emptyMessage()
+  const head = t('stats.summary.head', {
+    metric: metricLabel(mode, metric),
+    days: String(days),
+    value: formatValue(metric, mode, summary.current),
+  })
   if (summary.delta === null) return head
-  const delta = Math.abs(summary.delta) < 1e-9 ? 'stable' : formatDelta(metric, mode, summary.delta)
-  return `${head} (${delta} vs ${days} jours avant)`
+  const delta = Math.abs(summary.delta) < 1e-9 ? t('stats.summary.stable') : formatDelta(metric, mode, summary.delta)
+  return t('stats.summary.withDelta', { head, delta, days: String(days) })
 }

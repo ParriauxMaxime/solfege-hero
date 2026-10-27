@@ -1,5 +1,6 @@
 import { barLength } from '../hero/meter'
 import { COMMON_TIME } from '../hero/types'
+import { t } from '../i18n'
 import type { NoteSpec, TimeSignature } from '../hero/types'
 import { scoreId } from '../music/musicxml'
 import type { Clef } from '../music/notes'
@@ -14,7 +15,6 @@ import type { BinaryImage, Box, GrayImage, OmrMeasure, OmrResult, OmrStaffReport
 
 export { rgbaToGray } from './image'
 
-const DEFAULT_NAME = 'Partition importée'
 const DEFAULT_TEMPO = 80
 const MIN_ROTATION_RADIANS = 0.0006
 const BEAT_EPSILON = 1e-6
@@ -86,10 +86,6 @@ function cropLimits(staves: Staff[], staff: Staff): { yMin: number; yMax: number
   }
 }
 
-function plural(count: number, one: string, many: string): string {
-  return count === 1 ? one : many
-}
-
 function resultOf(
   notes: NoteSpec[],
   clef: Clef,
@@ -98,7 +94,7 @@ function resultOf(
   extra: Omit<OmrResult, 'score'>,
 ): OmrResult {
   const melody = { clef, key, notes, timeSignature }
-  return { score: { ...melody, id: scoreId(melody), name: DEFAULT_NAME, tempo: DEFAULT_TEMPO }, ...extra }
+  return { score: { ...melody, id: scoreId(melody), name: t('omr.defaultName'), tempo: DEFAULT_TEMPO }, ...extra }
 }
 
 export function recognize(image: GrayImage, options: RecognizeOptions = {}): OmrResult {
@@ -119,9 +115,9 @@ export function recognize(image: GrayImage, options: RecognizeOptions = {}): Omr
   const page = preparePage(image)
   lap('preprocess')
   stage('preprocess', 1)
-  if (!page.metrics) return empty('Aucune portée détectée : la photo est peut-être trop floue ou trop sombre.')
+  if (!page.metrics) return empty(t('omr.warnings.noStaffBlurry'))
   if (page.metrics.unit / page.scale < MIN_READABLE_UNIT) {
-    warnings.push('La résolution est faible : les portées sont très petites, la lecture sera approximative. Une image plus grande aiderait.')
+    warnings.push(t('omr.warnings.lowResolution'))
   }
 
   stage('staves', 0)
@@ -131,7 +127,7 @@ export function recognize(image: GrayImage, options: RecognizeOptions = {}): Omr
   systems.forEach((system, index) => {
     const staff = system[staffIndexInSystem]
     if (staff) chosen.push({ staff, system: index })
-    else warnings.push(`Le système ${index + 1} n’a que ${system.length} ${plural(system.length, 'portée', 'portées')} : ignoré.`)
+    else warnings.push(t('omr.warnings.systemSkipped', { system: index + 1, count: system.length }))
   })
   const crops = chosen.map(({ staff, system }) => {
     const limits = cropLimits(staves, staff)
@@ -139,7 +135,7 @@ export function recognize(image: GrayImage, options: RecognizeOptions = {}): Omr
   })
   lap('staves')
   stage('staves', 1)
-  if (systems.length === 0) return empty('Aucune portée détectée : cadrez la page entière, bien à plat.')
+  if (systems.length === 0) return empty(t('omr.warnings.noStaffFrame'))
 
   const readings = crops.map(({ crop }, order) => {
     stage('symbols', order / crops.length)
@@ -154,11 +150,11 @@ export function recognize(image: GrayImage, options: RecognizeOptions = {}): Omr
   const key = firstWithClef?.header.fifths ?? 0
   const time = readings.map((reading) => reading.header.time).find((found) => found !== null) ?? null
   const timeSignature = time ?? COMMON_TIME
-  if (!firstWithClef) warnings.push('Clé non reconnue : clé de sol supposée.')
+  if (!firstWithClef) warnings.push(t('omr.warnings.clefUnknown'))
   if (readings.some((reading) => reading.header.clef && reading.header.clef !== clef)) {
-    warnings.push('La clé change d’un système à l’autre : chaque système est lu avec sa propre clé.')
+    warnings.push(t('omr.warnings.clefChanges'))
   }
-  if (!time) warnings.push('Signature rythmique non reconnue : 4/4 supposé.')
+  if (!time) warnings.push(t('omr.warnings.timeUnknown'))
   const bar = barLength(timeSignature)
 
   const notes: NoteSpec[] = []
@@ -198,13 +194,11 @@ export function recognize(image: GrayImage, options: RecognizeOptions = {}): Omr
 
   const uncertainMeasures = measures.filter((measure) => measure.uncertain).length
   const doubtful = confidence.filter((value) => value < DOUBTFUL_CONFIDENCE).length
-  if (notes.length === 0) warnings.push('Aucune note reconnue : essayez une image plus nette ou une autre page.')
+  if (notes.length === 0) warnings.push(t('omr.warnings.noNotes'))
   if (uncertainMeasures > 0) {
-    warnings.push(
-      `${uncertainMeasures} ${plural(uncertainMeasures, 'mesure ne correspond', 'mesures ne correspondent')} pas à la signature rythmique ${timeSignature.beats}/${timeSignature.beatType} : à vérifier.`,
-    )
+    warnings.push(t('omr.warnings.measureMismatch', { count: uncertainMeasures, beats: timeSignature.beats, beatType: timeSignature.beatType }))
   }
-  if (doubtful > 0) warnings.push(`${doubtful} ${plural(doubtful, 'note est incertaine', 'notes sont incertaines')} : relisez-les avant d’enregistrer.`)
+  if (doubtful > 0) warnings.push(t('omr.warnings.doubtfulNotes', { count: doubtful }))
 
   return resultOf(notes, clef, key, timeSignature, { warnings, confidence, measures, staves: reports, systems: systems.length, staffIndexInSystem, timings })
 }

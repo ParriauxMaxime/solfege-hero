@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import { MAX_FIFTHS, randomKey, signatureLabel } from '../music/keySignature'
 import { pickCappedSignature } from '../level/level'
 import type { LearnKeyPlan } from './runs'
@@ -32,5 +33,5 @@ export function learnKeyPlan(
 }
 
 export function learnKeyChipLabel(plan: LearnKeyPlan): string {
-  return plan.mode === 'fixed' ? signatureLabel(plan.fifths) : 'Aléatoire'
+  return plan.mode === 'fixed' ? signatureLabel(plan.fifths) : t('learn.keyMode.random')
 }

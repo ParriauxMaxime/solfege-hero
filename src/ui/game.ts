@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import { learnKeyChipLabel, learnKeyPlan } from '../game/learnKey'
 import { createLearnSampler, type LearnKeyPlan } from '../game/runs'
 import { buildPool, promptId, recordAnswer } from '../game/sampler'
@@ -43,7 +44,7 @@ function learnDrill(settings: Settings, plan: LearnKeyPlan, onEditKey: GameOptio
         isCorrect: (chosen) => isCorrectAnswer(prompt.pitch, chosen),
         sounding: note,
         correctText: noteName(note, resolveNaming(settings.naming)),
-        wrongText: `C’était ${noteName(note, resolveNaming(settings.naming))}`,
+        wrongText: t('learn.game.wrong', { note: noteName(note, resolveNaming(settings.naming)) }),
         record: (current, correct, elapsed) => ({
           notes: recordAnswer(current.notes, promptId(prompt), correct, elapsed),
           pitches: recordExactPitch(current.pitches, prompt.pitch, correct, settings.strictOctave),

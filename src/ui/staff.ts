@@ -1,3 +1,4 @@
+import { t, type MessageKey } from '../i18n'
 import { MAX_FIFTHS } from '../music/keySignature'
 import { staffStep } from '../music/notes'
 import type { Clef, Note } from '../music/notes'
@@ -20,7 +21,7 @@ const SIGNATURE_X = 92
 const NOTE_CLEARANCE = 60
 const SIGNATURE_TRAILING_SPACE = 40
 
-const CLEF_LABELS: Record<Clef, string> = { treble: 'de sol', bass: 'de fa', alto: 'd’ut' }
+const CLEF_OF_KEYS = { treble: 'learn.clefOf.treble', bass: 'learn.clefOf.bass', alto: 'learn.clefOf.alto' } satisfies Record<Clef, MessageKey>
 
 function renderNote(note: Note, step: number, fifths: number, noteX: number): SVGGElement {
   return noteGroup(note, step, fifths, noteX, { class: 'staff-note', style: 'transform-box: fill-box; transform-origin: center' })
@@ -46,7 +47,7 @@ function staffSvg(clef: Clef, staffRight: number, label: string, fifths: number)
 
 export function renderStaff(clef: Clef, note: Note, fifths: number): SVGSVGElement {
   const noteX = Math.max(MIN_NOTE_X, SIGNATURE_X + keySignatureWidth(fifths) + NOTE_CLEARANCE)
-  const svg = staffSvg(clef, noteX + NOTE_TRAILING_SPACE, `Note sur la portée en clé ${CLEF_LABELS[clef]}`, fifths)
+  const svg = staffSvg(clef, noteX + NOTE_TRAILING_SPACE, t('learn.aria.note', { clef: t(CLEF_OF_KEYS[clef]) }), fifths)
   svg.append(renderNote(note, staffStep(note, clef), fifths, noteX))
   return svg
 }
@@ -54,7 +55,7 @@ export function renderStaff(clef: Clef, note: Note, fifths: number): SVGSVGEleme
 /** A clef and its key signature alone; the staff keeps the width of seven accidentals so it never resizes between prompts. */
 export function renderKeySignatureStaff(clef: Clef, fifths: number): SVGSVGElement {
   const staffRight = SIGNATURE_X + keySignatureWidth(MAX_FIFTHS) + SIGNATURE_TRAILING_SPACE
-  return staffSvg(clef, staffRight, `Armure sur la portée en clé ${CLEF_LABELS[clef]}`, fifths)
+  return staffSvg(clef, staffRight, t('learn.aria.keySignature', { clef: t(CLEF_OF_KEYS[clef]) }), fifths)
 }
 
 export function noteCenter(svg: SVGSVGElement): DOMPoint | null {

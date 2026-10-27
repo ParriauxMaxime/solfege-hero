@@ -1,6 +1,7 @@
 import '../styles/picker.css'
-import { INSTRUMENT_DESCRIPTIONS, INSTRUMENT_LABELS, INSTRUMENTS, type Instrument } from '../audio/instruments'
+import { instrumentDescription, instrumentLabel, INSTRUMENTS, type Instrument } from '../audio/instruments'
 import type { Sound } from '../audio/sound'
+import { t } from '../i18n'
 import type { Naming } from '../music/notes'
 import { createAnswerPad } from './answerPad'
 import { button, el, iconButton } from './dom'
@@ -50,7 +51,7 @@ export function openInstrumentPicker({ sound, current, naming, onSelect, onClose
     )
     const art = el('span', 'picker-icon')
     art.append(icon(instrument === 'sine' ? 'wave' : instrument))
-    control.append(art, el('strong', '', INSTRUMENT_LABELS[instrument]), el('small', '', INSTRUMENT_DESCRIPTIONS[instrument]))
+    control.append(art, el('strong', '', instrumentLabel(instrument)), el('small', '', instrumentDescription(instrument)))
     control.setAttribute('aria-pressed', String(instrument === selected))
     control.classList.toggle('selected', instrument === selected)
     cards.set(instrument, control)
@@ -70,14 +71,14 @@ export function openInstrumentPicker({ sound, current, naming, onSelect, onClose
   const modal = el(
     'div',
     'picker',
-    el('header', 'picker-header', el('h2', '', 'Instrument'), iconButton('close', () => history.back(), 'Fermer')),
+    el('header', 'picker-header', el('h2', '', t('settings.instrument.label')), iconButton('close', () => history.back(), t('common.close'))),
     el('div', 'picker-grid', ...INSTRUMENTS.map(card)),
-    el('p', 'picker-hint', 'Teste le son au clavier'),
+    el('p', 'picker-hint', t('settings.instrument.hint')),
     pad.element,
   )
   modal.setAttribute('role', 'dialog')
   modal.setAttribute('aria-modal', 'true')
-  modal.setAttribute('aria-label', 'Instrument')
+  modal.setAttribute('aria-label', t('settings.instrument.label'))
 
   function close(): void {
     window.removeEventListener('popstate', close)

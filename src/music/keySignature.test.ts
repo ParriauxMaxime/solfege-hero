@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { setLanguage } from '../i18n'
 import { seededRandom } from '../random'
 import {
   MAX_FIFTHS,
@@ -221,6 +222,23 @@ describe('key tonics', () => {
     expect(keyFullName(7, 'minor')).toBe('La♯ mineur')
     expect(keyFullName(0, 'minor')).toBe('La mineur')
     expect(keyFullName(-1, 'major', 'english')).toBe('F majeur')
+  })
+
+  it('names keys with letters in English, whatever the naming', () => {
+    setLanguage('en')
+    try {
+      expect(keyFullName(4, 'major')).toBe('E major')
+      expect(keyFullName(4, 'minor')).toBe('C♯ minor')
+      expect(keyFullName(-2, 'major', 'latin')).toBe('B♭ major')
+      expect(keyFullName(0, 'minor', 'english')).toBe('A minor')
+      expect(keyTonicName(-7, 'minor')).toBe('A♭')
+      expect(keyMnemonic(-1)).toBe('F')
+      expect(keyMnemonic(0)).toBe('No accidentals: C')
+      expect(keyMnemonic(3)).toBe('last ♯ + half step')
+      expect(keyMnemonic(-4)).toBe('second-to-last ♭')
+    } finally {
+      setLanguage('fr')
+    }
   })
 
   it('spells every tonic with the pitch class it sounds', () => {

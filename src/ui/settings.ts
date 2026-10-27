@@ -1,4 +1,4 @@
-import { INSTRUMENT_LABELS } from '../audio/instruments'
+import { instrumentLabel } from '../audio/instruments'
 import type { Sound } from '../audio/sound'
 import { t } from '../i18n'
 import { resolveNaming } from '../i18n/naming'
@@ -37,12 +37,18 @@ type BooleanKey = {
   [K in keyof Settings]: Settings[K] extends boolean ? K : never
 }[keyof Settings]
 
-const CLEF_LABELS: Record<Clef, string> = { treble: 'Sol', bass: 'Fa', alto: 'Ut 3' }
-const NAMINGS: Choice<Settings['naming']>[] = [
-  { value: 'auto', label: 'Auto' },
-  { value: 'latin', label: 'Do Ré Mi' },
-  { value: 'english', label: 'C D E' },
-]
+function clefLabel(clef: Clef): string {
+  return t(`settings.clefs.${clef}`)
+}
+
+function namingChoices(): Choice<Settings['naming']>[] {
+  return [
+    { value: 'auto', label: t('settings.naming.auto') },
+    { value: 'latin', label: t('settings.naming.latin') },
+    { value: 'english', label: t('settings.naming.english') },
+  ]
+}
+
 function languageChoices(): Choice<Settings['language']>[] {
   return [
     { value: 'auto', label: t('settings.language.auto') },
@@ -50,28 +56,36 @@ function languageChoices(): Choice<Settings['language']>[] {
     { value: 'en', label: t('settings.language.en') },
   ]
 }
-const THEME_CHOICES: Choice<Theme>[] = [
-  { value: 'dark', label: 'Sombre' },
-  { value: 'light', label: 'Clair' },
-  { value: 'system', label: 'Système' },
-]
+
+function themeChoices(): Choice<Theme>[] {
+  return [
+    { value: 'dark', label: t('settings.theme.dark') },
+    { value: 'light', label: t('settings.theme.light') },
+    { value: 'system', label: t('settings.theme.system') },
+  ]
+}
+
 const KEY_SIZE_CHOICES: Choice<KeySize>[] = [
   { value: 'S', label: 'S' },
   { value: 'M', label: 'M' },
   { value: 'L', label: 'L' },
 ]
-const KEYBOARD_SPAN_CHOICES: Choice<KeyboardSpan>[] = [
-  { value: 1, label: '1 octave' },
-  { value: 1.5, label: '1,5' },
-  { value: 2, label: '2 octaves' },
-]
-const SURVIVAL_DELAY_CHOICES: Choice<SurvivalDelay>[] = SURVIVAL_DELAYS.map((delay) => ({ value: delay, label: `${delay} s` }))
+
+function keyboardSpanChoices(): Choice<KeyboardSpan>[] {
+  return [
+    { value: 1, label: t('settings.keyboard.oneOctave') },
+    { value: 1.5, label: t('settings.keyboard.oneAndHalf') },
+    { value: 2, label: t('settings.keyboard.twoOctaves') },
+  ]
+}
+
+function survivalDelayChoices(): Choice<SurvivalDelay>[] {
+  return SURVIVAL_DELAYS.map((delay) => ({ value: delay, label: t('settings.seconds', { count: delay }) }))
+}
+
 const SERIES_DIFFICULTY_CHOICES: Choice<Difficulty>[] = SERIES_DIFFICULTIES.map((level) => ({ value: level, label: String(level) }))
 const EXPORT_FILE = 'solfege-progress.json'
 const ACTION_ROW = 'settings-row action-row'
-const STRICT_OCTAVE_HINT = 'La réponse doit être à la bonne octave. Clavier 2 octaves, paysage uniquement.'
-const LEVEL_AUTO_HINT = 'Monte ou descend selon tes 50 dernières réponses en Apprendre et Armures'
-const KEY_NAMES_HINT = 'Désactivé : touches sans nom, pour les habitués'
 
 export function createSettingsScreen({
   settings: initial,
@@ -108,7 +122,7 @@ export function createSettingsScreen({
 
   function toggleKeyNames(next: boolean): void {
     update({ keyNames: next })
-    if (!next) showToast('Touches sans nom : repère-toi au clavier')
+    if (!next) showToast(t('settings.keyNames.toast'))
   }
 
   function toggleRow(label: string, key: BooleanKey, hint = ''): HTMLElement {
@@ -116,10 +130,10 @@ export function createSettingsScreen({
   }
 
   function vibrationRow(): HTMLElement {
-    if ('vibrate' in navigator) return toggleRow('Vibration', 'vibration')
+    if ('vibrate' in navigator) return toggleRow(t('settings.vibration.label'), 'vibration')
     const control = toggle(false, () => {})
     control.setAttribute('disabled', '')
-    return row('Vibration', control, 'Non disponible sur cet appareil')
+    return row(t('settings.vibration.label'), control, t('settings.vibration.unavailable'))
   }
 
   function choiceControl<T>(choices: Choice<T>[], isActive: (value: T) => boolean, onPick: (value: T) => void): HTMLElement {
@@ -138,7 +152,7 @@ export function createSettingsScreen({
   function toggleClef(clef: Clef): void {
     const selected = settings.clefs.includes(clef)
     if (selected && settings.clefs.length === 1) {
-      showToast('Garde au moins une clé')
+      showToast(t('settings.clefs.keepOne'))
       if (clefControl) restartAnimation(clefControl, 'shake')
       return
     }
@@ -146,9 +160,9 @@ export function createSettingsScreen({
   }
 
   function clefRow(): HTMLElement {
-    const choices = CLEFS.map((clef) => ({ value: clef, label: CLEF_LABELS[clef] }))
+    const choices = CLEFS.map((clef) => ({ value: clef, label: clefLabel(clef) }))
     clefControl = choiceControl(choices, (clef) => settings.clefs.includes(clef), toggleClef)
-    return row('Clés', clefControl)
+    return row(t('settings.clefs.label'), clefControl)
   }
 
   function volumeRow(): HTMLElement {
@@ -158,13 +172,13 @@ export function createSettingsScreen({
     slider.max = '1'
     slider.step = '0.05'
     slider.value = String(settings.volume)
-    slider.setAttribute('aria-label', 'Volume')
+    slider.setAttribute('aria-label', t('settings.volume'))
     slider.addEventListener('input', () => update({ volume: Number(slider.value) }, false))
-    return row('Volume', slider)
+    return row(t('settings.volume'), slider)
   }
 
   function levelLabel(level: number): string {
-    return `${level} · ${tierName(level)}`
+    return t('settings.level.value', { level, tier: tierName(level) })
   }
 
   function levelRows(): HTMLElement[] {
@@ -176,7 +190,7 @@ export function createSettingsScreen({
     slider.max = String(MAX_LEVEL)
     slider.step = '5'
     slider.value = String(settings.level)
-    slider.setAttribute('aria-label', 'Niveau')
+    slider.setAttribute('aria-label', t('settings.level.label'))
     slider.addEventListener('input', () => {
       const level = Number(slider.value)
       value.textContent = levelLabel(level)
@@ -187,15 +201,15 @@ export function createSettingsScreen({
       settings = { ...settings, ...onLevelChange(level) }
       render()
     })
-    const label = el('span', 'settings-label', 'Niveau')
+    const label = el('span', 'settings-label', t('settings.level.label'))
     return [
       el('div', 'settings-row level-row', el('div', 'level-head', label, value), slider, caps),
-      row('Auto', toggle(settings.levelAuto, (levelAuto) => update({ levelAuto })), LEVEL_AUTO_HINT),
+      row(t('settings.level.auto'), toggle(settings.levelAuto, (levelAuto) => update({ levelAuto })), t('settings.level.autoHint')),
     ]
   }
 
   function instrumentRow(): HTMLElement {
-    const choose = button('segment-button', 'Choisir', () =>
+    const choose = button('segment-button', t('settings.instrument.choose'), () =>
       openInstrumentPicker({
         sound,
         current: settings.instrument,
@@ -204,7 +218,7 @@ export function createSettingsScreen({
         onClose: render,
       }),
     )
-    return row('Instrument', choose, INSTRUMENT_LABELS[settings.instrument], ACTION_ROW)
+    return row(t('settings.instrument.label'), choose, instrumentLabel(settings.instrument), ACTION_ROW)
   }
 
   function exportProgress(): void {
@@ -217,7 +231,7 @@ export function createSettingsScreen({
   }
 
   function shareApp(): void {
-    void shareLink({ title: 'Solfège hero', text: 'Apprendre à lire les notes, gratuit et hors ligne', url: appBase(location.href) })
+    void shareLink({ title: 'Solfège hero', text: t('settings.about.shareText'), url: appBase(location.href) })
   }
 
   function importControl(): HTMLElement {
@@ -233,15 +247,15 @@ export function createSettingsScreen({
         onImport(imported)
         render()
       }
-      showToast(imported ? 'Importé !' : 'Fichier invalide')
+      showToast(imported ? t('settings.data.imported') : t('settings.data.invalidFile'))
     })
-    return el('div', 'settings-actions', button('segment-button', 'Importer', () => input.click()), input)
+    return el('div', 'settings-actions', button('segment-button', t('settings.data.import'), () => input.click()), input)
   }
 
   function resetProgress(): void {
-    if (!confirm('Effacer toute la progression ?')) return
+    if (!confirm(t('settings.data.resetConfirm'))) return
     onReset()
-    showToast('Statistiques réinitialisées')
+    showToast(t('settings.data.resetDone'))
   }
 
   function section(title: string, ...rows: HTMLElement[]): HTMLElement {
@@ -249,55 +263,55 @@ export function createSettingsScreen({
   }
 
   function levelSection(): HTMLElement {
-    const level = section('Niveau', ...levelRows())
+    const level = section(t('settings.sections.level'), ...levelRows())
     level.classList.add('level-section')
     return level
   }
 
   function render(): void {
     element.replaceChildren(
-      el('h1', '', 'Réglages'),
+      el('h1', '', t('settings.title')),
       levelSection(),
       section(
-        'Jeu',
+        t('settings.sections.game'),
         clefRow(),
-        toggleRow('Armures', 'accidentals'),
-        row('Noms sur les touches', toggle(settings.keyNames, toggleKeyNames), KEY_NAMES_HINT),
-        choiceRow('Notation', NAMINGS, settings.naming, (naming) => update({ naming })),
-        choiceRow('Séries : difficulté', SERIES_DIFFICULTY_CHOICES, settings.seriesDifficulty, (seriesDifficulty) => update({ seriesDifficulty })),
-        choiceRow('Survie : temps par note', SURVIVAL_DELAY_CHOICES, settings.survivalDelayS, (survivalDelayS) => update({ survivalDelayS })),
+        toggleRow(t('settings.accidentals'), 'accidentals'),
+        row(t('settings.keyNames.label'), toggle(settings.keyNames, toggleKeyNames), t('settings.keyNames.hint')),
+        choiceRow(t('settings.naming.label'), namingChoices(), settings.naming, (naming) => update({ naming })),
+        choiceRow(t('settings.seriesDifficulty'), SERIES_DIFFICULTY_CHOICES, settings.seriesDifficulty, (seriesDifficulty) => update({ seriesDifficulty })),
+        choiceRow(t('settings.survivalDelay'), survivalDelayChoices(), settings.survivalDelayS, (survivalDelayS) => update({ survivalDelayS })),
         row(
-          'Clavier',
-          choiceControl(KEYBOARD_SPAN_CHOICES, (span) => span === settings.keyboardSpan, (keyboardSpan) => update({ keyboardSpan })),
-          'En paysage seulement',
+          t('settings.keyboard.label'),
+          choiceControl(keyboardSpanChoices(), (span) => span === settings.keyboardSpan, (keyboardSpan) => update({ keyboardSpan })),
+          t('settings.keyboard.hint'),
         ),
-        toggleRow('Octave stricte', 'strictOctave', STRICT_OCTAVE_HINT),
-        toggleRow('Apprendre : chrono 60 s', 'timed'),
+        toggleRow(t('settings.strictOctave.label'), 'strictOctave', t('settings.strictOctave.hint')),
+        toggleRow(t('settings.timed'), 'timed'),
       ),
       section(
-        'Affichage',
+        t('settings.sections.display'),
         choiceRow(t('settings.language.label'), languageChoices(), settings.language, (language) => update({ language })),
-        choiceRow('Thème', THEME_CHOICES, settings.theme, (theme) => update({ theme })),
-        toggleRow('Mode daltonien', 'colorblind', 'bleu/orange au lieu de vert/rouge'),
-        toggleRow('Animations réduites', 'reducedMotion'),
-        choiceRow('Taille des touches', KEY_SIZE_CHOICES, settings.keySize, (keySize) => update({ keySize })),
+        choiceRow(t('settings.theme.label'), themeChoices(), settings.theme, (theme) => update({ theme })),
+        toggleRow(t('settings.colorblind.label'), 'colorblind', t('settings.colorblind.hint')),
+        toggleRow(t('settings.reducedMotion'), 'reducedMotion'),
+        choiceRow(t('settings.keySize'), KEY_SIZE_CHOICES, settings.keySize, (keySize) => update({ keySize })),
       ),
       section(
-        'Son',
-        row('Sons', toggle(!settings.muted, (next) => update({ muted: !next }))),
-        toggleRow('Métronome', 'metronome'),
+        t('settings.sections.sound'),
+        row(t('settings.sounds'), toggle(!settings.muted, (next) => update({ muted: !next }))),
+        toggleRow(t('settings.metronome'), 'metronome'),
         vibrationRow(),
         volumeRow(),
         instrumentRow(),
       ),
       section(
-        'Données',
-        row('Statistiques', button('danger', 'Réinitialiser', resetProgress), '', ACTION_ROW),
-        row('Sauvegarde', el('div', 'settings-actions', button('segment-button', 'Exporter', exportProgress)), '', ACTION_ROW),
-        row('Restauration', importControl(), '', ACTION_ROW),
+        t('settings.sections.data'),
+        row(t('settings.data.stats'), button('danger', t('settings.data.reset'), resetProgress), '', ACTION_ROW),
+        row(t('settings.data.backup'), el('div', 'settings-actions', button('segment-button', t('settings.data.export'), exportProgress)), '', ACTION_ROW),
+        row(t('settings.data.restore'), importControl(), '', ACTION_ROW),
       ),
-      section('À propos', row('Partager l’app', button('segment-button', 'Partager', shareApp), '', ACTION_ROW)),
-      button('primary', 'Retour', onBack),
+      section(t('settings.sections.about'), row(t('settings.about.shareApp'), button('segment-button', t('settings.about.share'), shareApp), '', ACTION_ROW)),
+      button('primary', t('settings.back'), onBack),
     )
   }
 

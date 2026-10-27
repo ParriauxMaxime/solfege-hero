@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { addDays, addWeeks, dayRange, isWeekKey, shortDateLabel, weekKeyOf, weekdayIndex } from './dates'
+import { setLanguage } from '../i18n'
+import { addDays, addWeeks, dayRange, isWeekKey, shortDateLabel, shortMonthLabel, weekKeyOf, weekdayIndex, weekdayInitial } from './dates'
 
 describe('weekKeyOf', () => {
   it.each([
@@ -52,5 +53,19 @@ describe('small helpers', () => {
   it('adds days and formats short labels', () => {
     expect(addDays('2026-12-31', 1)).toBe('2027-01-01')
     expect(shortDateLabel('2026-10-24')).toBe('24 oct')
+    expect(shortDateLabel('2026-02-03')).toBe('3 févr')
+    expect(shortMonthLabel('2026-08-01')).toBe('août')
+    expect([0, 2, 4].map(weekdayInitial)).toEqual(['L', 'M', 'V'])
+  })
+
+  it('formats labels in English', () => {
+    setLanguage('en')
+    try {
+      expect(shortDateLabel('2026-10-24')).toBe('24 Oct')
+      expect(shortMonthLabel('2026-01-01')).toBe('Jan')
+      expect([0, 2, 4].map(weekdayInitial)).toEqual(['M', 'W', 'F'])
+    } finally {
+      setLanguage('fr')
+    }
   })
 })

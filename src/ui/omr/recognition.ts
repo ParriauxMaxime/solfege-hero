@@ -1,3 +1,4 @@
+import { getLanguage, t } from '../../i18n'
 import { RECOGNITION_TIMEOUT_MS, withDeadline } from '../../omr/deadline'
 import type { GrayImage, OmrResult, OmrStage, OmrWorkerMessage, OmrWorkerRequest } from '../../omr/types'
 
@@ -23,10 +24,10 @@ export function startRecognition(source: GrayImage, staffIndexInSystem: number, 
       else if (data.type === 'done') resolve(data.result)
       else fail(new Error(data.message))
     }
-    worker.onerror = (event) => fail(new Error(event.message || 'le worker de lecture n’a pas démarré'))
-    worker.onmessageerror = () => fail(new Error('réponse illisible du worker de lecture'))
+    worker.onerror = (event) => fail(new Error(event.message || t('omr.errors.workerNotStarted')))
+    worker.onmessageerror = () => fail(new Error(t('omr.errors.workerUnreadable')))
     const copy = new Uint8Array(source.data)
-    const request: OmrWorkerRequest = { image: { width: source.width, height: source.height, data: copy }, staffIndexInSystem }
+    const request: OmrWorkerRequest = { image: { width: source.width, height: source.height, data: copy }, staffIndexInSystem, language: getLanguage() }
     worker.postMessage(request, [copy.buffer])
   })
   const finish = () => worker.terminate()

@@ -1,3 +1,4 @@
+import { t } from '../../i18n'
 import { grayFromRows, planWidth, PROBE_WIDTH, probeUnit } from '../../omr/budget'
 import { FILE_READ_TIMEOUT_MS, PHOTO_DECODE_TIMEOUT_MS, StageTimeout, withDeadline } from '../../omr/deadline'
 import type { PdfSession } from '../../omr/pdf'
@@ -82,12 +83,12 @@ export function decodePhoto(file: File): Promise<SourcePage> {
 function reason(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error ?? '')
   if (error instanceof StageTimeout) return message
-  if (/password/i.test(message)) return 'ce PDF est protégé par un mot de passe'
-  if (/invalid pdf|missing pdf|unexpected server response/i.test(message)) return 'le fichier est illisible'
-  return message || 'erreur inconnue'
+  if (/password/i.test(message)) return t('omr.errors.passwordPdf')
+  if (/invalid pdf|missing pdf|unexpected server response/i.test(message)) return t('omr.errors.unreadableFile')
+  return message || t('omr.errors.unknown')
 }
 
-/** The French line shown on the progress screen when reading a file fails. */
+/** The line shown on the progress screen when reading a file fails. */
 export function readableError(error: unknown, kind: 'pdf' | 'photo' = 'pdf'): string {
-  return `Impossible de lire ${kind === 'pdf' ? 'le PDF' : 'l’image'} : ${reason(error)}`
+  return t(kind === 'pdf' ? 'omr.errors.cannotReadPdf' : 'omr.errors.cannotReadImage', { reason: reason(error) })
 }

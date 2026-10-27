@@ -7,7 +7,8 @@ import { trackHiddenTime } from '../platform/visibility'
 import { midi, pitchClass, pitchClassLabel, spell, type Note } from '../music/notes'
 import { challengeTimeS, challengeWon } from '../series/challenge'
 import { INITIAL_RUN, PENALTY_MS, answerItem, firstTryResults, penaltyMs, type SeriesRun } from '../series/series'
-import { COLORBLIND_SQUARES, ceilToTenth, formatTenths, formatTenthsUp, formatTime, shareText } from '../series/share'
+import { COLORBLIND_SQUARES, ceilToTenth, dictationShareTitle, formatTenths, formatTenthsUp, formatTime, shareDialogTitle, shareText } from '../series/share'
+import { t } from '../i18n'
 import { appBase } from '../share/links'
 import { resolveNaming } from '../i18n/naming'
 import { recordHistory, type Progress, type Settings } from '../storage'
@@ -16,7 +17,6 @@ import { installDemoHook } from './demoHook'
 import { button, el } from './dom'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
 import { icon } from './icons'
-import { plural } from './plural'
 import { copyLink, shareLink, shareRow } from './sharing'
 import type { ChallengeTarget } from './series'
 import { createTimelineStaff } from './timelineStaff'
@@ -98,7 +98,7 @@ export function createDictation({
   const counter = el('span', 'series-count', `1/${items.length}`)
   const bar = el('div', 'progress-fill')
   const replayButton = button('dictation-replay', '', replay)
-  replayButton.append(icon('replay'), el('span', '', 'Réécouter'))
+  replayButton.append(icon('replay'), el('span', '', t('dictation.replay')))
   replayButton.disabled = true
   const hud = el('div', 'hud series-hud', counter, timerValue, replayButton, el('div', 'progress', bar))
   const timeline = createTimelineStaff({ maxFifths: Math.abs(items[0]?.fifths ?? 0) })
@@ -201,7 +201,7 @@ export function createDictation({
   }
 
   function askToTap(): void {
-    const prompt = button('dictation-unlock', 'Touche l’écran pour activer le son', () => sound.unlock())
+    const prompt = button('dictation-unlock', t('dictation.unlock'), () => sound.unlock())
     const overlay = el('div', 'overlay dictation-unlock-overlay', prompt)
     prompt.addEventListener('pointerup', () => sound.unlock())
     element.append(overlay)
@@ -292,7 +292,7 @@ export function createDictation({
     if (sharing) return
     sharing = true
     try {
-      await shareLink({ title: 'Solfège hero : défi Dictée', text: resultText(outcome), url: challengeLink(outcome) })
+      await shareLink({ title: shareDialogTitle('dictation'), text: resultText(outcome), url: challengeLink(outcome) })
     } finally {
       sharing = false
     }
@@ -304,7 +304,7 @@ export function createDictation({
 
   function resultText(outcome: Outcome): string {
     return shareText({
-      title: `Dictée #${config.seed}`,
+      title: dictationShareTitle(config.seed),
       results: outcome.results,
       totalMs: outcome.totalMs,
       penaltyMs: outcome.penalty,
@@ -331,9 +331,9 @@ export function createDictation({
     if (beaten) {
       sound.milestone()
       burstConfetti(effectsLayer)
-      return el('p', 'verdict win', 'Gagné !')
+      return el('p', 'verdict win', t('dictation.win'))
     }
-    return el('p', 'verdict lose', `Perdu… à ${formatTenths(ceilToTenth(outcome.totalMs) - Math.round(challenge.timeS * 1000))} près`)
+    return el('p', 'verdict lose', t('dictation.lose', { gap: formatTenths(ceilToTenth(outcome.totalMs) - Math.round(challenge.timeS * 1000)) }))
   }
 
   function versus(outcome: Outcome): HTMLElement | string {
@@ -341,14 +341,14 @@ export function createDictation({
     return el(
       'div',
       'versus',
-      el('span', 'versus-you', `Toi ${formatTenthsUp(outcome.totalMs)}`),
-      el('span', 'versus-friend', `Ami ${formatTenths(challenge.timeS * 1000)}`),
+      el('span', 'versus-you', t('dictation.you', { score: formatTenthsUp(outcome.totalMs) })),
+      el('span', 'versus-friend', t('dictation.friend', { score: formatTenths(challenge.timeS * 1000) })),
     )
   }
 
   function recordLine(outcome: Outcome, beaten: boolean | null): HTMLElement {
-    if (outcome.record && beaten !== false) return el('p', 'result-record', 'Nouveau record !')
-    return el('p', 'result-best', `Record : ${formatTenthsUp(outcome.best)}`)
+    if (outcome.record && beaten !== false) return el('p', 'result-record', t('dictation.newRecord'))
+    return el('p', 'result-best', t('dictation.record', { time: formatTenthsUp(outcome.best) }))
   }
 
   function endOverlay(outcome: Outcome, beaten: boolean | null): HTMLElement {
@@ -367,19 +367,19 @@ export function createDictation({
     )
     const copy = () => void copyLink(challengeLink(outcome))
     const actions = challenge
-      ? [shareRow('Partager mon résultat', () => void share(outcome), copy), button('segment-button', 'Réessayer ce défi', onRetry)]
-      : [shareRow('Défier un ami', () => void share(outcome), copy), button('segment-button', 'Rejouer', onReplay)]
+      ? [shareRow(t('dictation.shareResult'), () => void share(outcome), copy), button('segment-button', t('dictation.retry'), onRetry)]
+      : [shareRow(t('dictation.challengeFriend'), () => void share(outcome), copy), button('segment-button', t('dictation.replayGame'), onReplay)]
     const card = el(
       'div',
       'result series-end',
-      verdict(outcome, beaten) ?? el('h2', '', 'Dictée terminée'),
+      verdict(outcome, beaten) ?? el('h2', '', t('dictation.done')),
       comparing ? versus(outcome) : total,
-      outcome.penalty > 0 ? el('p', 'result-best', `(+${outcome.penalty / 1000} s)`) : '',
-      el('p', '', `${hits}/${outcome.results.length} du premier coup`),
+      outcome.penalty > 0 ? el('p', 'result-best', t('dictation.penalty', { seconds: outcome.penalty / 1000 })) : '',
+      el('p', '', t('dictation.firstTry', { hits, total: outcome.results.length })),
       strip,
       recordLine(outcome, beaten),
-      ...(outcome.replays > 0 ? [el('p', 'result-best', `${outcome.replays} ${plural(outcome.replays, 'réécoute', 'réécoutes')}`)] : []),
-      el('div', 'result-actions', ...actions, button('segment-button', 'Accueil', onHome)),
+      ...(outcome.replays > 0 ? [el('p', 'result-best', t('dictation.replays', { count: outcome.replays }))] : []),
+      el('div', 'result-actions', ...actions, button('segment-button', t('dictation.home'), onHome)),
     )
     card.classList.toggle('win', beaten === true)
     card.classList.toggle('lose', beaten === false)

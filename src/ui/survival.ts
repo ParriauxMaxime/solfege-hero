@@ -21,6 +21,8 @@ import {
 } from '../survival/game'
 import { createSurvivalSequence } from '../survival/sequence'
 import { noteCount, survivalShareText } from '../survival/share'
+import { shareDialogTitle } from '../series/share'
+import { t } from '../i18n'
 import { resolveNaming } from '../i18n/naming'
 import { recordHistory, type Progress, type Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
@@ -97,8 +99,8 @@ export function createSurvival({
   const hearts = createHearts()
   const scoreValue = el('strong', 'survival-score-value', '0')
   const level = el('span', 'survival-level')
-  const pauseButton = iconButton('pause', pause, 'Pause')
-  const scoreLabel = el('span', '', 'note')
+  const pauseButton = iconButton('pause', pause, t('survival.pause'))
+  const scoreLabel = el('span', '', t('survival.scoreLabel', { count: 0 }))
   const hud = el(
     'div',
     'hud survival-hud',
@@ -173,7 +175,7 @@ export function createSurvival({
   function showNote(): void {
     item = sequence.noteAt(state.played)
     staffCard.replaceChildren(renderStaff(item.clef, item.note, item.fifths))
-    level.textContent = `Niveau ${difficultyFor(state.played)}`
+    level.textContent = t('survival.level', { level: difficultyFor(state.played) })
     pad.setTarget(item.clef, item.pitch)
     pad.clear()
     shownAt = performance.now()
@@ -195,7 +197,7 @@ export function createSurvival({
     }
     state = resolveNote(state, correct)
     if (correct) onHit(item)
-    else onMiss(chosen, 'Raté')
+    else onMiss(chosen, t('survival.missed'))
   }
 
   function onTimeout(): void {
@@ -204,14 +206,14 @@ export function createSurvival({
       progress = recordHistory(progress, 'survival', { kind: 'answer', correct: false, ms: null, noteId })
     }
     state = timeOut(state)
-    onMiss(null, 'Trop lent')
+    onMiss(null, t('survival.tooSlow'))
   }
 
   function onHit({ pitch, fifths }: SeriesItem): void {
     locked = true
     streak++
     scoreValue.textContent = String(state.score)
-    scoreLabel.textContent = state.score > 1 ? 'notes' : 'note'
+    scoreLabel.textContent = t('survival.scoreLabel', { count: state.score })
     restartAnimation(scoreValue, 'bump')
     sound.correct(streak)
     sound.playNote(spell(pitch, fifths < 0))
@@ -272,14 +274,14 @@ export function createSurvival({
       release()
     }
     const confirmQuit = () => {
-      void confirmOverlay(element, 'Abandonner la partie en cours ?', 'Abandonner', 'Continuer').then((abandon) => {
+      void confirmOverlay(element, t('survival.confirmQuit'), t('survival.abandon'), t('survival.continue')).then((abandon) => {
         if (abandon) onQuit()
       })
     }
     pauseOverlay = el(
       'div',
       'overlay',
-      el('div', 'result', el('h2', '', 'Pause'), button('primary', 'Reprendre', resume), button('danger', 'Quitter', confirmQuit)),
+      el('div', 'result', el('h2', '', t('survival.pause')), button('primary', t('survival.resume'), resume), button('danger', t('survival.quit'), confirmQuit)),
     )
     element.append(pauseOverlay)
     return true
@@ -294,7 +296,7 @@ export function createSurvival({
     sharing = true
     try {
       const text = survivalShareText({ seed: config.seed, score: state.score, lives: state.lives })
-      await shareLink({ title: 'Solfège hero : défi Survie', text, url: challengeLink() })
+      await shareLink({ title: shareDialogTitle('survival'), text, url: challengeLink() })
     } finally {
       sharing = false
     }
@@ -319,10 +321,10 @@ export function createSurvival({
     if (won) {
       sound.milestone()
       burstConfetti(effectsLayer)
-      return el('p', 'verdict win', 'Gagné !')
+      return el('p', 'verdict win', t('survival.win'))
     }
     const gap = challenge.score - state.score
-    return el('p', 'verdict lose', gap === 0 ? 'Perdu… à égalité, il en faut une de plus' : `Perdu… à ${noteCount(gap)} près`)
+    return el('p', 'verdict lose', gap === 0 ? t('survival.loseTie') : t('survival.lose', { notes: noteCount(gap) }))
   }
 
   function versus(): HTMLElement | '' {
@@ -330,8 +332,8 @@ export function createSurvival({
     return el(
       'div',
       'versus',
-      el('span', 'versus-you', `Toi ${state.score}`),
-      el('span', 'versus-friend', `Ami ${challenge.score}`),
+      el('span', 'versus-you', t('survival.you', { score: state.score })),
+      el('span', 'versus-friend', t('survival.friend', { score: challenge.score })),
     )
   }
 
@@ -341,25 +343,25 @@ export function createSurvival({
     else countUp(total, state.score)
     const recordLine =
       record && won !== false
-        ? el('p', 'result-record', 'Nouveau record !')
-        : el('p', 'result-best', `Meilleur score : ${progress.survival.bestScore}`)
+        ? el('p', 'result-record', t('survival.newRecord'))
+        : el('p', 'result-best', t('survival.best', { score: progress.survival.bestScore }))
     const actions = challenge
       ? [
-          shareRow('Partager mon résultat', () => void share(), () => void copyLink(challengeLink())),
-          button('segment-button', 'Réessayer ce défi', onRetry),
-          button('segment-button', 'Accueil', onHome),
+          shareRow(t('survival.shareResult'), () => void share(), () => void copyLink(challengeLink())),
+          button('segment-button', t('survival.retry'), onRetry),
+          button('segment-button', t('survival.home'), onHome),
         ]
       : [
-          shareRow('Défier un ami', () => void share(), () => void copyLink(challengeLink())),
-          button('segment-button', 'Rejouer', onReplay),
-          button('segment-button', 'Accueil', onHome),
+          shareRow(t('survival.challengeFriend'), () => void share(), () => void copyLink(challengeLink())),
+          button('segment-button', t('survival.replay'), onReplay),
+          button('segment-button', t('survival.home'), onHome),
         ]
     const card = el(
       'div',
       'result series-end',
-      verdict(won) ?? el('h2', '', 'Partie terminée'),
+      verdict(won) ?? el('h2', '', t('survival.over')),
       challenge ? versus() : total,
-      el('p', '', `Précision : ${precision(state)} % (${state.score}/${state.played})`),
+      el('p', '', t('survival.precision', { percent: precision(state), score: state.score, played: state.played })),
       recordLine,
       el('div', 'result-actions', ...actions),
     )

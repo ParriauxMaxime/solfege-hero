@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import type { Trend } from './trend'
 
 export const WEAK_ACCURACY = 0.8
@@ -28,8 +29,7 @@ export function isWeak(item: Rankable): boolean {
 /** « en hausse de 8 pts », « en baisse de 8 pts », « stable » */
 export function trendDescription(trend: Trend): string {
   const points = Math.round(Math.abs(trend.delta))
-  const unit = points < 2 ? 'pt' : 'pts'
-  if (trend.direction === 'up') return `en hausse de ${points} ${unit}`
-  if (trend.direction === 'down') return `en baisse de ${points} ${unit}`
-  return 'stable'
+  if (trend.direction === 'up') return t('stats.trend.up', { count: points })
+  if (trend.direction === 'down') return t('stats.trend.down', { count: points })
+  return t('stats.trend.stable')
 }

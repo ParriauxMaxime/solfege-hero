@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import { clampLevel, isUncapped, parseLevelParam } from '../level/level'
 import type { Difficulty } from '../music/generator'
 import type { Clef } from '../music/notes'
@@ -38,7 +39,6 @@ const MAX_PERCENT = 100
 const MAX_SCORE = 999999
 const MIN_DIFFICULTY = 1
 const MAX_DIFFICULTY = 5
-const NBSP = ' '
 
 export function successPercent(hits: number, misses: number): number {
   const judged = hits + misses
@@ -58,9 +58,9 @@ export function heroChallengeWon(mine: HeroResult, target: HeroResult): boolean 
 }
 
 export function describeGap(mine: HeroResult, target: HeroResult): string {
-  if (mine.percent !== target.percent) return `${mine.percent}${NBSP}% contre ${target.percent}${NBSP}%`
-  if (mine.score === target.score) return 'à égalité, il en faut plus'
-  return `${mine.score}${NBSP}pts contre ${target.score}${NBSP}pts`
+  if (mine.percent !== target.percent) return t('hero.gap.percent', { mine: mine.percent, target: target.percent })
+  if (mine.score === target.score) return t('hero.gap.tie')
+  return t('hero.gap.points', { mine: mine.score, target: target.score })
 }
 
 /** The first `bars` bars of `source`, then exhausted. */
@@ -132,8 +132,7 @@ export function heroChallengeUrl(base: string, challenge: HeroChallenge): string
 
 export function heroShareText(input: { config: HeroChallengeConfig; result: HeroResult | null }): string {
   const { config, result } = input
-  const parts = ['Solfège hero']
-  if (result) parts.push(`✅ ${result.percent}${NBSP}%`, `⭐ ${result.score}${NBSP}pts`)
-  parts.push(`Défi hero #${config.seed}`, `🎵 ${config.bpm}${NBSP}BPM`)
-  return `${parts.join(' · ')}\n${result ? 'Bats-moi !' : 'Relève le défi !'}`
+  const seed = String(config.seed)
+  if (!result) return t('hero.share.withoutResult', { seed, bpm: config.bpm })
+  return t('hero.share.withResult', { seed, bpm: config.bpm, percent: result.percent, score: String(result.score) })
 }

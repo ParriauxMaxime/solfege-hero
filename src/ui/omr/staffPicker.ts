@@ -1,3 +1,4 @@
+import { t } from '../../i18n'
 import { button, el } from '../dom'
 
 const CHOICES = [0, 1, 2]
@@ -22,7 +23,7 @@ export function createStaffPicker(initial: number, onChange: (staffIndex: number
     }),
   )
   const group = el('div', 'segmented', ...buttons)
-  const element = el('div', 'omr-field', el('span', 'omr-label', 'Portée du système'), group)
+  const element = el('div', 'omr-field', el('span', 'omr-label', t('omr.settings.staff')), group)
 
   function refresh(): void {
     buttons.forEach((candidate, index) => candidate.classList.toggle('active', index === current))

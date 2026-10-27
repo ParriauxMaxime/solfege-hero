@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { setLanguage } from '../i18n'
 import { parseSurvivalChallenge } from '../survival/challenge'
 import { parseChallenge } from '../series/challenge'
 import { parseDailyHash } from '../series/daily'
@@ -16,6 +17,8 @@ import {
   type HeroChallenge,
 } from './challenge'
 import { generatedSource, type NoteSource } from './sources'
+
+afterEach(() => setLanguage('fr'))
 
 const challenge: HeroChallenge = {
   config: { seed: 1234, clefs: ['treble', 'bass'], armures: true, bpm: 72, difficulty: 3, bars: 16, level: 100 },
@@ -128,23 +131,45 @@ describe('describeGap', () => {
   const target = { percent: 80, score: 1000 }
 
   it('names the percentage gap, then the points gap', () => {
-    expect(describeGap({ percent: 62, score: 5000 }, { percent: 87, score: 1000 })).toBe('62 % contre 87 %')
-    expect(describeGap({ percent: 80, score: 990 }, target)).toBe('990 pts contre 1000 pts')
+    expect(describeGap({ percent: 62, score: 5000 }, { percent: 87, score: 1000 })).toBe('62 % contre 87 %')
+    expect(describeGap({ percent: 80, score: 990 }, target)).toBe('990 pts contre 1 000 pts')
     expect(describeGap(target, target)).toBe('à égalité, il en faut plus')
+  })
+
+  it('speaks English when the language is English', () => {
+    setLanguage('en')
+    expect(describeGap({ percent: 62, score: 5000 }, { percent: 87, score: 1000 })).toBe('62% vs 87%')
+    expect(describeGap(target, target)).toBe('tied, you need more')
   })
 })
 
 describe('heroShareText', () => {
-  it('lists percentage, points and tempo with non-breaking spaces', () => {
-    const text = heroShareText({ config: challenge.config, result: { percent: 87, score: 1240 } })
-    expect(text).toBe(
-      `Solfège hero · ✅ 87 % · ⭐ 1240 pts · Défi hero #1234 · 🎵 72 BPM\nBats-moi !`,
+  const result = { percent: 87, score: 1240 }
+
+  it('lists percentage, points and tempo with non-breaking spaces (fr)', () => {
+    expect(heroShareText({ config: challenge.config, result })).toBe(
+      'Solfège hero · ✅ 87 % · ⭐ 1240 pts · Défi hero #1234 · 🎵 72 BPM\nBats-moi !',
     )
   })
 
-  it('shares only the settings when there is no result', () => {
-    const text = heroShareText({ config: challenge.config, result: null })
-    expect(text).toBe(`Solfège hero · Défi hero #1234 · 🎵 72 BPM\nRelève le défi !`)
+  it('shares only the settings when there is no result (fr)', () => {
+    expect(heroShareText({ config: challenge.config, result: null })).toBe(
+      'Solfège hero · Défi hero #1234 · 🎵 72 BPM\nRelève le défi !',
+    )
+  })
+
+  it('lists percentage, points and tempo (en)', () => {
+    setLanguage('en')
+    expect(heroShareText({ config: challenge.config, result })).toBe(
+      'Solfège hero · ✅ 87% · ⭐ 1240 pts · Hero challenge #1234 · 🎵 72 BPM\nBeat me!',
+    )
+  })
+
+  it('shares only the settings when there is no result (en)', () => {
+    setLanguage('en')
+    expect(heroShareText({ config: challenge.config, result: null })).toBe(
+      'Solfège hero · Hero challenge #1234 · 🎵 72 BPM\nTake on the challenge!',
+    )
   })
 })
 

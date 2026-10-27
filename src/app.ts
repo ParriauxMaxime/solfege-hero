@@ -59,7 +59,7 @@ import { createStatsScreen } from './ui/stats'
 import { dayKeyOf } from './stats/dates'
 import { showToast } from './ui/toast'
 import { languageFromPath, screenFromPath, type LandingScreen, type Screen } from '../scripts/routes.mjs'
-import { detectLanguage, onLanguageChange, resolveLanguage, setLanguage, t } from './i18n'
+import { detectLanguage, onLanguageChange, resolveLanguage, setLanguage, t, type MessageKey } from './i18n'
 import { appBase, routeUrl } from './share/links'
 
 type RouteName = Screen | LandingScreen
@@ -84,10 +84,10 @@ const UNLOCK_EVENTS = ['pointerup', 'touchend', 'click', 'keydown'] as const
 const SOUND_BLOCKED_TOAST_GAP_MS = 4000
 
 const CLEF_TIP_DELAY_MS = 2000
-const CLEF_TIP_TEXT: Record<ClefTip, { message: string; clef: Clef }> = {
-  bass: { message: 'Prêt pour la clé de fa ?', clef: 'bass' },
-  alto: { message: 'Et la clé d’ut ?', clef: 'alto' },
-}
+const CLEF_TIP_TEXT = {
+  bass: { message: 'level.tip.bass', clef: 'bass' },
+  alto: { message: 'level.tip.alto', clef: 'alto' },
+} satisfies Record<ClefTip, { message: MessageKey; clef: Clef }>
 
 type HeroRun = NonNullable<HeroOptions['challenge']>
 
@@ -105,6 +105,7 @@ export function startApp(root: HTMLElement): void {
   let currentRoute: RouteName = 'home'
   let routeAfterOnboarding: RouteName | null = null
   let collapsingLinkEntry = false
+  let onboardingOpen = false
   let activeGame: Game | null = null
   let activeHero: Hero | null = null
   let activeSeries: Series | null = null
@@ -141,7 +142,9 @@ export function startApp(root: HTMLElement): void {
   function refreshLanguage(): void {
     backButton.setAttribute('aria-label', t('app.topBar.home'))
     muteButton.setAttribute('aria-label', t('app.topBar.sound'))
-    if (currentRoute === 'settings') showSettings()
+    if (onboardingOpen) showOnboarding()
+    else if (currentRoute === 'settings') showSettings()
+    else if (currentRoute === 'home') renderHome()
   }
 
   function offerToKeepForcedLanguage(): void {
@@ -322,7 +325,7 @@ export function startApp(root: HTMLElement): void {
     }
     activeHero?.pause()
     const releaseClock = (activeSeries ?? activeDictation ?? activeSurvival ?? activeGame)?.hold()
-    void confirmOverlay(root, 'Abandonner la partie en cours ?', 'Abandonner', 'Continuer').then((abandon) => {
+    void confirmOverlay(root, t('app.abandon.message'), t('app.abandon.confirm'), t('app.abandon.cancel')).then((abandon) => {
       if (abandon) open()
       else releaseClock?.()
     })
@@ -341,7 +344,7 @@ export function startApp(root: HTMLElement): void {
     const now = performance.now()
     if (now - lastBlockedToast < SOUND_BLOCKED_TOAST_GAP_MS) return
     lastBlockedToast = now
-    showToast('Son bloqué, touche l’écran')
+    showToast(t('app.soundBlocked'))
   }
 
   function applySettings(): void {
@@ -398,6 +401,7 @@ export function startApp(root: HTMLElement): void {
       currentRoute = route
       replaceRoute(route)
     }
+    onboardingOpen = route === null
     running?.destroy()
     running = next
     activeHero = null
@@ -455,7 +459,7 @@ export function startApp(root: HTMLElement): void {
 
   function onAutoLevelChange(from: number, to: number): void {
     applyLevel(to)
-    if (to > from) showToast(`Niveau ${from} → ${to}`, { className: 'toast-level' })
+    if (to > from) showToast(t('level.up', { from, to }),{ className: 'toast-level' })
     window.setTimeout(() => offerClefTip(from, to), to > from ? CLEF_TIP_DELAY_MS : 0)
   }
 
@@ -464,8 +468,8 @@ export function startApp(root: HTMLElement): void {
     if (!tip) return
     changeSettings({ levelTips: [...settings.levelTips, tip] })
     const text = CLEF_TIP_TEXT[tip]
-    showToast(text.message, {
-      action: { label: 'Ajouter', onClick: () => changeSettings({ clefs: CLEFS.filter((clef) => clef === text.clef || settings.clefs.includes(clef)) }) },
+    showToast(t(text.message), {
+      action: { label: t('level.tip.add'), onClick: () => changeSettings({ clefs: CLEFS.filter((clef) => clef === text.clef || settings.clefs.includes(clef)) }) },
     })
   }
 
@@ -611,7 +615,7 @@ export function startApp(root: HTMLElement): void {
       onReplay: () => playHero(melody, fromLibrary),
       onRetry: () => playHero(melody, fromLibrary, challenge),
       onHome: fromLibrary ? showLibrary : goHome,
-      homeLabel: fromLibrary ? 'Partitions' : 'Accueil',
+      homeLabel: fromLibrary ? t('common.scores') : t('common.home'),
     })
     show(fromLibrary ? 'scores' : 'hero', hero.element, false, hero)
     activeHero = hero
@@ -638,7 +642,7 @@ export function startApp(root: HTMLElement): void {
     if (config.kind === 'score') {
       score = (await scoreLibrary.get(config.scoreId)) ?? null
       if (!score) {
-        showToast('Partition introuvable')
+        showToast(t('app.scoreNotFound'))
         return
       }
       items = scoreSeries(score)
@@ -661,7 +665,7 @@ export function startApp(root: HTMLElement): void {
           : void showSeries(config.kind === 'score' ? config : freshSeriesConfig(), null, fromLibrary),
       onRetry: () => void showSeries(config, against, fromLibrary),
       onHome: fromLibrary ? showLibrary : goHome,
-      homeLabel: fromLibrary ? 'Partitions' : 'Accueil',
+      homeLabel: fromLibrary ? t('common.scores') : t('common.home'),
     })
     show(daily ? 'daily' : fromLibrary ? 'scores' : 'series', series.element, true, series)
     activeSeries = series
@@ -696,7 +700,7 @@ export function startApp(root: HTMLElement): void {
   function showDictation(config: DictationConfig, against: ChallengeTarget | null): void {
     if (settings.muted) {
       changeSettings({ muted: false })
-      showToast('Son réactivé pour la dictée')
+      showToast(t('app.dictationUnmuted'))
     }
     const dictation = createDictation({
       settings,
@@ -753,14 +757,14 @@ export function startApp(root: HTMLElement): void {
   async function openScoreLink(link: { blob: string; timeS: number | null }): Promise<void> {
     const score = await decodeScoreBlob(link.blob)
     if (!score) {
-      showToast('Lien de partition invalide')
+      showToast(t('app.invalidScoreLink'))
       renderHome()
       return
     }
     const { timeS } = link
     if (timeS === null) {
       const play = async () => playScore((await addScoreIfNew(score)).stored, false)
-      const add = async () => showToast((await addScoreIfNew(score)).added ? 'Ajoutée à ta bibliothèque' : 'Déjà dans ta bibliothèque')
+      const add = async () => showToast((await addScoreIfNew(score)).added ? t('app.scoreAdded') : t('app.scoreAlreadyAdded'))
       show('score', createScoreReceived({ score, onAdd: () => void add(), onPlay: () => void play() }), true)
       return
     }
@@ -793,6 +797,6 @@ export function startApp(root: HTMLElement): void {
       changeProgress(resetProgress())
       return progress
     }
-    show('stats', createStatsScreen({ progress, onReset, onBack: goHome }), false)
+    show('stats', createStatsScreen({ progress, naming: settings.naming, onReset, onBack: goHome }), false)
   }
 }

@@ -1,1 +1,28 @@
-export const learn = {} as const
+export const learn = {
+  title: 'Apprendre',
+  play: 'Jouer',
+  edit: 'Modifier',
+  clefs: 'Clés : {names}',
+  keyMode: { title: 'Armure', random: 'Aléatoire', fixed: 'Une armure' },
+  keyChange: { title: 'Changement d’armure', short: '4–5 notes', ten: '10 notes', twenty: '20 notes', never: 'Jamais' },
+  keyChip: 'Armure : {label}. Modifier',
+  clefName: { treble: 'Sol', bass: 'Fa', alto: 'Ut 3' },
+  clefLabel: { treble: 'Clé de sol', bass: 'Clé de fa', alto: 'Clé d’ut 3' },
+  clefOf: { treble: 'de sol', bass: 'de fa', alto: 'd’ut' },
+  aria: {
+    note: 'Note sur la portée en clé {clef}',
+    keySignature: 'Armure sur la portée en clé {clef}',
+    timeline: 'Portée en clé {clef}, {count, plural, one {# note} other {# notes}}',
+    timelineEmpty: 'Portée',
+  },
+  rotate: 'Tourne ton téléphone : l’octave stricte demande le mode paysage.',
+  game: {
+    timeUp: 'Temps écoulé',
+    correct: '{count, plural, one {bonne réponse} other {bonnes réponses}}',
+    newRecord: 'Nouveau record !',
+    record: 'Record : {best}',
+    replay: 'Rejouer',
+    wrong: 'C’était {note}',
+    fast: '+{gained} ×{factor} rapide !',
+  },
+} as const

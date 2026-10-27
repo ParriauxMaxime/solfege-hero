@@ -1,3 +1,30 @@
 import type { Messages } from '../../messages'
 
-export const series: Messages['series'] = {}
+export const series: Messages['series'] = {
+  challenge: {
+    title: 'Challenge',
+    open: 'Take the challenge!',
+    friendTime: 'Your friend did {time}, your turn!',
+    withKeys: 'Key signatures',
+    noKeys: 'No key signature',
+    difficulty: 'Difficulty {level}',
+    start: 'Start',
+  },
+  win: 'You won!',
+  lose: 'Lost… by {gap}',
+  you: 'You {score}',
+  friend: 'Friend {score}',
+  newRecord: 'New record!',
+  newRecordScore: 'New record for this score!',
+  record: 'Best: {time}',
+  recordScore: 'Best for this score: {time}',
+  done: 'Series complete',
+  firstTry: '{hits}/{total} on the first try',
+  penalty: '(+{seconds} s)',
+  share: 'Share',
+  shareResult: 'Share my result',
+  challengeFriend: 'Challenge a friend',
+  retry: 'Retry this challenge',
+  replay: 'Play again',
+  scoreTooLong: 'Score too long: share the file first',
+}
