@@ -22,7 +22,13 @@ export function formatPercent(ratio: number, digits = 0): string {
 }
 
 export function formatDate(date: Date | number, options: Intl.DateTimeFormatOptions = { dateStyle: 'medium' }): string {
-  return new Intl.DateTimeFormat(currentLocale(), options).format(date)
+  const formatted = new Intl.DateTimeFormat(currentLocale(), options)
+  if (getLanguage() !== 'en' || options.month !== 'short') return formatted.format(date)
+  const month = new Intl.DateTimeFormat('en', { month: 'short', timeZone: options.timeZone }).format(date)
+  return formatted
+    .formatToParts(date)
+    .map((part) => (part.type === 'month' ? month : part.value))
+    .join('')
 }
 
 export function formatTime(date: Date | number): string {

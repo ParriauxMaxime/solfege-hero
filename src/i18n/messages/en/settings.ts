@@ -40,7 +40,7 @@ export const settings: Messages['settings'] = {
   },
   timed: 'Learn: 60 s timer',
   theme: { label: 'Theme', dark: 'Dark', light: 'Light', system: 'System' },
-  colorblind: { label: 'Colorblind mode', hint: 'blue/orange instead of green/red' },
+  colorblind: { label: 'Colour-blind mode', hint: 'blue/orange instead of green/red' },
   reducedMotion: 'Reduced motion',
   keySize: 'Key size',
   sounds: 'Sounds',

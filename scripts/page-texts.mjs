@@ -98,7 +98,7 @@ export const PAGE_TEXTS = {
         description: 'Réglages de Solfège hero : niveau, clés, armures, affichage, son et sauvegarde des données.',
         h1: 'Réglages',
         intro:
-          'Le niveau, les clés et les armures travaillées, l’affichage (thème, daltonisme, mouvement réduit) et le son se règlent ici. Les données se sauvegardent et se restaurent en JSON.',
+          'Le niveau, les clés et les armures travaillées, l’affichage (thème, mode daltonien, mouvement réduit) et le son se règlent ici. Les données se sauvegardent et se restaurent en JSON.',
         imageAlt: 'Réglages de Solfège hero',
       },
       daily: {
@@ -206,7 +206,7 @@ export const PAGE_TEXTS = {
         description: 'Solfège hero settings: level, clefs, key signatures, display, sound and data backup.',
         h1: 'Settings',
         intro:
-          'Level, practised clefs and key signatures, display (theme, colour blindness, reduced motion) and sound are set here. Data can be saved and restored as JSON.',
+          'Level, practised clefs and key signatures, display (theme, colour-blind mode, reduced motion) and sound are set here. Data can be saved and restored as JSON.',
         imageAlt: 'Solfège hero settings',
       },
       daily: {

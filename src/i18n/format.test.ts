@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { formatDecimal, formatDuration, formatPercent, formatSeconds } from './format'
+import { formatDate, formatDecimal, formatDuration, formatPercent, formatSeconds } from './format'
 import { setLanguage } from './language'
 import { typography } from './message'
 
@@ -18,6 +18,13 @@ describe('formatters', () => {
     setLanguage('en')
     expect(formatDecimal(42.34)).toBe('42.3')
     expect(formatSeconds(42300)).toBe('42.3 s')
+  })
+
+  it('abbreviates English months to three letters, September included', () => {
+    setLanguage('en')
+    const options = { day: 'numeric', month: 'short', timeZone: 'UTC' } as const
+    expect(formatDate(Date.UTC(2026, 8, 5), options)).toBe('5 Sep')
+    expect(formatDate(Date.UTC(2026, 9, 24), { month: 'short', timeZone: 'UTC' })).toBe('Oct')
   })
 
   it('formats a duration', () => {
