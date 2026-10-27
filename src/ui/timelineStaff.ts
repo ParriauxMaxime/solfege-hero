@@ -7,7 +7,6 @@ import {
   STAFF_VIEW_HEIGHT,
   STAFF_VIEW_TOP,
   barLine,
-  cancelledSignatureGlyph,
   clefGlyph,
   keySignatureGlyph,
   noteGroup,
@@ -19,8 +18,6 @@ import {
   CLEF_ORIGIN,
   HEADER_FADE,
   HEADER_KEY_X,
-  INLINE_CLEF_SCALE,
-  INLINE_CLEF_WIDTH,
   BAR_OFFSET,
   NOTE_LEFT_EXTENT,
   anchorAt,
@@ -30,7 +27,6 @@ import {
   noteState,
   scrollOffset,
   timelineScale,
-  type ChangeBlock,
   type ClefAndKey,
   type TimelineAnchor,
 } from './timelineLayout'
@@ -92,26 +88,13 @@ function sizedSvg(className: string, unitsWide: number, scale: number): SVGSVGEl
   return svg
 }
 
-function clefAt(clef: Clef, x: number, scale = 1): SVGGElement {
+function clefAt(clef: Clef, x: number): SVGGElement {
   const middle = stepY(SLOT_STEP)
   const placed = svgElement('g', {
-    transform: `translate(${x} ${middle}) scale(${scale}) translate(${-CLEF_ORIGIN} ${-middle})`,
+    transform: `translate(${x} ${middle}) translate(${-CLEF_ORIGIN} ${-middle})`,
   })
   placed.append(clefGlyph(clef))
   return placed
-}
-
-function changeGlyphs(block: ChangeBlock, item: ClefAndKey): SVGGElement {
-  const group = svgElement('g', { class: 'timeline-change' })
-  group.append(barLine(block.barX))
-  let x = block.startX
-  if (block.clefChanged) {
-    group.append(clefAt(item.clef, x, INLINE_CLEF_SCALE))
-    x += INLINE_CLEF_WIDTH
-  }
-  if (item.fifths !== 0) group.append(keySignatureGlyph(item.clef, item.fifths, x))
-  else if (block.keyChanged) group.append(cancelledSignatureGlyph(item.clef, block.previousFifths, x))
-  return group
 }
 
 function markKey(glyph: SVGGElement): SVGGElement {
@@ -161,12 +144,8 @@ export function createTimelineStaff({ maxFifths = 0, maxKept = Infinity, visible
   }
 
   function layoutUpTo(index: number) {
-    const { noteX: xs, bars, changes } = layoutTimeline(kept(index), anchor)
-    return {
-      xs,
-      bars: bars.map((bar) => ({ ...bar, index: bar.index + base })),
-      changes: changes.map((change) => ({ ...change, index: change.index + base })),
-    }
+    const { noteX: xs, bars } = layoutTimeline(kept(index), anchor)
+    return { xs, bars: bars.map((bar) => ({ ...bar, index: bar.index + base })) }
   }
 
   function noteX(index: number): number {
@@ -276,22 +255,12 @@ export function createTimelineStaff({ maxFifths = 0, maxKept = Infinity, visible
   resizeObserver.observe(element)
 
   function drawStructure(index: number): void {
-    const item = items.get(index)
-    if (!item) return
-    const { bars, changes } = layoutUpTo(index)
-    const block = changes.find((change) => change.index === index)
-    if (block) {
-      const group = changeGlyphs(block, item)
-      changeNodes.push({ index, group, barX: block.barX })
-      barGroup.append(group)
-    } else {
-      const bar = bars.find((candidate) => candidate.index === index)
-      if (!bar) return
-      const line = barLine(bar.x)
-      line.classList.add('timeline-change')
-      changeNodes.push({ index, group: line, barX: bar.x })
-      barGroup.append(line)
-    }
+    const bar = layoutUpTo(index).bars.find((candidate) => candidate.index === index)
+    if (!bar) return
+    const line = barLine(bar.x)
+    line.classList.add('timeline-change')
+    changeNodes.push({ index, group: line, barX: bar.x })
+    barGroup.append(line)
   }
 
   function describe(): void {

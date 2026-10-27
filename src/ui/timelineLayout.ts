@@ -10,10 +10,6 @@ export interface ClefAndKey {
 export const NOTE_SPACING = 40
 export const NOTES_PER_BAR = 4
 export const BAR_OFFSET = 20
-export const CHANGE_LEAD = 10
-export const CHANGE_PAD = 22
-export const INLINE_CLEF_SCALE = 0.8
-export const INLINE_CLEF_WIDTH = 44
 export const CLEF_ORIGIN = 30
 export const HEADER_KEY_X = 56
 export const HEADER_TRAILING = 6
@@ -25,16 +21,6 @@ export const NOTE_LEFT_EXTENT = 24
 
 export type NoteState = 'pending' | 'current' | 'current-missed' | 'correct' | 'recovered' | 'hidden' | 'hidden-missed'
 
-export interface ChangeBlock {
-  index: number
-  barX: number
-  startX: number
-  clefChanged: boolean
-  keyChanged: boolean
-  previousFifths: number
-  width: number
-}
-
 export interface BarLine {
   index: number
   x: number
@@ -43,7 +29,6 @@ export interface BarLine {
 export interface TimelineLayout {
   noteX: number[]
   bars: BarLine[]
-  changes: ChangeBlock[]
 }
 
 export function headerWidth(fifths: number): number {
@@ -52,16 +37,6 @@ export function headerWidth(fifths: number): number {
 
 export function firstNoteX(fifths: number): number {
   return headerWidth(fifths) + FIRST_NOTE_GAP
-}
-
-/** What a change of clef and key costs: nothing when neither moves, else the clef, the signature (or the naturals cancelling it) and some air. */
-export function changeWidth(previous: ClefAndKey, next: ClefAndKey): number {
-  const clefChanged = previous.clef !== next.clef
-  const keyChanged = previous.fifths !== next.fifths
-  if (!clefChanged && !keyChanged) return 0
-  const signatureFifths = next.fifths === 0 ? previous.fifths : next.fifths
-  const signature = next.fifths === 0 && !keyChanged ? 0 : keySignatureWidth(signatureFifths)
-  return CHANGE_PAD + (clefChanged ? INLINE_CLEF_WIDTH : 0) + signature
 }
 
 /** Where the first of the given items sits once the notes before it were dropped: its x and how many notes since the last bar line. */
@@ -77,11 +52,10 @@ export function anchorAt(items: readonly ClefAndKey[], index: number, anchor?: T
   return { x: noteX[index] ?? 0, sinceBar: lastBar ? index - lastBar.index : index + (anchor?.sinceBar ?? 0) }
 }
 
-/** Positions of the notes written so far; a bar line follows every four notes and precedes every change of clef or key. */
+/** Positions of the notes written so far; a bar line follows every four notes and precedes every change of clef or key, which only the pinned header shows. */
 export function layoutTimeline(items: readonly ClefAndKey[], anchor?: TimelineAnchor): TimelineLayout {
   const noteX: number[] = []
   const bars: BarLine[] = []
-  const changes: ChangeBlock[] = []
   let measureStart = -(anchor?.sinceBar ?? 0)
   items.forEach((item, index) => {
     const previous = items[index - 1]
@@ -90,26 +64,14 @@ export function layoutTimeline(items: readonly ClefAndKey[], anchor?: TimelineAn
       noteX.push(anchor?.x ?? firstNoteX(item.fifths))
       return
     }
-    const width = changeWidth(previous, item)
-    const barX = previousX + BAR_OFFSET
-    if (width > 0) {
-      changes.push({
-        index,
-        barX,
-        startX: barX + CHANGE_LEAD,
-        clefChanged: previous.clef !== item.clef,
-        keyChanged: previous.fifths !== item.fifths,
-        previousFifths: previous.fifths,
-        width,
-      })
-    }
-    if (width > 0 || index - measureStart === NOTES_PER_BAR) {
-      bars.push({ index, x: barX })
+    const changed = previous.clef !== item.clef || previous.fifths !== item.fifths
+    if (changed || index - measureStart === NOTES_PER_BAR) {
+      bars.push({ index, x: previousX + BAR_OFFSET })
       measureStart = index
     }
-    noteX.push(previousX + NOTE_SPACING + width)
+    noteX.push(previousX + NOTE_SPACING)
   })
-  return { noteX, bars, changes }
+  return { noteX, bars }
 }
 
 /** Horizontal shift of the notes: none while the next note still fits, then the current note stays at 68 % of the visible width. */

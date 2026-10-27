@@ -5,7 +5,6 @@ import {
   NOTE_LEFT_EXTENT,
   NOTE_SPACING,
   anchorAt,
-  changeWidth,
   firstNoteX,
   headerWidth,
   isUnderHeader,
@@ -21,7 +20,7 @@ const run = (count: number, item: ClefAndKey = treble()): ClefAndKey[] => Array.
 
 describe('layoutTimeline', () => {
   it('is empty without notes', () => {
-    expect(layoutTimeline([])).toEqual({ noteX: [], bars: [], changes: [] })
+    expect(layoutTimeline([])).toEqual({ noteX: [], bars: [] })
   })
 
   it('puts the first note after the header of its key', () => {
@@ -48,28 +47,30 @@ describe('layoutTimeline', () => {
     expect(layoutTimeline(run(4)).bars).toEqual([])
   })
 
-  it('reserves width and a bar line at a change of key, and restarts the bar count', () => {
+  it('marks a change of key with a bar line only, leaving no room for a second signature next to the header', () => {
     const items = [...run(4), ...run(6, treble(2))]
-    const { noteX, bars, changes } = layoutTimeline(items)
-    expect(changes).toHaveLength(1)
-    expect(changes[0]).toMatchObject({ index: 4, clefChanged: false, keyChanged: true, previousFifths: 0 })
-    expect((noteX[4] as number) - (noteX[3] as number)).toBe(NOTE_SPACING + changeWidth(treble(0), treble(2)))
+    const { noteX, bars } = layoutTimeline(items)
+    expect((noteX[4] as number) - (noteX[3] as number)).toBe(NOTE_SPACING)
     expect(bars.map((bar) => bar.index)).toEqual([4, 8])
+  })
+
+  it('does not widen the gap for any change of key or clef, to or from a signature', () => {
+    const changes: [ClefAndKey, ClefAndKey][] = [
+      [treble(0), treble(3)],
+      [treble(3), treble(0)],
+      [treble(2), treble(-4)],
+      [treble(2), { clef: 'bass', fifths: 2 }],
+      [treble(0), { clef: 'alto', fifths: -5 }],
+    ]
+    for (const [from, to] of changes) {
+      const { noteX } = layoutTimeline([from, to])
+      expect((noteX[1] as number) - (noteX[0] as number)).toBe(NOTE_SPACING)
+    }
   })
 
   it('forces a bar line mid-measure when the clef changes', () => {
     const items = [...run(2), ...run(5, { clef: 'bass', fifths: 0 })]
-    const { bars, changes } = layoutTimeline(items)
-    expect(changes[0]).toMatchObject({ index: 2, clefChanged: true, keyChanged: false })
-    expect(bars.map((bar) => bar.index)).toEqual([2, 6])
-  })
-
-  it('starts the change block after its bar line and ends it before the note', () => {
-    const { noteX, changes } = layoutTimeline([treble(), { clef: 'alto', fifths: -1 }])
-    const block = changes[0]
-    expect(block).toBeDefined()
-    expect(block?.startX).toBeGreaterThan(block?.barX as number)
-    expect((block?.startX as number) + (block?.width as number)).toBeLessThan(noteX[1] as number)
+    expect(layoutTimeline(items).bars.map((bar) => bar.index)).toEqual([2, 6])
   })
 
   it('lays out a prefix the same way as the whole series', () => {
@@ -78,26 +79,6 @@ describe('layoutTimeline', () => {
     for (let count = 1; count <= items.length; count++) {
       expect(layoutTimeline(items.slice(0, count)).noteX).toEqual(whole.noteX.slice(0, count))
     }
-  })
-})
-
-describe('changeWidth', () => {
-  it('is zero when nothing changes', () => {
-    expect(changeWidth(treble(2), treble(2))).toBe(0)
-  })
-
-  it('costs more for a clef and a key than for either alone', () => {
-    const both = changeWidth(treble(0), { clef: 'bass', fifths: 3 })
-    expect(both).toBeGreaterThan(changeWidth(treble(0), { clef: 'bass', fifths: 0 }))
-    expect(both).toBeGreaterThan(changeWidth(treble(0), treble(3)))
-  })
-
-  it('keeps room for the naturals cancelling a signature', () => {
-    expect(changeWidth(treble(3), treble(0))).toBeGreaterThan(changeWidth(treble(1), treble(0)))
-  })
-
-  it('redraws a signature that stays when the clef moves', () => {
-    expect(changeWidth(treble(2), { clef: 'bass', fifths: 2 })).toBeGreaterThan(changeWidth(treble(0), { clef: 'bass', fifths: 0 }))
   })
 })
 
@@ -231,7 +212,7 @@ describe('history cap (anchorAt)', () => {
     ...run(6, treble(5)),
   ]
 
-  it('keeps every x, bar line and change where they were when old notes are dropped', () => {
+  it('keeps every x and bar line where they were when old notes are dropped', () => {
     const full = layoutTimeline(mixed)
     for (const drop of [1, 3, 4, 5, 9, 14, 20, 25]) {
       const anchor = anchorAt(mixed, drop)
@@ -239,9 +220,6 @@ describe('history cap (anchorAt)', () => {
       expect(trimmed.noteX).toEqual(full.noteX.slice(drop))
       expect(trimmed.bars.map((bar) => ({ index: bar.index + drop, x: bar.x }))).toEqual(
         full.bars.filter((bar) => bar.index > drop),
-      )
-      expect(trimmed.changes.map((change) => ({ ...change, index: change.index + drop }))).toEqual(
-        full.changes.filter((change) => change.index > drop),
       )
     }
   })

@@ -173,11 +173,6 @@ export function keySignatureGlyph(clef: Clef, fifths: number, x: number): SVGGEl
   return signatureRow(clef, fifths, x, (alter) => (alter === 1 ? 'sharp' : 'flat'))
 }
 
-/** Naturals cancelling a key signature, laid out like the signature they cancel. */
-export function cancelledSignatureGlyph(clef: Clef, fifths: number, x: number): SVGGElement {
-  return signatureRow(clef, fifths, x, () => 'natural')
-}
-
 export function noteHead(fill: HeadFill, x: number, step: number): SVGPathElement {
   return svgElement('path', {
     class: 'staff-note-head',
