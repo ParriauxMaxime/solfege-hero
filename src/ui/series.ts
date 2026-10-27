@@ -333,7 +333,7 @@ export function createSeries({
   }
 
   function dailyUrl(key: DailyKey): string {
-    return landingUrl(appBase(location.href), 'jour', encodeDailyHash(key))
+    return landingUrl(appBase(location.href), 'daily', encodeDailyHash(key))
   }
 
   function resultText(outcome: Outcome, title: string, callToAction?: string): string {

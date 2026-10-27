@@ -74,9 +74,13 @@ for (const page of PAGES) {
   const label = page === '' ? '(home)' : page
   const failures = []
   let tags = new Map()
+  let canonical
+  let lang
   try {
     const html = (await loadBytes(`${page}${baseUrl ? '' : 'index.html'}`)).toString('utf8')
     tags = parseTags(html)
+    canonical = /<link\s+rel="canonical"\s+href="([^"]*)"/i.exec(html)?.[1]
+    lang = /<html\s[^>]*lang="([^"]+)"/i.exec(html)?.[1]
   } catch (error) {
     failures.push(`page not readable: ${error.message}`)
   }
@@ -85,6 +89,8 @@ for (const page of PAGES) {
   for (const [key, value] of tags) console.log(`  ${key} = ${value}`)
 
   for (const key of REQUIRED) if (!tags.get(key)) failures.push(`missing ${key}`)
+  if (!lang) failures.push('missing <html lang>')
+  if (canonical !== tags.get('og:url')) failures.push(`canonical is ${canonical}, expected og:url ${tags.get('og:url')}`)
   checkUrl('og:url', tags.get('og:url'), failures)
   checkUrl('og:image', tags.get('og:image'), failures)
   checkUrl('twitter:image', tags.get('twitter:image'), failures)

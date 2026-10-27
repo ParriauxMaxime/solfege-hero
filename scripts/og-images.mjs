@@ -7,6 +7,10 @@ const maxBytes = 150 * 1024
 
 const pages = [
   { file: 'og.png', accent: ['#7c5cff', '#4a34c9'], title: 'Solfège hero', subtitle: 'Apprendre à lire les notes', foot: 'Apprendre · Séries · Dictée · Armures · Survie · Solfège hero · Partitions' },
+  { file: 'og-learn.png', accent: ['#3aa86b', '#26784c'], title: 'Apprendre', subtitle: 'Une note à la fois, tirage adaptatif', foot: 'Solfège hero · Apprendre' },
+  { file: 'og-keys.png', accent: ['#8a63d2', '#5f3fa6'], title: 'Armures', subtitle: 'Reconnaître la tonalité d’une armure', foot: 'Solfège hero · Armures' },
+  { file: 'og-series.png', accent: ['#e0a21f', '#b97a10'], title: 'Séries', subtitle: '20 notes chronométrées, +5 s par erreur', foot: 'Solfège hero · Séries' },
+  { file: 'og-scores.png', accent: ['#3f7fd9', '#2a58a8'], title: 'Partitions', subtitle: 'Une bibliothèque MusicXML à jouer', foot: 'Solfège hero · Partitions' },
   { file: 'og-defi.png', accent: ['#1aa3b8', '#117486'], title: 'Un ami te défie', subtitle: '20 notes, bats son temps', foot: 'Solfège hero · Séries' },
   { file: 'og-dictee.png', accent: ['#c2409b', '#8f2c78'], title: 'Défi Dictée', subtitle: '20 notes à l’oreille, bats le temps de ton ami', foot: 'Solfège hero · Dictée' },
   { file: 'og-survie.png', accent: ['#cf4a6c', '#ac3552'], title: 'Défi Survie', subtitle: '3 vies, tiens plus longtemps que ton ami', foot: 'Solfège hero · Survie' },
@@ -16,7 +20,8 @@ const pages = [
 ]
 
 const force = process.argv.includes('--force')
-if (!force && pages.every((page) => existsSync(new URL(page.file, outDir)))) {
+const pending = force ? pages : pages.filter((page) => !existsSync(new URL(page.file, outDir)))
+if (pending.length === 0) {
   console.log('og images: all present, skipping (use --force to regenerate)')
   process.exit(0)
 }
@@ -45,7 +50,7 @@ mkdirSync(fileURLToPath(outDir), { recursive: true })
 const { chromium } = await import('playwright-core')
 const browser = await chromium.launch({ channel: 'chrome' })
 const written = []
-for (const page of pages) {
+for (const page of pending) {
   const tab = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 })
   await tab.setContent(html(page))
   const path = fileURLToPath(new URL(page.file, outDir))

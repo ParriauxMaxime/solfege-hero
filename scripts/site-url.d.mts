@@ -1,5 +1,4 @@
 export const DEFAULT_SITE_URL: string
-export const LANDING_PAGES: string[]
 export function normalizeSiteUrl(raw?: string): string
 export function siteHost(siteUrl: string): string
 export function isGithubPagesHost(host: string): boolean

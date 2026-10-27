@@ -142,7 +142,7 @@ describe('survival challenge link', () => {
   })
 
   it('builds a full url', () => {
-    expect(survivalChallengeUrl('https://x.test/app/', challenge)).toBe('https://x.test/app/survie/#v=1234&c=sol-fa&k=1&d=3&n=47')
+    expect(survivalChallengeUrl('https://x.test/app/', challenge)).toBe('https://x.test/app/survival/#v=1234&c=sol-fa&k=1&d=3&n=47')
   })
 
   it('rejects Series links, with or without a version', () => {

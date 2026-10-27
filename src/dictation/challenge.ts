@@ -41,5 +41,5 @@ export function parseDictationChallenge(hash: string): DictationChallenge | null
 }
 
 export function dictationChallengeUrl(base: string, challenge: DictationChallenge): string {
-  return landingUrl(base, 'dictee', encodeDictationChallenge(challenge))
+  return landingUrl(base, 'dictation', encodeDictationChallenge(challenge))
 }

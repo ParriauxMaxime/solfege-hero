@@ -157,7 +157,7 @@ describe('challengeWon', () => {
 describe('challengeUrl', () => {
   it('points the encoded challenge at the landing page', () => {
     expect(challengeUrl('https://example.com/solfege/', challenge)).toBe(
-      'https://example.com/solfege/defi/#s=4821&c=sol-fa&k=1&t=47',
+      'https://example.com/solfege/challenge/#s=4821&c=sol-fa&k=1&t=47',
     )
   })
 })

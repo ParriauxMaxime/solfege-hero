@@ -1,6 +1,7 @@
 import type { Score } from '../hero/types'
 import type { Clef } from '../music/notes'
 import { importScoreFile } from '../music/musicxml'
+import { appBase } from '../share/links'
 import { catalogueUrl, fetchCatalogueIndex, withoutCatalogued, type CatalogueEntry } from '../storage/catalogue'
 import type { Sound } from '../audio/sound'
 import type { createScoreLibrary, NewScore } from '../storage/scores'
@@ -153,7 +154,7 @@ export function createLibrary({ library, sound, onPlayHero, onPlaySeries }: Libr
     const cached = catalogueScores.get(entry.file)
     if (cached) return cached
     try {
-      const response = await fetch(catalogueUrl(import.meta.env.BASE_URL, entry.file))
+      const response = await fetch(catalogueUrl(appBase(location.href), entry.file))
       if (!response.ok) throw new Error(String(response.status))
       const { score } = await importScoreFile(entry.file, await response.arrayBuffer())
       const registered = library.registerBuiltin(score)
@@ -202,7 +203,7 @@ export function createLibrary({ library, sound, onPlayHero, onPlaySeries }: Libr
   }
 
   void renderList()
-  void fetchCatalogueIndex(import.meta.env.BASE_URL).then((entries) => {
+  void fetchCatalogueIndex(appBase(location.href)).then((entries) => {
     catalogue = entries
     if (entries.length === 0) return
     void renderList()

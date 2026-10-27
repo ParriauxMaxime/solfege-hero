@@ -48,7 +48,7 @@ describe('dictation challenge link', () => {
   })
 
   it('points at the dictee landing page', () => {
-    expect(dictationChallengeUrl('https://x.test/app/', challenge)).toBe('https://x.test/app/dictee/#d=4821&c=fa&l=35&t=62.4')
+    expect(dictationChallengeUrl('https://x.test/app/', challenge)).toBe('https://x.test/app/dictation/#d=4821&c=fa&l=35&t=62.4')
   })
 
   it('does not take a Séries link, even one with a difficulty d', () => {

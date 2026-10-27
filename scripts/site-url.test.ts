@@ -19,7 +19,7 @@ describe('site url', () => {
   })
 
   it('renders sitemap and robots from the site url', () => {
-    expect(renderSitemap('https://example.org/', '2026-01-01')).toContain('<loc>https://example.org/defi/</loc>')
+    expect(renderSitemap('https://example.org/', '2026-01-01')).toContain('<loc>https://example.org/challenge/</loc>')
     expect(renderRobots('https://example.org/')).toContain('Sitemap: https://example.org/sitemap.xml')
   })
 })

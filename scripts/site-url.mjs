@@ -1,5 +1,6 @@
+import { LANDING_ONLY, ROUTES } from './routes.mjs'
+
 export const DEFAULT_SITE_URL = 'https://parriauxmaxime.github.io/solfege-hero/'
-export const LANDING_PAGES = ['defi', 'dictee', 'survie', 'hero', 'jour', 'partition']
 
 export function normalizeSiteUrl(raw) {
   const url = new URL(raw?.trim() || DEFAULT_SITE_URL)
@@ -23,7 +24,7 @@ export function customDomain(siteUrl) {
 }
 
 export function sitePaths() {
-  return ['', ...LANDING_PAGES.map((page) => `${page}/`)]
+  return [...ROUTES, ...LANDING_ONLY].map(({ segment }) => (segment ? `${segment}/` : ''))
 }
 
 export function renderSitemap(siteUrl, lastmod) {

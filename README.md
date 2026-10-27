@@ -26,7 +26,7 @@ Treble, bass and alto clefs, sharps and flats, adaptive practice that brings bac
 
 ## Sharing
 
-End screens offer **Partager** (the system share sheet, with the link passed separately so WhatsApp or Messages show a preview card) and **Copier le lien**. Challenge links point to small static pages (`/defi/`, `/survie/`, `/hero/`, `/jour/`, `/partition/`) that carry their own Open Graph title and image, then forward to the app with the challenge in the `#hash`. Crawlers never see the hash, so the preview is generic for each challenge type, and the sender's time or score goes in the first line of the shared text. The preview images in `public/og/` are rendered by `npm run og`, and `npm run check:og` validates the tags.
+End screens offer **Partager** (the system share sheet, with the link passed separately so WhatsApp or Messages show a preview card) and **Copier le lien**. Challenge links point to the app's per-mode pages (`/challenge/`, `/survival/`, `/hero/`, `/daily/`, `/score/`, `/dictation/`), generated at build with their own Open Graph title and image; the app opens the challenge from the `#hash`. The old French paths (`/defi/`, `/survie/`, `/jour/`, `/partition/`, `/dictee/`) redirect there. Crawlers never see the hash, so the preview is generic for each challenge type, and the sender's time or score goes in the first line of the shared text. The preview images in `public/og/` are rendered by `npm run og`, and `npm run check:og` validates the tags.
 
 ## Install on a phone
 

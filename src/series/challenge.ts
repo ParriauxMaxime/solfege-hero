@@ -84,5 +84,5 @@ export function parseChallenge(hash: string): Challenge | null {
 }
 
 export function challengeUrl(base: string, challenge: Challenge): string {
-  return landingUrl(base, 'defi', encodeChallenge(challenge))
+  return landingUrl(base, 'challenge', encodeChallenge(challenge))
 }

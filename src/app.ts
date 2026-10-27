@@ -58,6 +58,25 @@ import { createSettingsScreen } from './ui/settings'
 import { createStatsScreen } from './ui/stats'
 import { dayKeyOf } from './stats/dates'
 import { showToast } from './ui/toast'
+import { screenFromPath, type LandingScreen, type Screen } from '../scripts/routes.mjs'
+import { appBase, routeUrl } from './share/links'
+
+type RouteName = Screen | LandingScreen
+
+const HOME_CHOICE_ROUTE: Record<HomeChoice, Screen> = {
+  apprendre: 'learn',
+  series: 'series',
+  dictation: 'dictation',
+  keys: 'keys',
+  survival: 'survival',
+  hero: 'hero',
+  partitions: 'scores',
+  daily: 'daily',
+}
+const ROUTE_HOME_CHOICE: Partial<Record<RouteName, HomeChoice>> = Object.fromEntries(
+  Object.entries(HOME_CHOICE_ROUTE).map(([choice, route]) => [route, choice]),
+)
+const DIRECT_ROUTES: readonly RouteName[] = [...Object.values(HOME_CHOICE_ROUTE), 'settings', 'stats']
 
 const TRANSITION_MS = 200
 const UNLOCK_EVENTS = ['pointerup', 'touchend', 'click', 'keydown'] as const
@@ -80,6 +99,7 @@ export function startApp(root: HTMLElement): void {
   let progress = loadProgress()
   let running: Destroyable | null = null
   let pushed = false
+  let routeAfterOnboarding: RouteName | null = null
   let collapsingLinkEntry = false
   let activeGame: Game | null = null
   let activeHero: Hero | null = null
@@ -104,11 +124,42 @@ export function startApp(root: HTMLElement): void {
   window.addEventListener('hashchange', () => openLaunchChallenge(true))
   window.addEventListener('popstate', onPopState)
   markExistingPlayerOnboarded()
-  if (!openLaunchChallenge(false)) {
-    if (settings.onboarded || new URLSearchParams(location.search).has('demo')) renderHome()
-    else showOnboarding()
-  }
+  if (!openLaunchChallenge(false)) openInitialRoute()
   void openDemoStats()
+
+  function routeHref(route: RouteName): string {
+    return routeUrl(appBase(location.href), route) + location.search
+  }
+
+  function replaceRoute(route: RouteName): void {
+    const target = routeHref(route)
+    if (target !== location.href) history.replaceState(history.state, '', target)
+  }
+
+  function directRoute(): RouteName | null {
+    const route = screenFromPath(location.pathname)
+    return route && DIRECT_ROUTES.includes(route) ? route : null
+  }
+
+  function openInitialRoute(): void {
+    const route = directRoute()
+    if (route) replaceRoute(route)
+    if (!settings.onboarded && !new URLSearchParams(location.search).has('demo')) {
+      routeAfterOnboarding = route
+      showOnboarding()
+    } else if (route) openRoute(route)
+    else renderHome()
+  }
+
+  function openRoute(route: RouteName): void {
+    if (route === 'settings') showSettings()
+    else if (route === 'stats') showStats()
+    else {
+      const choice = ROUTE_HOME_CHOICE[route]
+      if (choice) choose(choice)
+      else renderHome()
+    }
+  }
 
   function markExistingPlayerOnboarded(): void {
     const hasPlayed = progress.totalAnswered > 0 || Object.values(progress.playDays).some((days) => days.length > 0)
@@ -125,9 +176,9 @@ export function startApp(root: HTMLElement): void {
     if (query.has('stats')) showStats()
   }
 
-  function enterFromHome(open: () => void): void {
+  function enterFromHome(route: RouteName, open: () => void): void {
     if (!pushed) {
-      history.pushState({ screen: 'inside' }, '')
+      history.pushState({ screen: 'inside' }, '', routeHref(route))
       pushed = true
     }
     open()
@@ -174,7 +225,11 @@ export function startApp(root: HTMLElement): void {
       pushed = true
       return
     }
-    renderHome()
+    const route = directRoute()
+    if (route) {
+      pushed = true
+      openRoute(route)
+    } else renderHome()
   }
 
   function isLaunchLink(hash: string): boolean {
@@ -197,8 +252,19 @@ export function startApp(root: HTMLElement): void {
     const dictationLink =
       heroLink || challenge || scoreLink || dailyLink || survivalLink ? null : parseDictationChallenge(location.hash)
     if (!heroLink && !challenge && !scoreLink && !dailyLink && !survivalLink && !dictationLink) return false
+    const route: RouteName = heroLink
+      ? 'hero'
+      : challenge
+        ? 'challenge'
+        : scoreLink
+          ? 'score'
+          : dailyLink
+            ? 'daily'
+            : survivalLink
+              ? 'survival'
+              : 'dictation'
     const open = () =>
-      enterFromHome(() => {
+      enterFromHome(route, () => {
         if (heroLink) showHeroChallengeIntro(heroLink)
         else if (challenge) showChallengeIntro(challenge)
         else if (scoreLink) void openScoreLink(scoreLink)
@@ -292,7 +358,8 @@ export function startApp(root: HTMLElement): void {
     }, TRANSITION_MS)
   }
 
-  function show(content: HTMLElement, withTopBar: boolean, next: Destroyable | null = null): void {
+  function show(route: RouteName | null, content: HTMLElement, withTopBar: boolean, next: Destroyable | null = null): void {
+    if (route) replaceRoute(route)
     running?.destroy()
     running = next
     activeHero = null
@@ -367,11 +434,14 @@ export function startApp(root: HTMLElement): void {
   function chooseStartingLevel(level: number): void {
     applyLevel(level)
     changeSettings({ onboarded: true })
-    renderHome()
+    const route = routeAfterOnboarding
+    routeAfterOnboarding = null
+    if (route) openRoute(route)
+    else renderHome()
   }
 
   function showOnboarding(): void {
-    show(createOnboarding({ onChoose: chooseStartingLevel }), false)
+    show(null, createOnboarding({ onChoose: chooseStartingLevel }), false)
   }
 
   function renderHome(): void {
@@ -380,11 +450,11 @@ export function startApp(root: HTMLElement): void {
       progress,
       today,
       scores: scoreLibrary.list(),
-      onChoose: (choice) => enterFromHome(() => choose(choice)),
-      onSettings: () => enterFromHome(showSettings),
-      onStats: () => enterFromHome(showStats),
+      onChoose: (choice) => enterFromHome(HOME_CHOICE_ROUTE[choice], () => choose(choice)),
+      onSettings: () => enterFromHome('settings', showSettings),
+      onStats: () => enterFromHome('stats', showStats),
     })
-    show(home, false)
+    show('home', home, false)
   }
 
   function choose(choice: HomeChoice): void {
@@ -403,6 +473,7 @@ export function startApp(root: HTMLElement): void {
 
   function showLibrary(): void {
     show(
+      'scores',
       createLibrary({
         library: scoreLibrary,
         sound,
@@ -419,7 +490,7 @@ export function startApp(root: HTMLElement): void {
   }
 
   function showLearnStart(): void {
-    show(createLearnStart({ settings, onChange: changeSettings, onPlay: showLearn, onOpenSettings: () => showSettings() }), true)
+    show('learn', createLearnStart({ settings, onChange: changeSettings, onPlay: showLearn, onOpenSettings: () => showSettings() }), true)
   }
 
   function showLearn(): void {
@@ -431,12 +502,12 @@ export function startApp(root: HTMLElement): void {
       onLevelChange: onAutoLevelChange,
       onEditKey: (chronoRunning) => (chronoRunning ? confirmAbandonOrOpen(showLearnStart) : showLearnStart()),
     })
-    show(game.element, true, game)
+    show('learn', game.element, true, game)
     activeGame = game
   }
 
   function showKeysStart(): void {
-    show(createKeysStart({ settings, onChange: changeSettings, onPlay: showKeys, onOpenSettings: () => showSettings() }), true)
+    show('keys', createKeysStart({ settings, onChange: changeSettings, onPlay: showKeys, onOpenSettings: () => showSettings() }), true)
   }
 
   function showKeys(): void {
@@ -447,12 +518,13 @@ export function startApp(root: HTMLElement): void {
       onProgress: progressFor('keys'),
       onLevelChange: onAutoLevelChange,
     })
-    show(game.element, true, game)
+    show('keys', game.element, true, game)
     activeGame = game
   }
 
   function showHeroStart(): void {
     show(
+      'hero',
       createHeroStart({
         settings,
         library: scoreLibrary,
@@ -478,6 +550,7 @@ export function startApp(root: HTMLElement): void {
 
   function showHeroChallengeIntro(challenge: HeroChallenge): void {
     show(
+      'hero',
       createHeroChallengeIntro({
         challenge,
         onStart: () => playHero(null, false, { config: challenge.config, against: challenge.target }),
@@ -502,7 +575,7 @@ export function startApp(root: HTMLElement): void {
       onHome: fromLibrary ? showLibrary : goHome,
       homeLabel: fromLibrary ? 'Partitions' : 'Accueil',
     })
-    show(hero.element, false, hero)
+    show(fromLibrary ? 'scores' : 'hero', hero.element, false, hero)
     activeHero = hero
   }
 
@@ -513,7 +586,7 @@ export function startApp(root: HTMLElement): void {
   function showDailyIntro(key: DailyKey): void {
     const ranked = key === dailyKey(new Date())
     const attemptMs = progress.daily.attempts[key]?.totalMs ?? null
-    show(createDailyIntro({ key, ranked, attemptMs, onStart: () => playDaily(key, ranked) }), true)
+    show('daily', createDailyIntro({ key, ranked, attemptMs, onStart: () => playDaily(key, ranked) }), true)
   }
 
   async function showSeries(
@@ -552,12 +625,13 @@ export function startApp(root: HTMLElement): void {
       onHome: fromLibrary ? showLibrary : goHome,
       homeLabel: fromLibrary ? 'Partitions' : 'Accueil',
     })
-    show(series.element, true, series)
+    show(daily ? 'daily' : fromLibrary ? 'scores' : 'series', series.element, true, series)
     activeSeries = series
   }
 
   function showDictationStart(): void {
     show(
+      'dictation',
       createDictationStart({
         settings,
         onChange: changeSettings,
@@ -570,6 +644,7 @@ export function startApp(root: HTMLElement): void {
 
   function showDictationChallengeIntro(challenge: DictationChallenge): void {
     show(
+      'dictation',
       createDictationChallengeIntro({
         challenge,
         settings,
@@ -597,7 +672,7 @@ export function startApp(root: HTMLElement): void {
       onRetry: () => showDictation(config, against),
       onHome: goHome,
     })
-    show(dictation.element, true, dictation)
+    show('dictation', dictation.element, true, dictation)
     activeDictation = dictation
   }
 
@@ -614,19 +689,20 @@ export function startApp(root: HTMLElement): void {
       onHome: goHome,
       onQuit: renderHome,
     })
-    show(survival.element, false, survival)
+    show('survival', survival.element, false, survival)
     activeSurvival = survival
   }
 
   function showSurvivalIntro(challenge: SurvivalChallenge): void {
     show(
+      'survival',
       createSurvivalIntro({ challenge, onStart: () => showSurvival(challenge.config, { score: challenge.score }) }),
       true,
     )
   }
 
   function showChallengeIntro(challenge: Challenge): void {
-    show(createChallengeIntro({ challenge, onStart: () => void showSeries(challenge.config, challenge) }), true)
+    show('challenge', createChallengeIntro({ challenge, onStart: () => void showSeries(challenge.config, challenge) }), true)
   }
 
   /** Adds a score to the library unless it is already there; returns whether it was new. */
@@ -647,14 +723,14 @@ export function startApp(root: HTMLElement): void {
     if (timeS === null) {
       const play = async () => playScore((await addScoreIfNew(score)).stored, false)
       const add = async () => showToast((await addScoreIfNew(score)).added ? 'Ajoutée à ta bibliothèque' : 'Déjà dans ta bibliothèque')
-      show(createScoreReceived({ score, onAdd: () => void add(), onPlay: () => void play() }), true)
+      show('score', createScoreReceived({ score, onAdd: () => void add(), onPlay: () => void play() }), true)
       return
     }
     const start = async () => {
       await addScoreIfNew(score)
       await showSeries({ kind: 'score', scoreId: score.id }, { timeS })
     }
-    show(createScoreChallengeIntro({ score, timeS, onStart: () => void start() }), true)
+    show('score', createScoreChallengeIntro({ score, timeS, onStart: () => void start() }), true)
   }
 
   function showSettings(): void {
@@ -671,7 +747,7 @@ export function startApp(root: HTMLElement): void {
       },
       onBack: goHome,
     })
-    show(screenElement, false)
+    show('settings', screenElement, false)
   }
 
   function showStats(): void {
@@ -679,6 +755,6 @@ export function startApp(root: HTMLElement): void {
       changeProgress(resetProgress())
       return progress
     }
-    show(createStatsScreen({ progress, onReset, onBack: goHome }), false)
+    show('stats', createStatsScreen({ progress, onReset, onBack: goHome }), false)
   }
 }

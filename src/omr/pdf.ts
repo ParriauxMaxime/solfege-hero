@@ -1,6 +1,7 @@
 import { getDocument, PDFWorker } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import PdfJsWorker from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?worker'
 import { grayFromRows, planWidth, PROBE_WIDTH, probeUnit } from './budget'
+import { appBase } from '../share/links'
 import { PDF_RENDER_TIMEOUT_MS, withDeadline } from './deadline'
 import type { GrayImage } from './types'
 
@@ -64,7 +65,7 @@ export class PdfSession {
       isOffscreenCanvasSupported: false,
       isImageDecoderSupported: false,
       worker: new PDFWorker({ port: worker as unknown as null }),
-      wasmUrl: new URL(`${import.meta.env.BASE_URL}pdfjs-wasm/`, document.baseURI).href,
+      wasmUrl: `${appBase(location.href)}pdfjs-wasm/`,
     })
     const interrupted = new Promise<never>((_, reject) => {
       worker.addEventListener('error', (event) => reject(new Error(event.message || 'le lecteur PDF n’a pas démarré')))

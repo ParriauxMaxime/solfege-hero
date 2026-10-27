@@ -53,7 +53,7 @@ export async function scoreLink(score: ShareableScore, timeS: number | null = nu
   const blob = await encodeScoreBlob(score)
   if (blob === null) return null
   const challenge = timeS === null ? '' : `&t=${timeS}`
-  return landingUrl(appBase(location.href), 'partition', `${scoreLinkHash(blob)}${challenge}`)
+  return landingUrl(appBase(location.href), 'score', `${scoreLinkHash(blob)}${challenge}`)
 }
 
 async function shareFile(score: ShareableScore): Promise<boolean> {

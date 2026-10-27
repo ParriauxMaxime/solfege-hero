@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { loadEnv } from 'vite'
-import { LANDING_PAGES, customDomain, normalizeSiteUrl, renderHumans, renderRobots, renderSitemap } from './scripts/site-url.mjs'
+import { ROUTE_PAGES, generateSitePages, renderRedirectPage, renderRoutePage, routePageOptions } from './scripts/pages.mjs'
+import { LEGACY_REDIRECTS } from './scripts/routes.mjs'
+import { customDomain, normalizeSiteUrl, renderHumans, renderRobots, renderSitemap } from './scripts/site-url.mjs'
 import { VitePWA } from 'vite-plugin-pwa'
 import type { Plugin } from 'vite'
 import { configDefaults, defineConfig } from 'vitest/config'
@@ -33,8 +35,13 @@ declare const process: { env: Record<string, string | undefined>; cwd(): string 
 
 const CF_BEACON_SRC = 'https://static.cloudflareinsights.com/beacon.min.js'
 
-function landingPage(page: string, siteUrl: string) {
-  return readFileSync(new URL(`./landing/${page}/index.html`, import.meta.url), 'utf8').replaceAll('%SITE_URL%', siteUrl)
+function devPage(requestPath: string, siteUrl: string): string | null {
+  const segment = requestPath.replace(/^\/|\/$/g, '')
+  const raw = () => readFileSync(new URL('./index.html', import.meta.url), 'utf8')
+  const route = ROUTE_PAGES.find((candidate) => candidate.segment === segment)
+  if (route) return renderRoutePage(raw(), routePageOptions(route), siteUrl)
+  const redirect = LEGACY_REDIRECTS[segment]
+  return redirect ? renderRedirectPage(redirect, siteUrl) : null
 }
 
 /** One site URL feeds the html pages, sitemap, robots, humans, CNAME and the optional Cloudflare beacon. */
@@ -46,21 +53,32 @@ function siteFiles(siteUrl: string, beaconToken: string): Plugin {
   const lastmod = new Date().toISOString().slice(0, 10)
   return {
     name: 'site-files',
+    enforce: 'post',
     transformIndexHtml: {
       order: 'pre',
       handler: (html) => html.replaceAll('%SITE_URL%', siteUrl).replace('</body>', () => closeBody),
     },
     configureServer(server) {
-      server.middlewares.use((request, response, next) => {
-        const page = LANDING_PAGES.find((name) => (request as { url?: string }).url?.split('?')[0] === `/${name}/`)
-        if (!page) return next()
+      server.middlewares.use(async (request, response, next) => {
+        const { method, url = '' } = request as { method?: string; url?: string }
+        if (method !== 'GET' && method !== 'HEAD') return next()
+        const [path = '', search = ''] = url.split('?')
+        const html = devPage(path, siteUrl)
+        if (html === null) return next()
+        if (!path.endsWith('/')) {
+          response.statusCode = 301
+          response.setHeader('Location', `${path}/${search && `?${search}`}`)
+          return response.end()
+        }
         response.setHeader('Content-Type', 'text/html')
-        response.end(landingPage(page, siteUrl))
+        response.end(await server.transformIndexHtml('/', html))
       })
     },
-    generateBundle() {
+    generateBundle(_options, bundle) {
       const emit = (fileName: string, source: string) => this.emitFile({ type: 'asset', fileName, source })
-      for (const page of LANDING_PAGES) emit(`${page}/index.html`, landingPage(page, siteUrl))
+      const index = bundle['index.html']
+      if (index?.type !== 'asset') throw new Error('site-files must run after vite:build-html: index.html is not in the bundle')
+      for (const page of generateSitePages(String(index.source), siteUrl)) emit(page.fileName, page.source)
       emit('sitemap.xml', renderSitemap(siteUrl, lastmod))
       emit('robots.txt', renderRobots(siteUrl))
       emit('humans.txt', renderHumans(siteUrl))
@@ -85,6 +103,9 @@ export default defineConfig(({ mode }) => {
       includeManifestIcons: false,
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2,musicxml,json,mjs,wasm}'],
+        // index.html at an unknown nested path would load ./assets from the wrong folder: 404.html has no assets and redirects to the right page.
+        navigateFallback: '404.html',
+        ignoreURLParametersMatching: [/.*/],
         // pdf.js is only needed by the PDF import and the og images only by crawlers: fetched on demand, not on every install.
         globIgnores: ['**/pdf.worker*', '**/assets/pdf-*.js', 'pdfjs-wasm/**', 'og/**'],
         runtimeCaching: [

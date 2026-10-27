@@ -56,7 +56,7 @@ export function parseSurvivalChallenge(hash: string): SurvivalChallenge | null {
 }
 
 export function survivalChallengeUrl(base: string, challenge: SurvivalChallenge): string {
-  return landingUrl(base, 'survie', encodeSurvivalChallenge(challenge))
+  return landingUrl(base, 'survival', encodeSurvivalChallenge(challenge))
 }
 
 /** Strictly more notes than the friend. */
