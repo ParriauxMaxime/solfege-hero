@@ -111,7 +111,7 @@ function logoStaff(): SVGSVGElement {
 
 function renderLogo(): HTMLElement {
   const title = el('h1', 'home-title', 'Solfège hero')
-  return el('div', 'home-brand', logoStaff(), title)
+  return el('div', 'home-brand', logoStaff(), title, el('p', 'home-tagline', 'Apprendre à lire les notes sur la portée'))
 }
 
 function flame(): SVGSVGElement {

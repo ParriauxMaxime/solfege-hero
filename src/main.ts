@@ -15,6 +15,7 @@ import './styles/learn-start.css'
 import './styles/stats.css'
 import './styles/level.css'
 import './styles/landscape-compact.css'
+import './styles/desktop.css'
 import './pwa'
 import { startApp } from './app'
 

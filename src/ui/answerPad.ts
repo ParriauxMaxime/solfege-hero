@@ -49,6 +49,8 @@ function createAnswerButton(name: string, key: PianoKey, answer: Answer, onAnswe
   button.classList.toggle('altered', !key.natural)
   button.style.setProperty('--piano-row', key.natural ? '2' : '1')
   button.style.setProperty('--piano-column', String(key.column))
+  const naturalIndex = NATURAL_PITCH_CLASSES.indexOf(key.natural ? key.pitchClass : key.pitchClass - 1)
+  button.dataset.key = `${key.natural ? '' : '⇧'}${KEY_LETTERS.charAt(naturalIndex).toUpperCase()}${key.natural ? ` ${naturalIndex + 1}` : ''}`
   return button
 }
 

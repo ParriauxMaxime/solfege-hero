@@ -1,4 +1,4 @@
-@media (orientation: landscape) and (max-height: 500px) {
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 1023px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
   .app:has(.game) {
     position: relative;
   }

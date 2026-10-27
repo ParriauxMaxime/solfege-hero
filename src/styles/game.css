@@ -195,7 +195,7 @@
   white-space: nowrap;
 }
 
-@media (orientation: portrait) {
+@media (orientation: portrait), (min-width: 1024px) and (pointer: fine) {
   .answer {
     min-height: max(var(--key-h), 64px);
     font-size: min(var(--key-font), 0.9rem);
@@ -235,7 +235,7 @@
   color: var(--accent);
 }
 
-@media (orientation: landscape) {
+@media (orientation: landscape) and (max-width: 1023px), (orientation: landscape) and (pointer: coarse) {
   .game {
     max-width: none;
     display: grid;
