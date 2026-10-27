@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { PAGE_IMAGES, PAGE_TEXTS } from './page-texts.mjs'
-import { addHreflang, generateSitePages, render404Page, renderRedirectPage, renderRoutePage } from './pages.mjs'
+import { addHreflang, generateSitePages, injectBase, render404Page, renderRedirectPage, renderRoutePage } from './pages.mjs'
 import { LANDING_ONLY, LEGACY_REDIRECTS, ROUTES } from './routes.mjs'
 import { renderSitemap, sitePaths } from './site-url.mjs'
 
@@ -67,7 +67,7 @@ describe('renderRoutePage', () => {
 
   it('inserts one base tag right after the charset', () => {
     expect(count(html, '<base ')).toBe(1)
-    expect(html).toMatch(/<meta charset="UTF-8" \/>\s*<base href="\.\.\/" \/>/)
+    expect(html).toMatch(/<meta charset="UTF-8" \/>\s*<base href="\/solfege-hero\/" \/>/)
   })
 
   it('leaves assets, manifest, beacon and json-ld untouched', () => {
@@ -182,12 +182,11 @@ describe('language pages', () => {
     expect(count(addHreflang(once, SITE), 'hreflang=')).toBe(3)
   })
 
-  it('adjusts the base href to the folder depth', () => {
-    expect(source('en/learn/index.html')).toContain('<base href="../../" />')
-    expect(source('en/challenge/index.html')).toContain('<base href="../../" />')
-    expect(source('en/index.html')).toContain('<base href="../" />')
-    expect(source('fr/index.html')).toContain('<base href="../" />')
-    expect(new URL('./assets/index-abc.js', new URL('../../', `${SITE}en/learn/`)).href).toBe('https://x.test/solfege-hero/assets/index-abc.js')
+  it('uses the same absolute base href at any depth, replacing an existing one', () => {
+    for (const file of ['en/learn', 'en/challenge', 'en', 'fr']) expect(source(`${file}/index.html`)).toContain('<base href="/solfege-hero/" />')
+    expect(source('en/learn/index.html').match(/<base /g)).toHaveLength(1)
+    expect(new URL('./assets/index-abc.js', new URL('/solfege-hero/', `${SITE}en/learn/`)).href).toBe('https://x.test/solfege-hero/assets/index-abc.js')
+    expect(injectBase(injectBase(INDEX_HTML, '/'), '/a/').match(/<base href="[^"]*"/g)).toEqual(['<base href="/a/"'])
   })
 
   it('has english texts for every page', () => {

@@ -1,5 +1,6 @@
 export const DEFAULT_SITE_URL: string
 export function normalizeSiteUrl(raw?: string): string
+export function siteBasePath(siteUrl: string): string
 export function siteHost(siteUrl: string): string
 export function isGithubPagesHost(host: string): boolean
 export function customDomain(siteUrl: string): string | null

@@ -11,6 +11,7 @@
     "icons": "node scripts/generate-icons.mjs",
     "og": "node scripts/og-images.mjs --force",
     "check:og": "node scripts/check-og.mjs",
+    "e2e:base": "node scripts/e2e-base.mjs",
     "demo": "node scripts/demo.mjs"
   },
   "type": "module",

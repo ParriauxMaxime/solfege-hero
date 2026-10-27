@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_SITE_URL, customDomain, normalizeSiteUrl, renderRobots, renderSitemap, siteHost } from './site-url.mjs'
+import { DEFAULT_SITE_URL, customDomain, normalizeSiteUrl, renderRobots, renderSitemap, siteBasePath, siteHost } from './site-url.mjs'
 
 describe('site url', () => {
   it('defaults to the github pages url', () => {
@@ -16,6 +16,12 @@ describe('site url', () => {
     expect(siteHost('https://example.org/')).toBe('example.org')
     expect(customDomain('https://example.org/')).toBe('example.org')
     expect(customDomain(DEFAULT_SITE_URL)).toBeNull()
+  })
+
+  it('derives the absolute base path of the site', () => {
+    expect(siteBasePath(DEFAULT_SITE_URL)).toBe('/solfege-hero/')
+    expect(siteBasePath('https://example.org/')).toBe('/')
+    expect(siteBasePath(normalizeSiteUrl('https://example.org/a/b'))).toBe('/a/b/')
   })
 
   it('renders sitemap and robots from the site url', () => {

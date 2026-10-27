@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-import { normalizeSiteUrl, allSitePaths } from './site-url.mjs'
+import { normalizeSiteUrl, allSitePaths, siteBasePath } from './site-url.mjs'
 
 const SITE = normalizeSiteUrl(process.env.VITE_SITE_URL)
 const PAGES = allSitePaths()
@@ -99,8 +99,7 @@ for (const page of PAGES) {
   else if (lang !== (prefix || 'fr')) failures.push(`<html lang> is ${lang}, expected ${prefix || 'fr'}`)
   const expectedHreflangs = { fr: `${SITE}fr/${rest}`, en: `${SITE}en/${rest}`, 'x-default': `${SITE}${rest}` }
   for (const [code, href] of Object.entries(expectedHreflangs)) if (hreflangs.get(code) !== href) failures.push(`hreflang ${code} is ${hreflangs.get(code)}, expected ${href}`)
-  const depth = page.split('/').filter(Boolean).length
-  if (depth > 0 && base !== '../'.repeat(depth)) failures.push(`<base href> is ${base}, expected ${'../'.repeat(depth)}`)
+  if (base !== siteBasePath(SITE)) failures.push(`<base href> is ${base}, expected ${siteBasePath(SITE)}`)
   if (prefix === 'en' && !tags.get('og:image')?.includes('/og/en/')) failures.push(`og:image should be under og/en/: ${tags.get('og:image')}`)
   if (canonical !== tags.get('og:url')) failures.push(`canonical is ${canonical}, expected og:url ${tags.get('og:url')}`)
   checkUrl('og:url', tags.get('og:url'), failures)

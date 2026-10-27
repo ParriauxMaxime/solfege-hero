@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { loadEnv } from 'vite'
 import { PAGE_TEXTS } from './scripts/page-texts.mjs'
-import { ROUTE_PAGES, addHreflang, generateSitePages, renderRedirectPage, renderRoutePage, routePageOptions } from './scripts/pages.mjs'
+import { ROUTE_PAGES, addHreflang, generateSitePages, injectBase, renderRedirectPage, renderRoutePage, routePageOptions } from './scripts/pages.mjs'
 import { LEGACY_REDIRECTS } from './scripts/routes.mjs'
-import { customDomain, normalizeSiteUrl, renderHumans, renderRobots, renderSitemap } from './scripts/site-url.mjs'
+import { customDomain, normalizeSiteUrl, renderHumans, renderRobots, renderSitemap, siteBasePath } from './scripts/site-url.mjs'
 import { VitePWA } from 'vite-plugin-pwa'
 import type { Plugin } from 'vite'
 import { configDefaults, defineConfig } from 'vitest/config'
@@ -42,7 +42,7 @@ function devPage(requestPath: string, siteUrl: string): string | null {
   const segment = prefix ? others.join('/') : [first, ...others].join('/')
   const raw = () => readFileSync(new URL('./index.html', import.meta.url), 'utf8')
   const route = [{ screen: 'home', segment: '' }, ...ROUTE_PAGES].find((candidate) => candidate.segment === segment)
-  if (route && (prefix || segment)) return renderRoutePage(raw(), routePageOptions(route as (typeof ROUTE_PAGES)[number], PAGE_TEXTS[prefix || 'fr'], prefix), siteUrl)
+  if (route && (prefix || segment)) return renderRoutePage(raw(), routePageOptions(route as (typeof ROUTE_PAGES)[number], PAGE_TEXTS[prefix || 'fr'], prefix), siteUrl, '/')
   if (prefix) return null
   const redirect = LEGACY_REDIRECTS[segment]
   return redirect ? renderRedirectPage(redirect, siteUrl) : null
@@ -60,7 +60,11 @@ function siteFiles(siteUrl: string, beaconToken: string): Plugin {
     enforce: 'post',
     transformIndexHtml: {
       order: 'pre',
-      handler: (html) => html.replaceAll('%SITE_URL%', siteUrl).replace('</body>', () => closeBody),
+      // Absolute <base> in the built home only (the dev server serves from its own root): any html served at any path boots.
+      handler: (html, context) => {
+        const filled = html.replaceAll('%SITE_URL%', siteUrl).replace('</body>', () => closeBody)
+        return context.server ? filled : injectBase(filled, siteBasePath(siteUrl))
+      },
     },
     configureServer(server) {
       server.middlewares.use(async (request, response, next) => {
@@ -111,8 +115,12 @@ export default defineConfig(({ mode }) => {
       includeManifestIcons: false,
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2,musicxml,json,mjs,wasm}'],
-        // index.html at an unknown nested path would load ./assets from the wrong folder: 404.html has no assets and redirects to the right page.
-        navigateFallback: '404.html',
+        // A new version takes over open pages at once (src/pwa.ts then reloads once): the built worker has neither unless asked.
+        skipWaiting: true,
+        clientsClaim: true,
+        // Safe at any path: index.html carries an absolute <base>, so its relative assets and sw.js resolve from the site root.
+        navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/\/og\//, /\/pdfjs-wasm\//, /\/[^/?]+\.[^/]+$/],
         ignoreURLParametersMatching: [/.*/],
         // pdf.js is only needed by the PDF import and the og images only by crawlers: fetched on demand, not on every install.
         globIgnores: ['**/pdf.worker*', '**/assets/pdf-*.js', 'pdfjs-wasm/**', 'og/**'],

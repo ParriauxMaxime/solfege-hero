@@ -21,7 +21,8 @@ export function pagePath(prefix: string, segment: string): string
 export function hreflangEntries(siteUrl: string, segment: string): { hreflang: string; href: string }[]
 export function addHreflang(html: string, siteUrl: string, segment?: string): string
 export function routePageOptions(route: Route<Screen | LandingScreen>, texts?: LanguageTexts, prefix?: string): RoutePageOptions
-export function renderRoutePage(indexHtml: string, options: RoutePageOptions, siteUrl: string): string
+export function injectBase(html: string, basePath: string): string
+export function renderRoutePage(indexHtml: string, options: RoutePageOptions, siteUrl: string, basePath?: string): string
 export function renderRedirectPage(newSegment: string, siteUrl: string): string
 export function render404Page(): string
 export function generateSitePages(indexHtml: string, siteUrl: string): GeneratedPage[]

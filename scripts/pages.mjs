@@ -1,4 +1,5 @@
 import { PAGE_IMAGES, PAGE_TEXTS } from './page-texts.mjs'
+import { siteBasePath } from './site-url.mjs'
 import { LANDING_ONLY, LEGACY_REDIRECTS, ROUTES, routeSegments } from './routes.mjs'
 
 const ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }
@@ -17,6 +18,12 @@ function replaceOnce(html, pattern, replacement, label) {
 function setMeta(html, attribute, key, value) {
   const pattern = new RegExp(`<meta\\s+${attribute}="${key}"\\s+content="[^"]*"\\s*/?>`)
   return replaceOnce(html, pattern, `<meta ${attribute}="${key}" content="${escapeHtml(value)}" />`, `<meta ${attribute}="${key}">`)
+}
+
+/** Sets the one absolute `<base href>` right after the charset, so relative urls resolve the same whatever path serves the html. */
+export function injectBase(html, basePath) {
+  const cleaned = html.replace(/\s*<base\s[^>]*>/gi, '')
+  return replaceOnce(cleaned, /<meta\s+charset="[^"]*"\s*\/?>/i, `<meta charset="UTF-8" />\n    <base href="${basePath}" />`, '<meta charset>')
 }
 
 /** Folder of a page: '' for the root home, 'learn/', 'en/', 'en/learn/'. */
@@ -43,15 +50,12 @@ export function addHreflang(html, siteUrl, segment = '') {
   return cleaned.replace(canonical, () => `${found[0]}\n    ${links.join('\n    ')}`)
 }
 
-export function renderRoutePage(indexHtml, { segment, lang, prefix = '', title, description, h1, intro, image, imageAlt }, siteUrl) {
+export function renderRoutePage(indexHtml, { segment, lang, prefix = '', title, description, h1, intro, image, imageAlt }, siteUrl, basePath = siteBasePath(siteUrl)) {
   const path = pagePath(prefix, segment)
   const pageUrl = `${siteUrl}${path}`
   const imageUrl = `${siteUrl}og/${image}`
-  const depth = path.split('/').filter(Boolean).length
-  const base = depth ? `\n    <base href="${'../'.repeat(depth)}" />` : ''
-  let html = indexHtml
+  let html = injectBase(indexHtml, basePath)
   html = replaceOnce(html, /<html\s+lang="[^"]*"/, `<html lang="${escapeHtml(lang)}"`, '<html lang>')
-  html = replaceOnce(html, /<meta\s+charset="[^"]*"\s*\/?>/i, `<meta charset="UTF-8" />${base}`, '<meta charset>')
   html = replaceOnce(html, /<title>[^<]*<\/title>/, `<title>${escapeHtml(title)}</title>`, '<title>')
   html = replaceOnce(html, /<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/, `<link rel="canonical" href="${pageUrl}" />`, 'canonical link')
   html = addHreflang(html, siteUrl, segment)

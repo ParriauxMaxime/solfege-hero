@@ -10,6 +10,11 @@ export function normalizeSiteUrl(raw) {
   return url.href
 }
 
+/** Absolute path of the site root ('/solfege-hero/' or '/'): the `<base href>` of every html page. */
+export function siteBasePath(siteUrl) {
+  return new URL(siteUrl).pathname
+}
+
 export function siteHost(siteUrl) {
   return new URL(siteUrl).hostname
 }
