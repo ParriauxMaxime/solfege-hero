@@ -1,4 +1,5 @@
 import { createSound } from './audio/sound'
+import { depthOf, ENTERING, insideState, planHistoryChange, screenKey } from './nav/historyPlan'
 import { clefTipAfterLevelChange, survivalDelayAfterLevelChange, type ClefTip } from './level/transition'
 import { CLEFS, type Clef } from './music/notes'
 import { createOnboarding } from './ui/onboarding'
@@ -104,6 +105,10 @@ export function startApp(root: HTMLElement): void {
   let progress = loadProgress()
   let running: Destroyable | null = null
   let pushed = false
+  let depth = 0
+  let entryKey: string | null = null
+  let currentKey = 'home'
+  let fromHistory = false
   let currentRoute: RouteName = 'home'
   let routeAfterOnboarding: RouteName | null = null
   let collapsingLinkEntry = false
@@ -121,7 +126,7 @@ export function startApp(root: HTMLElement): void {
   const scoreLibrary = createScoreLibrary(indexedDbBackend(), BUILTIN_SCORES)
   unlockSoundOnGesture()
 
-  const backButton = iconButton('back', goHome, t('app.topBar.home'))
+  const backButton = iconButton('back', goBack, t('app.topBar.home'))
   const muteButton = iconButton('sound-on', toggleMute, t('app.topBar.sound'))
   const topBar = el('header', 'top-bar', backButton, el('span', 'spacer'), muteButton)
   const screen = el('main', 'screen-host')
@@ -214,20 +219,33 @@ export function startApp(root: HTMLElement): void {
 
   function enterFromHome(route: RouteName, open: () => void): void {
     if (!pushed) {
-      history.pushState({ screen: 'inside' }, '', routeHref(route))
+      depth = 1
+      history.pushState(insideState(depth), '', routeHref(route))
       pushed = true
+      entryKey = ENTERING
     }
     open()
   }
 
-  function goHome(): void {
+  function goBack(): void {
     if (pushed) history.back()
     else renderHome()
   }
 
+  /** A play started from the library has the library as previous entry. */
+  function backToLibrary(): void {
+    if (pushed && depth > 0) history.back()
+    else showLibrary()
+  }
+
+  function goHome(): void {
+    if (pushed && depth > 1) history.go(-depth)
+    else goBack()
+  }
+
   function dropLinkEntry(): Promise<void> {
     if (!pushed) {
-      history.replaceState({ screen: 'inside' }, '', location.pathname + location.search)
+      history.replaceState(insideState(0), '', location.pathname + location.search)
       pushed = true
       return Promise.resolve()
     }
@@ -247,15 +265,19 @@ export function startApp(root: HTMLElement): void {
 
   /** Back paused a game: the popped entry has the home URL, so push the game's own route again. */
   function pushInsideEntry(): void {
-    history.pushState({ screen: 'inside' }, '', routeHref(currentRoute))
+    depth++
+    history.pushState(insideState(depth), '', routeHref(currentRoute))
     pushed = true
+    entryKey = currentKey
   }
 
   function onPopState(): void {
     if (collapsingLinkEntry) return
     if (isInstrumentPickerOpen() || isOmrImportOpen()) return
     if (isLaunchLink(location.hash)) return
-    pushed = false
+    const entryDepth = depthOf(history.state)
+    pushed = entryDepth !== null
+    depth = entryDepth ?? 0
     if (activeSurvival?.pause()) {
       pushInsideEntry()
       return
@@ -266,10 +288,13 @@ export function startApp(root: HTMLElement): void {
       return
     }
     const route = directRoute()
-    if (route) {
-      pushed = true
-      openRoute(route)
-    } else renderHome()
+    fromHistory = true
+    try {
+      if (route) openRoute(route)
+      else renderHome()
+    } finally {
+      fromHistory = false
+    }
   }
 
   function isLaunchLink(hash: string): boolean {
@@ -399,10 +424,21 @@ export function startApp(root: HTMLElement): void {
     }, TRANSITION_MS)
   }
 
+  function recordScreen(route: RouteName, key: string): void {
+    const action = planHistoryChange({ entry: entryKey, target: key, userInitiated: !fromHistory })
+    if (action === 'push') {
+      depth++
+      history.pushState(insideState(depth), '', routeHref(route))
+      pushed = true
+    } else replaceRoute(route)
+    entryKey = key
+  }
+
   function show(route: RouteName | null, content: HTMLElement, withTopBar: boolean, next: Destroyable | null = null): void {
     if (route) {
       currentRoute = route
-      replaceRoute(route)
+      currentKey = screenKey(route, next !== null)
+      recordScreen(route, currentKey)
     }
     onboardingOpen = route === null
     running?.destroy()
@@ -617,7 +653,7 @@ export function startApp(root: HTMLElement): void {
       onQuit: fromLibrary ? showLibrary : showHeroStart,
       onReplay: () => playHero(melody, fromLibrary),
       onRetry: () => playHero(melody, fromLibrary, challenge),
-      onHome: fromLibrary ? showLibrary : goHome,
+      onHome: fromLibrary ? backToLibrary : goHome,
       homeLabel: fromLibrary ? t('common.scores') : t('common.home'),
     })
     show(fromLibrary ? 'scores' : 'hero', hero.element, false, hero)
@@ -667,7 +703,7 @@ export function startApp(root: HTMLElement): void {
           ? playDaily(daily.key, daily.ranked)
           : void showSeries(config.kind === 'score' ? config : freshSeriesConfig(), null, fromLibrary),
       onRetry: () => void showSeries(config, against, fromLibrary),
-      onHome: fromLibrary ? showLibrary : goHome,
+      onHome: fromLibrary ? backToLibrary : goHome,
       homeLabel: fromLibrary ? t('common.scores') : t('common.home'),
     })
     show(daily ? 'daily' : fromLibrary ? 'scores' : 'series', series.element, true, series)
@@ -790,7 +826,7 @@ export function startApp(root: HTMLElement): void {
         changeSettings(data.settings)
         changeProgress(data.progress)
       },
-      onBack: goHome,
+      onBack: goBack,
     })
     show('settings', screenElement, false)
   }
@@ -800,6 +836,6 @@ export function startApp(root: HTMLElement): void {
       changeProgress(resetProgress())
       return progress
     }
-    show('stats', createStatsScreen({ progress, naming: settings.naming, onReset, onBack: goHome }), false)
+    show('stats', createStatsScreen({ progress, naming: settings.naming, onReset, onBack: goBack }), false)
   }
 }
