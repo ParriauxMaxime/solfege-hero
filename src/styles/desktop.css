@@ -146,8 +146,25 @@
     box-shadow: var(--card-shadow), 0 24px 60px rgb(0 0 0 / 0.25);
   }
 
-  .onboarding h1 {
-    font-size: 2rem;
+  .onboarding .home-brand {
+    padding-top: 0;
+  }
+
+  .onboarding .home-logo {
+    width: 120px;
+  }
+
+  .onboarding .home-title {
+    font-size: 2.2rem;
+  }
+
+  .onboarding-title {
+    font-size: 1.6rem;
+  }
+
+  .onboarding-continue {
+    align-self: center;
+    min-width: 260px;
   }
 
   .onboarding-cards {

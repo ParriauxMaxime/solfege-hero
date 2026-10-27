@@ -1,5 +1,7 @@
 import { t, type MessageKey } from '../i18n'
+import { renderBrand } from './brand'
 import { button, el } from './dom'
+import { icon } from './icons'
 
 export const SKIP_LEVEL = 30
 
@@ -20,17 +22,32 @@ export interface OnboardingOptions {
 }
 
 export function createOnboarding({ onChoose }: OnboardingOptions): HTMLElement {
+  let selected = SKIP_LEVEL
   const cards = STARTING_POINTS.map(({ level, title, description }) => {
-    const card = button('onboarding-card', '', () => onChoose(level))
-    card.append(el('strong', '', t(title)), el('span', '', t(description)))
-    return card
+    const mark = icon('check')
+    mark.classList.add('onboarding-check')
+    const card = button('onboarding-card', '', () => {
+      selected = level
+      refresh()
+    })
+    card.append(el('strong', '', t(title)), el('span', '', t(description)), mark)
+    return { level, card }
   })
+  const refresh = () => {
+    for (const { level, card } of cards) {
+      card.classList.toggle('selected', level === selected)
+      card.setAttribute('aria-pressed', String(level === selected))
+    }
+  }
+  refresh()
   return el(
     'section',
     'screen onboarding',
-    el('h1', '', t('onboarding.title')),
+    renderBrand(false),
+    el('h2', 'onboarding-title', t('onboarding.title')),
     el('p', 'onboarding-lead', t('onboarding.lead')),
-    el('div', 'onboarding-cards', ...cards),
+    el('div', 'onboarding-cards', ...cards.map(({ card }) => card)),
+    button('primary onboarding-continue', t('onboarding.continue'), () => onChoose(selected)),
     button('link-button', t('onboarding.skip'), () => onChoose(SKIP_LEVEL)),
   )
 }

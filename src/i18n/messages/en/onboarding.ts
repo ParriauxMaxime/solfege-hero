@@ -3,6 +3,7 @@ import type { Messages } from '../../messages'
 export const onboarding: Messages['onboarding'] = {
   title: 'Where are you at?',
   lead: 'The game then adapts to you.',
+  continue: 'Continue',
   skip: 'Skip',
   beginner: { title: 'I’m a beginner', description: 'Notes on the staff, no key signature or accidentals' },
   slow: { title: 'I read slowly', description: 'Accidentals and simple key signatures' },
