@@ -29,6 +29,7 @@ import { multiplier } from '../game/scoring'
 import { answerPitch, defaultWindowStart, isCorrectAnswer, recordExactPitch, type Answer } from '../game/strictOctave'
 import { noteName, type Clef, type Note } from '../music/notes'
 import { vibrate } from '../platform/haptics'
+import { resolveNaming } from '../i18n/naming'
 import { recordHistory, type Progress, type Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
 import { button, el, iconButton, setIcon } from './dom'
@@ -164,7 +165,7 @@ export function createHero({
   )
   const countIn = el('div', 'count-in')
   const staffArea = el('div', 'hero-staff', staff.element, countIn)
-  const pad = createAnswerPad(tap, settings.naming, settings.keyboardSpan, {
+  const pad = createAnswerPad(tap, resolveNaming(settings.naming), settings.keyboardSpan, {
     strictOctave: settings.strictOctave,
     onBlockedChange: freezeWhileBlocked,
   })
@@ -294,7 +295,7 @@ export function createHero({
     updateProgress(note.pitch, hit, judgement)
     renderScore()
     if (hit) onHit(note.id, note.note, judgement, result.gained, result.milestone)
-    else onMiss(note.id, noteName(note.note, settings.naming), result.brokenStreak)
+    else onMiss(note.id, noteName(note.note, resolveNaming(settings.naming)), result.brokenStreak)
   }
 
   function updateProgress(pitch: number, hit: boolean, judgement: Judgement): void {

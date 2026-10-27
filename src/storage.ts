@@ -7,7 +7,9 @@ import type { NoteRecord, NoteStats } from './game/sampler'
 import type { PitchRecord, PitchStats } from './game/strictOctave'
 import { START_BPM_MAX, START_BPM_MIN } from './hero/tempo'
 import { MAX_FIFTHS } from './music/keySignature'
-import { CLEFS, type Clef, type Naming } from './music/notes'
+import { LANGUAGE_SETTINGS, type LanguageSetting } from './i18n/language'
+import type { NamingSetting } from './i18n/naming'
+import { CLEFS, type Clef } from './music/notes'
 import type { Difficulty } from './music/generator'
 import { isDailyKey, type DailyKey } from './series/daily'
 import { dayKeyOf, weekKeyOf } from './stats/dates'
@@ -25,7 +27,7 @@ import { DEFAULT_SERIES_DIFFICULTY, SERIES_DIFFICULTIES } from './series/series'
 import { DEFAULT_SURVIVAL_DELAY, SURVIVAL_DELAYS, type SurvivalDelay } from './survival/game'
 import { KEYBOARD_SPANS, type KeyboardSpan } from './ui/keyboardLayout'
 
-export const NAMINGS: readonly Naming[] = ['latin', 'english']
+export const NAMINGS: readonly NamingSetting[] = ['auto', 'latin', 'english']
 export const THEMES = ['dark', 'light', 'system'] as const
 export type Theme = (typeof THEMES)[number]
 export const KEY_SIZES = ['S', 'M', 'L'] as const
@@ -44,7 +46,9 @@ export interface Settings {
   /** Melody name; empty means random notes. */
   heroMelody: string
   keyNames: boolean
-  naming: Naming
+  /** `auto` follows the language (Do Ré Mi in French, C D E in English). */
+  naming: NamingSetting
+  language: LanguageSetting
   theme: Theme
   colorblind: boolean
   reducedMotion: boolean
@@ -78,7 +82,8 @@ export const DEFAULT_SETTINGS: Settings = {
   metronome: true,
   heroMelody: '',
   keyNames: true,
-  naming: 'latin',
+  naming: 'auto',
+  language: 'auto',
   theme: 'dark',
   colorblind: false,
   reducedMotion: false,
@@ -276,6 +281,7 @@ export function sanitizeSettings(raw: unknown): Settings {
     heroMelody: typeof stored.heroMelody === 'string' ? stored.heroMelody : DEFAULT_SETTINGS.heroMelody,
     keyNames: booleanOr(stored.keyNames, DEFAULT_SETTINGS.keyNames),
     naming: oneOf(NAMINGS, stored.naming, DEFAULT_SETTINGS.naming),
+    language: oneOf(LANGUAGE_SETTINGS, stored.language, DEFAULT_SETTINGS.language),
     theme: oneOf(THEMES, stored.theme, DEFAULT_SETTINGS.theme),
     colorblind: booleanOr(stored.colorblind, DEFAULT_SETTINGS.colorblind),
     reducedMotion: booleanOr(stored.reducedMotion, DEFAULT_SETTINGS.reducedMotion),

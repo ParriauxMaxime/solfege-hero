@@ -19,6 +19,7 @@ export const ROUTES: Route[]
 export const LANDING_ONLY: Route<LandingScreen>[]
 export const LEGACY_REDIRECTS: Record<string, string>
 export function screenFromPath(pathname: string): Screen | LandingScreen | null
+export function languageFromPath(pathname: string): 'fr' | 'en' | null
 export function appBasePath(pathname: string): string
 export function routePath(screen: Screen | LandingScreen): string
 export function routeSegments(): string[]

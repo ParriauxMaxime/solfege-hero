@@ -1,5 +1,7 @@
 import { INSTRUMENT_LABELS } from '../audio/instruments'
 import type { Sound } from '../audio/sound'
+import { t } from '../i18n'
+import { resolveNaming } from '../i18n/naming'
 import { MAX_LEVEL, capsFor, describeCaps, tierName } from '../level/level'
 import { CLEFS, type Clef } from '../music/notes'
 import type { Difficulty } from '../music/generator'
@@ -37,9 +39,17 @@ type BooleanKey = {
 
 const CLEF_LABELS: Record<Clef, string> = { treble: 'Sol', bass: 'Fa', alto: 'Ut 3' }
 const NAMINGS: Choice<Settings['naming']>[] = [
+  { value: 'auto', label: 'Auto' },
   { value: 'latin', label: 'Do Ré Mi' },
   { value: 'english', label: 'C D E' },
 ]
+function languageChoices(): Choice<Settings['language']>[] {
+  return [
+    { value: 'auto', label: t('settings.language.auto') },
+    { value: 'fr', label: t('settings.language.fr') },
+    { value: 'en', label: t('settings.language.en') },
+  ]
+}
 const THEME_CHOICES: Choice<Theme>[] = [
   { value: 'dark', label: 'Sombre' },
   { value: 'light', label: 'Clair' },
@@ -189,7 +199,7 @@ export function createSettingsScreen({
       openInstrumentPicker({
         sound,
         current: settings.instrument,
-        naming: settings.naming,
+        naming: resolveNaming(settings.naming),
         onSelect: (instrument) => update({ instrument }, false),
         onClose: render,
       }),
@@ -266,6 +276,7 @@ export function createSettingsScreen({
       ),
       section(
         'Affichage',
+        choiceRow(t('settings.language.label'), languageChoices(), settings.language, (language) => update({ language })),
         choiceRow('Thème', THEME_CHOICES, settings.theme, (theme) => update({ theme })),
         toggleRow('Mode daltonien', 'colorblind', 'bleu/orange au lieu de vert/rouge'),
         toggleRow('Animations réduites', 'reducedMotion'),

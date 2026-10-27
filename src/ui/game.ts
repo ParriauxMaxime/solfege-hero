@@ -4,6 +4,7 @@ import { buildPool, promptId, recordAnswer } from '../game/sampler'
 import { isCorrectAnswer, recordExactPitch } from '../game/strictOctave'
 import { capsFor } from '../level/level'
 import { midi, noteName } from '../music/notes'
+import { resolveNaming } from '../i18n/naming'
 import type { Settings } from '../storage'
 import { createDrillGame, type Drill, type DrillOptions, type Game } from './drillGame'
 
@@ -41,8 +42,8 @@ function learnDrill(settings: Settings, plan: LearnKeyPlan, onEditKey: GameOptio
         keyPitch: midi(note),
         isCorrect: (chosen) => isCorrectAnswer(prompt.pitch, chosen),
         sounding: note,
-        correctText: noteName(note, settings.naming),
-        wrongText: `C’était ${noteName(note, settings.naming)}`,
+        correctText: noteName(note, resolveNaming(settings.naming)),
+        wrongText: `C’était ${noteName(note, resolveNaming(settings.naming))}`,
         record: (current, correct, elapsed) => ({
           notes: recordAnswer(current.notes, promptId(prompt), correct, elapsed),
           pitches: recordExactPitch(current.pitches, prompt.pitch, correct, settings.strictOctave),

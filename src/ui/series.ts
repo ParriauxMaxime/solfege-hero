@@ -22,6 +22,7 @@ import {
 } from '../series/series'
 import { COLORBLIND_SQUARES, ceilToTenth, formatTenths, formatTenthsUp, formatTime, shareText } from '../series/share'
 import { type DailyKey, dailyLabel, dailyStreak, encodeDailyHash } from '../series/daily'
+import { resolveNaming } from '../i18n/naming'
 import { recordDaily, recordHistory, recordScoreBest, type Progress, type Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
 import { button, el } from './dom'
@@ -134,7 +135,7 @@ export function createSeries({
   )
   const timeline = createTimelineStaff({ maxFifths: Math.max(0, ...items.map((item) => Math.abs(item.fifths))) })
   const staffCard = el('div', 'staff-card', timeline.element)
-  const pad = createAnswerPad(submitAnswer, settings.naming, settings.keyboardSpan, {
+  const pad = createAnswerPad(submitAnswer, resolveNaming(settings.naming), settings.keyboardSpan, {
     strictOctave: settings.strictOctave,
     onBlockedChange: holdWhileBlocked,
   })

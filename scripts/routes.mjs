@@ -32,6 +32,8 @@ export const LEGACY_REDIRECTS = {
 const PAGES = [...ROUTES, ...LANDING_ONLY]
 const KNOWN_SEGMENTS = new Set([...PAGES.map((route) => route.segment).filter(Boolean), ...Object.keys(LEGACY_REDIRECTS)])
 
+const LANGUAGE_SEGMENTS = ['fr', 'en']
+
 function segmentsOf(pathname) {
   return pathname
     .replace(/\/index\.html$/, '')
@@ -39,15 +41,24 @@ function segmentsOf(pathname) {
     .filter(Boolean)
 }
 
+function withoutRoute(segments) {
+  return segments.length > 0 && KNOWN_SEGMENTS.has(segments.at(-1)) ? segments.slice(0, -1) : segments
+}
+
+export function languageFromPath(pathname) {
+  const last = withoutRoute(segmentsOf(pathname)).at(-1)
+  return LANGUAGE_SEGMENTS.includes(last) ? last : null
+}
+
 export function screenFromPath(pathname) {
   const last = segmentsOf(pathname).at(-1)
-  if (last === undefined) return 'home'
+  if (last === undefined || LANGUAGE_SEGMENTS.includes(last)) return 'home'
   return PAGES.find((route) => route.segment === last)?.screen ?? null
 }
 
 export function appBasePath(pathname) {
-  const segments = segmentsOf(pathname)
-  if (segments.length > 0 && KNOWN_SEGMENTS.has(segments.at(-1))) segments.pop()
+  const segments = withoutRoute(segmentsOf(pathname))
+  if (LANGUAGE_SEGMENTS.includes(segments.at(-1))) segments.pop()
   return segments.length === 0 ? '/' : `/${segments.join('/')}/`
 }
 

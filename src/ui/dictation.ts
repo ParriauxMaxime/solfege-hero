@@ -9,6 +9,7 @@ import { challengeTimeS, challengeWon } from '../series/challenge'
 import { INITIAL_RUN, PENALTY_MS, answerItem, firstTryResults, penaltyMs, type SeriesRun } from '../series/series'
 import { COLORBLIND_SQUARES, ceilToTenth, formatTenths, formatTenthsUp, formatTime, shareText } from '../series/share'
 import { appBase } from '../share/links'
+import { resolveNaming } from '../i18n/naming'
 import { recordHistory, type Progress, type Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
 import { installDemoHook } from './demoHook'
@@ -102,7 +103,7 @@ export function createDictation({
   const hud = el('div', 'hud series-hud', counter, timerValue, replayButton, el('div', 'progress', bar))
   const timeline = createTimelineStaff({ maxFifths: Math.abs(items[0]?.fifths ?? 0) })
   const staffCard = el('div', 'staff-card', timeline.element)
-  const pad = createAnswerPad(submitAnswer, settings.naming, settings.keyboardSpan, { onBlockedChange: holdWhileBlocked })
+  const pad = createAnswerPad(submitAnswer, resolveNaming(settings.naming), settings.keyboardSpan, { onBlockedChange: holdWhileBlocked })
   const flash = el('div', 'flash')
   const effectsLayer = el('div', 'effects-layer')
   const element = el('section', 'screen game series dictation', hud, staffCard, pad.element, flash, effectsLayer)
@@ -193,7 +194,7 @@ export function createDictation({
       startChrono()
       return
     }
-    showToast(pitchClassLabel(pitchClass(midi(REFERENCE_NOTE)), settings.naming))
+    showToast(pitchClassLabel(pitchClass(midi(REFERENCE_NOTE)), resolveNaming(settings.naming)))
     sound.playNote(REFERENCE_NOTE, NOTE_SECONDS)
     later(() => sound.playNote(REFERENCE_NOTE, NOTE_SECONDS), REFERENCE_GAP_MS)
     later(startChrono, 2 * REFERENCE_GAP_MS)

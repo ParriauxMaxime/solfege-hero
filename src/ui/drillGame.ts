@@ -4,6 +4,7 @@ import { answerPitch, type Answer } from '../game/strictOctave'
 import { recordLevelAnswer, type LevelUpdate } from '../level/auto'
 import type { Clef, Note } from '../music/notes'
 import { vibrate } from '../platform/haptics'
+import { resolveNaming } from '../i18n/naming'
 import { recordHistory, type Progress, type Settings } from '../storage'
 import { button, el } from './dom'
 import { icon } from './icons'
@@ -104,7 +105,7 @@ export function createDrillGame(
   let roundIndex = 0
   let missedCurrent = false
   const feedback = el('div', 'feedback')
-  const pad = createAnswerPad(submitAnswer, settings.naming, settings.keyboardSpan, {
+  const pad = createAnswerPad(submitAnswer, resolveNaming(settings.naming), settings.keyboardSpan, {
     strictOctave: drill.strictOctave,
     onBlockedChange: holdWhileBlocked,
   })

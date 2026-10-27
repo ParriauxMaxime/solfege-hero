@@ -1,7 +1,9 @@
 import { createKeysSampler, keyAnswerPitchClass, keyStatsId, type KeyPrompt } from '../game/keysSampler'
 import { recordAnswer } from '../game/sampler'
 import { capsFor } from '../level/level'
+import { resolveNaming } from '../i18n/naming'
 import { keyFullName, keyMnemonic, type KeyQuality } from '../music/keySignature'
+import type { Naming } from '../music/notes'
 import type { Settings } from '../storage'
 import { createDrillGame, type Drill, type DrillOptions, type DrillRound, type Game } from './drillGame'
 import { renderKeySignatureStaff } from './staff'
@@ -9,8 +11,6 @@ import { renderKeySignatureStaff } from './staff'
 const WRONG_DELAY_MS = 2600
 
 const QUESTIONS: Record<KeyQuality, string> = { major: 'Gamme majeure ?', minor: 'Relatif mineur ?' }
-
-type Naming = Settings['naming']
 
 /** What the player should have answered, the relative minor too when both are in play. */
 function revealText({ fifths, ask }: KeyPrompt, mode: Settings['keysMode'], naming: Naming): string {
@@ -45,9 +45,9 @@ function keysDrill(settings: Settings): Drill {
         isCorrect: (chosen) => chosen.pitchClass === answer,
         sounding: null,
         question: QUESTIONS[prompt.ask],
-        correctText: keyFullName(prompt.fifths, prompt.ask, settings.naming),
-        wrongText: revealText(prompt, settings.keysMode, settings.naming),
-        hint: hintText(prompt, settings.naming),
+        correctText: keyFullName(prompt.fifths, prompt.ask, resolveNaming(settings.naming)),
+        wrongText: revealText(prompt, settings.keysMode, resolveNaming(settings.naming)),
+        hint: hintText(prompt, resolveNaming(settings.naming)),
         record: (current, correct, elapsed) => ({
           keys: recordAnswer(current.keys, keyStatsId(prompt.fifths), correct, elapsed),
         }),

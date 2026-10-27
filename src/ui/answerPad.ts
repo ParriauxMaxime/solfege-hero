@@ -1,6 +1,5 @@
 import { nearestPitchInWindow, windowStartFor, type Answer } from '../game/strictOctave'
-import { isNatural, pitchClass, pitchClassLabel, type Clef } from '../music/notes'
-import type { Settings } from '../storage'
+import { isNatural, pitchClass, pitchClassLabel, type Clef, type Naming } from '../music/notes'
 import { el, trackPressed } from './dom'
 import { icon } from './icons'
 import { pianoLayout, type KeyboardSpan, type PianoKey } from './keyboardLayout'
@@ -72,7 +71,7 @@ function rotateNotice(): HTMLElement {
 
 export function createAnswerPad(
   onAnswer: (answer: Answer) => void,
-  naming: Settings['naming'],
+  naming: Naming,
   span: KeyboardSpan,
   { strictOctave = false, onBlockedChange }: PadOptions = {},
 ): AnswerPad {

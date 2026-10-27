@@ -21,6 +21,7 @@ import {
 } from '../survival/game'
 import { createSurvivalSequence } from '../survival/sequence'
 import { noteCount, survivalShareText } from '../survival/share'
+import { resolveNaming } from '../i18n/naming'
 import { recordHistory, type Progress, type Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
 import { button, el, iconButton } from './dom'
@@ -109,7 +110,7 @@ export function createSurvival({
   const staffCard = el('div', 'staff-card')
   const fill = el('div', 'survival-bar-fill')
   const bar = el('div', 'survival-bar', fill)
-  const pad = createAnswerPad(submitAnswer, settings.naming, settings.keyboardSpan, {
+  const pad = createAnswerPad(submitAnswer, resolveNaming(settings.naming), settings.keyboardSpan, {
     strictOctave: settings.strictOctave,
     onBlockedChange: holdWhileBlocked,
   })

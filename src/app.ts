@@ -58,7 +58,8 @@ import { createSettingsScreen } from './ui/settings'
 import { createStatsScreen } from './ui/stats'
 import { dayKeyOf } from './stats/dates'
 import { showToast } from './ui/toast'
-import { screenFromPath, type LandingScreen, type Screen } from '../scripts/routes.mjs'
+import { languageFromPath, screenFromPath, type LandingScreen, type Screen } from '../scripts/routes.mjs'
+import { detectLanguage, onLanguageChange, resolveLanguage, setLanguage, t } from './i18n'
 import { appBase, routeUrl } from './share/links'
 
 type RouteName = Screen | LandingScreen
@@ -96,6 +97,8 @@ interface Destroyable {
 
 export function startApp(root: HTMLElement): void {
   let settings = loadSettings()
+  const forcedLanguage = languageFromPath(location.pathname)
+  applyLanguage()
   let progress = loadProgress()
   let running: Destroyable | null = null
   let pushed = false
@@ -115,8 +118,8 @@ export function startApp(root: HTMLElement): void {
   const scoreLibrary = createScoreLibrary(indexedDbBackend(), BUILTIN_SCORES)
   unlockSoundOnGesture()
 
-  const backButton = iconButton('back', goHome, 'Accueil')
-  const muteButton = iconButton('sound-on', toggleMute, 'Son')
+  const backButton = iconButton('back', goHome, t('app.topBar.home'))
+  const muteButton = iconButton('sound-on', toggleMute, t('app.topBar.sound'))
   const topBar = el('header', 'top-bar', backButton, el('span', 'spacer'), muteButton)
   const screen = el('main', 'screen-host')
   root.replaceChildren(el('div', 'app', topBar, screen))
@@ -125,9 +128,28 @@ export function startApp(root: HTMLElement): void {
 
   window.addEventListener('hashchange', () => openLaunchChallenge(true))
   window.addEventListener('popstate', onPopState)
+  onLanguageChange(refreshLanguage)
   markExistingPlayerOnboarded()
   if (!openLaunchChallenge(false)) openInitialRoute()
   void openDemoStats()
+  offerToKeepForcedLanguage()
+
+  function applyLanguage(): void {
+    setLanguage(resolveLanguage(settings.language, detectLanguage(), forcedLanguage))
+  }
+
+  function refreshLanguage(): void {
+    backButton.setAttribute('aria-label', t('app.topBar.home'))
+    muteButton.setAttribute('aria-label', t('app.topBar.sound'))
+    if (currentRoute === 'settings') showSettings()
+  }
+
+  function offerToKeepForcedLanguage(): void {
+    if (!forcedLanguage || settings.language === forcedLanguage) return
+    showToast(t('app.forcedLanguage.message', { language: t(`settings.language.${forcedLanguage}`) }), {
+      action: { label: t('app.forcedLanguage.keep'), onClick: () => changeSettings({ language: forcedLanguage }) },
+    })
+  }
 
   /** Head links are relative to the page: after a pushState to `/learn/` the browser would fetch `/learn/favicon.svg`. */
   function pinHeadLinks(): void {
@@ -135,7 +157,8 @@ export function startApp(root: HTMLElement): void {
   }
 
   function routeHref(route: RouteName): string {
-    return routeUrl(appBase(location.href), route) + location.search
+    const languagePrefix = forcedLanguage ? `${forcedLanguage}/` : ''
+    return routeUrl(appBase(location.href) + languagePrefix, route) + location.search
   }
 
   function replaceRoute(route: RouteName): void {
@@ -338,6 +361,7 @@ export function startApp(root: HTMLElement): void {
     settings = { ...settings, ...patch }
     saveSettings(settings)
     applySettings()
+    if (patch.language !== undefined) applyLanguage()
   }
 
   function changeProgress(next: Progress): void {
