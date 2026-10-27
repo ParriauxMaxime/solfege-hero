@@ -8,7 +8,7 @@ Offline PWA to learn to read sheet music. Personal project, French UI, played mo
 - `npm test` and `npm run build` must be green before every push. Browser check at 390x844, 360x780 and 844x390 with screenshots in `scratch/` (gitignored).
 - Pure logic lives in tested modules; UI is verified in the browser, not unit-tested.
 - Icons are inline SVG from `src/ui/icons.ts`, never text glyphs in buttons (they sit off-centre).
-- No new runtime dependencies, except `pdfjs-dist` (accepted by the owner for PDF import; worker and wasm precached). Sounds are synthesized (WebAudio), no audio assets.
+- No new runtime dependencies, except `pdfjs-dist` (accepted by the owner for PDF import; worker and wasm cached at first PDF import (runtime `pdfjs` cache), not precached). Sounds are synthesized (WebAudio), no audio assets.
 - Self-descriptive code, no verbose comments, boy-scout but no drive-by refactors.
 
 ## Run

@@ -85,6 +85,15 @@ export default defineConfig(({ mode }) => {
       includeManifestIcons: false,
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2,musicxml,json,mjs,wasm}'],
+        // pdf.js is only needed by the PDF import and the og images only by crawlers: fetched on demand, not on every install.
+        globIgnores: ['**/pdf.worker*', '**/assets/pdf-*.js', 'pdfjs-wasm/**', 'og/**'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => /\/assets\/pdf(\.worker\.min)?-[^/]+\.js$|\/pdfjs-wasm\//.test(url.pathname),
+            handler: 'CacheFirst',
+            options: { cacheName: 'pdfjs', expiration: { maxEntries: 10, maxAgeSeconds: 365 * 24 * 60 * 60 } },
+          },
+        ],
       },
       manifest: {
         name: 'Solfège',
