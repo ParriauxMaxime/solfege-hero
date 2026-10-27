@@ -144,7 +144,7 @@ export interface TimelineScale {
 }
 
 const MIN_SCALE = 0.62
-const MAX_SCALE = 1.25
+const MAX_SCALE = 1.75
 const MIN_VISIBLE_NOTES = 5
 const TRAILING_UNITS = 8
 

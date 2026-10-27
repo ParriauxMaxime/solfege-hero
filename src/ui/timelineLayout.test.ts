@@ -211,7 +211,7 @@ describe('timelineScale', () => {
 
   it('stays within sane bounds', () => {
     expect(timelineScale(100, 40, 7).scale).toBeGreaterThan(0.5)
-    expect(timelineScale(5000, 5000, 0).scale).toBeLessThanOrEqual(1.25)
+    expect(timelineScale(5000, 5000, 0).scale).toBeLessThanOrEqual(1.75)
   })
 
   it('reports the visible width in layout units', () => {
