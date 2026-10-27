@@ -98,6 +98,8 @@ export default defineConfig(({ mode }) => {
     siteFiles(siteUrl, env.VITE_CF_BEACON?.trim() ?? ''),
     VitePWA({
       registerType: 'autoUpdate',
+      // src/pwa.ts registers the worker itself (see there why).
+      injectRegister: false,
       devOptions: { enabled: false },
       // The glob below already picks the icons up; listing them twice duplicates precache entries.
       includeManifestIcons: false,

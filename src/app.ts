@@ -99,6 +99,7 @@ export function startApp(root: HTMLElement): void {
   let progress = loadProgress()
   let running: Destroyable | null = null
   let pushed = false
+  let currentRoute: RouteName = 'home'
   let routeAfterOnboarding: RouteName | null = null
   let collapsingLinkEntry = false
   let activeGame: Game | null = null
@@ -120,12 +121,18 @@ export function startApp(root: HTMLElement): void {
   const screen = el('main', 'screen-host')
   root.replaceChildren(el('div', 'app', topBar, screen))
   applySettings()
+  pinHeadLinks()
 
   window.addEventListener('hashchange', () => openLaunchChallenge(true))
   window.addEventListener('popstate', onPopState)
   markExistingPlayerOnboarded()
   if (!openLaunchChallenge(false)) openInitialRoute()
   void openDemoStats()
+
+  /** Head links are relative to the page: after a pushState to `/learn/` the browser would fetch `/learn/favicon.svg`. */
+  function pinHeadLinks(): void {
+    for (const link of document.head.querySelectorAll<HTMLLinkElement>('link[href^="./"]')) link.href = link.href
+  }
 
   function routeHref(route: RouteName): string {
     return routeUrl(appBase(location.href), route) + location.search
@@ -209,20 +216,24 @@ export function startApp(root: HTMLElement): void {
     })
   }
 
+  /** Back paused a game: the popped entry has the home URL, so push the game's own route again. */
+  function pushInsideEntry(): void {
+    history.pushState({ screen: 'inside' }, '', routeHref(currentRoute))
+    pushed = true
+  }
+
   function onPopState(): void {
     if (collapsingLinkEntry) return
     if (isInstrumentPickerOpen() || isOmrImportOpen()) return
     if (isLaunchLink(location.hash)) return
     pushed = false
     if (activeSurvival?.pause()) {
-      history.pushState({ screen: 'inside' }, '')
-      pushed = true
+      pushInsideEntry()
       return
     }
     if (activeHero && !activeHero.isOver()) {
       activeHero.pause()
-      history.pushState({ screen: 'inside' }, '')
-      pushed = true
+      pushInsideEntry()
       return
     }
     const route = directRoute()
@@ -359,7 +370,10 @@ export function startApp(root: HTMLElement): void {
   }
 
   function show(route: RouteName | null, content: HTMLElement, withTopBar: boolean, next: Destroyable | null = null): void {
-    if (route) replaceRoute(route)
+    if (route) {
+      currentRoute = route
+      replaceRoute(route)
+    }
     running?.destroy()
     running = next
     activeHero = null
