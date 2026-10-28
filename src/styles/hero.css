@@ -13,31 +13,22 @@
 }
 
 .hero-note.hit {
-  color: var(--success);
+  color: var(--logo-stem-lit);
 }
 
-.hero-note.hit .hero-glyph {
-  animation: hero-hit-fade 0.7s ease-out forwards;
-}
-
-.hero-flame {
-  --sf-ignite: 180ms;
-  stroke: none;
-}
-
-.hero-flame .sflame-live,
-.hero-puff {
-  transform-box: view-box;
-  transform-origin: 0 0;
-}
-
-.hero-puff {
-  will-change: transform, opacity;
-  animation: hero-puff 800ms ease-out both;
+.hero-note.hot .staff-note-head {
+  opacity: 0;
 }
 
 .hero-note.miss {
   color: var(--error);
+}
+
+:root[data-colorblind='on'] .hero-note.miss .staff-note-head {
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  paint-order: stroke;
 }
 
 .hero-miss-label {
@@ -58,25 +49,5 @@
   }
   to {
     opacity: 0;
-  }
-}
-
-@keyframes hero-hit-fade {
-  to {
-    opacity: 0.55;
-  }
-}
-
-@keyframes hero-puff {
-  from {
-    opacity: 0;
-    transform: translateY(0) scale(0.8);
-  }
-  25% {
-    opacity: 0.9;
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-70px) scale(2.2);
   }
 }

@@ -40,7 +40,6 @@ import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } 
 import { installDemoHook } from './demoHook'
 import { createScrollingStaff } from './heroStaff'
 import { createHudFlame } from './streakFlames'
-import { heroFlameScale, streakRelief } from '../game/streakFlame'
 
 const BARS_AHEAD = 3
 const CLICK_LOOKAHEAD_S = 0.15
@@ -365,7 +364,7 @@ export function createHero({
     sound.correct(score.streak)
     sound.playNote(note)
     vibrate(15)
-    staff.markHit(id, heroFlameScale(score.streak, judgement), streakRelief(score.streak))
+    staff.markHit(id, judgement === 'parfait' ? 'perfect' : 'good', score.streak)
     restartAnimation(flash, 'flash-ok')
     restartAnimation(streakValue, 'bump')
     const origin = staff.notePoint(id)
