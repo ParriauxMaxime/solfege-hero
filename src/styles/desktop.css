@@ -39,7 +39,7 @@
   }
 
   .home-logo {
-    width: 320px;
+    max-width: 560px;
   }
 
   .home-title {
@@ -151,7 +151,7 @@
   }
 
   .onboarding .home-logo {
-    width: 120px;
+    max-width: 320px;
   }
 
   .onboarding .home-title {
@@ -478,7 +478,7 @@
   }
 
   .home-logo {
-    width: 220px;
+    max-width: 460px;
   }
 
   .home-title {
@@ -535,7 +535,7 @@
   }
 
   .home-logo {
-    width: 220px;
+    max-width: 460px;
   }
 
   .home-title {

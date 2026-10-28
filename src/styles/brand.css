@@ -15,21 +15,23 @@
 
 .brand-logo-splash {
   display: block;
-  width: 96px;
+  width: 100%;
+  max-width: 420px;
   height: auto;
   margin: 0 auto 0.75rem;
 }
 
 .omr-logo {
   display: block;
-  width: 96px;
+  width: 100%;
+  max-width: 300px;
   height: auto;
   margin: 0 auto;
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
   .omr-logo {
-    width: 48px;
+    max-width: 160px;
   }
 }
 

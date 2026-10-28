@@ -15,7 +15,8 @@ import { svgElement } from './glyphs'
 
 const BPM = 70
 const BEAT_SECONDS = 60 / BPM
-const START_BEAT = -0.6
+/** The score starts already scrolling: the first notes have just passed the hit spot, so the staff is never empty. */
+const START_BEAT = 2.4
 const MAX_STEP_MS = 100
 const RECYCLE_X = FADE_LEFT_X - 12
 const SEED_RANGE = 2 ** 32

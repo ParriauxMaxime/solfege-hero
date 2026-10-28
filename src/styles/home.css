@@ -21,9 +21,11 @@
   text-align: center;
 }
 
+/* Wide staff (420 x 160 viewBox): near the full content width on a portrait phone, never taller than the old square-ish logo. */
 .home-logo {
   flex: none;
-  width: 96px;
+  width: 100%;
+  max-width: 420px;
   height: auto;
 }
 
@@ -209,7 +211,7 @@
   }
 
   .home-logo {
-    width: 180px;
+    max-width: 520px;
   }
 
   .home-title {
@@ -231,7 +233,8 @@
   }
 
   .home-logo {
-    width: 48px;
+    width: 192px;
+    max-width: none;
   }
 
   .home-title {

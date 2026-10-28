@@ -1,35 +1,35 @@
 import { BRAND_HEAD_RX, CLEF, NOTE_TILT, brandDefs, flameWisp, goldHead, headShadow, type Relief } from './art.ts'
 
-/** Leaves headroom above the staff for the tallest flame, so nothing is clipped on the highest note. */
-export const LOGO_VIEW_BOX = '24 4 146 162'
-export const LOGO_WIDTH = 96
-export const LOGO_HEIGHT = 107
+/** Wide staff (420 x 160, clef at the far left) with headroom above for the tallest flame, so nothing is clipped on the highest note. */
+export const LOGO_VIEW_BOX = '24 6 420 160'
+export const LOGO_WIDTH = 420
+export const LOGO_HEIGHT = 160
 
 export const TOP_LINE_Y = 68
 export const BOTTOM_LINE_Y = 132
 export const STEP_HEIGHT = 8
-export const HIT_X = 128
-export const PX_PER_BEAT = 24
+export const HIT_X = 252
+export const PX_PER_BEAT = 52
 export const FADE_LEFT_X = 82
 export const FADE_LEFT_WIDTH = 10
-export const FADE_RIGHT_X = 172
-export const FADE_RIGHT_WIDTH = 14
+export const FADE_RIGHT_X = 446
+export const FADE_RIGHT_WIDTH = 22
 
 const STAFF_LEFT_X = 24
-const STAFF_RIGHT_X = 170
+const STAFF_RIGHT_X = 444
 const STAFF_STROKE = 1.6
 const CLEF_STROKE = 4
 const RELIEF_LEVEL: Relief = 2
-const HEAD_RX = 9
-const HEAD_RY = 6.5
+const HEAD_RX = 10.5
+const HEAD_RY = 7.5
 const ART_SCALE = Number((HEAD_RX / BRAND_HEAD_RX).toFixed(4))
-const STEM_OFFSET = 8.2
-const STEM_LENGTH = 28
+const STEM_OFFSET = 9.6
+const STEM_LENGTH = 33
 const STEM_WIDTH = 2.4
 const BAR_OFFSET = 0.45 * PX_PER_BEAT
-const GLOW_RADIUS = 15
-const SPARK_RADIUS = 1.3
-const PUFF_RADIUS = 3
+const GLOW_RADIUS = 17
+const SPARK_RADIUS = 1.5
+const PUFF_RADIUS = 3.4
 const STATIC_GLOW_OPACITY = 0.2
 const STEM_LIT = 'var(--logo-stem-lit)'
 const WRONG = 'var(--error)'
@@ -83,7 +83,8 @@ export const noteSlotMarkup = (prefix: string) => `<g data-k="slot">
 </g>
 </g>`
 
-export const POOL_SIZE = 8
+/** Enough slots to cover the staff from the clef to the right edge. */
+export const POOL_SIZE = 10
 
 export const animatedLogoContent = (prefix: string) =>
   `${gradientDefs(prefix)}${puffDefs(prefix)}${staffMarkup()}<g data-k="scroll">${Array.from({ length: POOL_SIZE }, () => noteSlotMarkup(prefix)).join('')}</g>${clefMarkup()}`
@@ -94,13 +95,21 @@ interface StaticNote {
   flame?: number
 }
 
+/** Beats from the hit spot: four burning notes trail behind it (the one on it burns fullest), three plain ones are still to come. */
 const STATIC_NOTES: StaticNote[] = [
-  { x: 90, step: 2, flame: 0.78 },
-  { x: 114, step: 4, flame: 0.9 },
-  { x: 138, step: 3, flame: 1.02 },
-  { x: 162, step: 5 },
+  { x: HIT_X - 3 * PX_PER_BEAT, step: 2, flame: 0.78 },
+  { x: HIT_X - 2 * PX_PER_BEAT, step: 4, flame: 0.84 },
+  { x: HIT_X - PX_PER_BEAT, step: 3, flame: 0.93 },
+  { x: HIT_X, step: 5, flame: 1.02 },
+  { x: HIT_X + PX_PER_BEAT, step: 6 },
+  { x: HIT_X + 2 * PX_PER_BEAT, step: 4 },
+  { x: HIT_X + 3 * PX_PER_BEAT, step: 2 },
 ]
-const STATIC_BAR_X = 150
+/** A bar line every two beats, just before the first note of each bar (the first, third, fifth and seventh note). */
+const STATIC_BAR_XS = STATIC_NOTES.filter((_, index) => index % 2 === 0).map(({ x }) => x - BAR_OFFSET)
+
+const staticBarsMarkup = () =>
+  STATIC_BAR_XS.map((x) => `<path d="M${round(x)} ${TOP_LINE_Y}V${BOTTOM_LINE_Y}" stroke="currentColor" stroke-width="${STAFF_STROKE}" opacity="${round(edgeOpacity(x))}"/>`).join('')
 
 const staticNoteMarkup = (prefix: string, { x, step, flame }: StaticNote) => {
   const up = step < 4
@@ -116,7 +125,7 @@ const staticDefs = (prefix: string) =>
 
 /** Still frame: burning notes trailing from the hit spot, plain ink notes still to come. */
 export const staticLogoContent = (prefix: string) =>
-  `${staticDefs(prefix)}${staffMarkup()}<path d="M${STATIC_BAR_X} ${TOP_LINE_Y}V${BOTTOM_LINE_Y}" stroke="currentColor" stroke-width="${STAFF_STROKE}" opacity="${round(edgeOpacity(STATIC_BAR_X))}"/>${STATIC_NOTES.map((note) => staticNoteMarkup(prefix, note)).join('')}${clefMarkup()}`
+  `${staticDefs(prefix)}${staffMarkup()}${staticBarsMarkup()}${STATIC_NOTES.map((note) => staticNoteMarkup(prefix, note)).join('')}${clefMarkup()}`
 
 export const logoSvg = (className: string, content: string, { sized = false } = {}) =>
   `<svg class="${className}" viewBox="${LOGO_VIEW_BOX}"${sized ? ` width="${LOGO_WIDTH}" height="${LOGO_HEIGHT}"` : ''} aria-hidden="true">${content}</svg>`

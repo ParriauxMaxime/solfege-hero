@@ -11,7 +11,7 @@ export interface LogoNote {
   snuffIndex: number
 }
 
-export const BEATS_PER_BAR = 4
+export const BEATS_PER_BAR = 2
 export const MIN_MISS_GAP = 12
 export const MAX_MISS_GAP = 30
 /** D4 to G5 on the treble staff: every step is on or between the five lines, never on a ledger line. */

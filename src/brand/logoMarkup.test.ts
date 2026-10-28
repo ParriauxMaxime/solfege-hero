@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { FADE_LEFT_X, FADE_RIGHT_X, HIT_X, POOL_SIZE, animatedLogoContent, edgeOpacity, splashLogoSvg, staticLogoContent } from './logoMarkup'
+import { FADE_LEFT_X, FADE_RIGHT_X, HIT_X, POOL_SIZE, PX_PER_BEAT, animatedLogoContent, edgeOpacity, splashLogoSvg, staticLogoContent } from './logoMarkup'
 
 const definedIds = (markup: string) => [...markup.matchAll(/ id="([^"]+)"/g)].map(([, id]) => id)
 const referencedIds = (markup: string) => [...markup.matchAll(/(?:url\(#|href="#)([^)"]+)/g)].map(([, id]) => id)
 
-const MAX_SPLASH_BYTES = 7500
+const MAX_SPLASH_BYTES = 8500
 
 describe('logo markup', () => {
   it('resolves every gradient and symbol it references, with unique ids', () => {
@@ -28,6 +28,10 @@ describe('logo markup', () => {
 
   it('gives the scrolling logo a fixed pool of note slots', () => {
     expect(animatedLogoContent('t').split('data-k="slot"')).toHaveLength(POOL_SIZE + 1)
+  })
+
+  it('has enough slots to keep the whole wide staff filled while notes scroll', () => {
+    expect(POOL_SIZE * PX_PER_BEAT).toBeGreaterThan(FADE_RIGHT_X - FADE_LEFT_X + 12 + PX_PER_BEAT)
   })
 
   it('fades notes under the clef and at the right edge, solid in between', () => {
