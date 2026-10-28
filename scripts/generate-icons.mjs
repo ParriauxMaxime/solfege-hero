@@ -33,7 +33,7 @@ ${fxDefs(id, { gold: DARK_COLORS.gold, smoke: '#b8b2ac' })}
 ${litStaff(id, { x: headX, reach: 180, lines: litLines, width: lineWidth, opacity: litOpacity })}
 <g transform="translate(${headX} ${headY})">
 <g transform="scale(${scale})">${hotNoteStatic(id, { ...hot, intensity, detail })}</g>
-${litStem(1, { x: head.rx * 0.85, y1: -head.ry * 0.2, y2: stemTop - headY, width: stemWidth, color: stemInk })}
+${litStem({ x: head.rx * 0.85, y1: -head.ry * 0.2, y2: stemTop - headY, width: stemWidth, color: stemInk })}
 <g transform="scale(${scale})">${hotHeadMarkup(id, 'filled', { ...hot, heat: 1 })}</g>
 </g>
 </g>

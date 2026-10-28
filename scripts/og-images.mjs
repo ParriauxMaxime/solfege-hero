@@ -107,7 +107,7 @@ const brandNote = (x, y) => {
   return `${litStaff(brandId, { x, reach: brandLitReach, lines: litLines, width: 5, opacity: 0.8 })}
   <g transform="translate(${x} ${y})">
     <g class="flame" transform="scale(${brandFxScale})">${hotNoteStatic(brandId, { ...brandHot, intensity: 1, detail: 'full' })}</g>
-    ${litStem(1, { x: stemX, y1: start, y2: start - side * stemLength, width: brandStemWidth })}
+    ${litStem({ x: stemX, y1: start, y2: start - side * stemLength, width: brandStemWidth })}
     <g transform="scale(${brandFxScale})">${hotHeadMarkup(brandId, 'filled', { ...brandHot, heat: 1 })}</g>
   </g>`
 }
