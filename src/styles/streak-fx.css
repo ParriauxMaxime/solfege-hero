@@ -1,0 +1,471 @@
+/* E2 streak aura. Everything that moves is a css animation or transition on transform and opacity, on html boxes,
+   so the compositor runs it without style or layout work. One animation per property per element: motions that
+   combine are nested in wrapper spans. Values per streak (--fx-*) are set once per answer on .timeline or .hud-fx,
+   `--u` (px per staff unit) on resize only. */
+
+/* ---- Timeline staff ---- */
+.timeline-fx {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.timeline-fx-behind {
+  z-index: -1;
+}
+
+.timeline-fx-front {
+  z-index: 1;
+}
+
+.tl-fx {
+  position: absolute;
+  top: calc(var(--fx-y, 0) * var(--u, 1px));
+  left: calc(var(--fx-x, 0) * var(--u, 1px));
+  width: 0;
+  height: 0;
+}
+
+.tl-aura {
+  position: absolute;
+  top: calc(-20 * var(--u, 1px));
+  left: calc(-20 * var(--u, 1px));
+  width: calc(40 * var(--u, 1px));
+  height: calc(40 * var(--u, 1px));
+  opacity: var(--fx-aura-o, 0);
+  transform: scale(var(--fx-aura-s, 1));
+  transition:
+    opacity 400ms ease-out,
+    transform 400ms ease-out;
+}
+
+.tl-fx.out .tl-aura {
+  opacity: 0;
+}
+
+.tl-aura-boost,
+.tl-aura-glow {
+  position: absolute;
+  inset: 0;
+}
+
+.tl-aura-boost.lit {
+  animation: tl-boost 450ms ease-out;
+}
+
+.tl-aura-glow {
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgb(255 251 230 / 0.9),
+    rgb(255 224 138 / 0.75) 16%,
+    rgb(255 162 31 / 0.45) 36%,
+    rgb(240 90 20 / 0.2) 60%,
+    rgb(154 28 12 / 0.07) 82%,
+    rgb(90 15 4 / 0)
+  );
+}
+
+.tl-fx.live .tl-aura-glow {
+  will-change: transform, opacity;
+  animation: tl-breathe var(--fx-bp, 1.6s) ease-in-out var(--fx-bd, 0s) infinite alternate;
+}
+
+.tl-waves,
+.tl-embers {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  transition: opacity 400ms ease-out;
+}
+
+.tl-waves {
+  opacity: var(--fx-wave-o, 0);
+}
+
+.tl-embers {
+  opacity: var(--fx-ember-o, 1);
+}
+
+.tl-fx.out :is(.tl-waves, .tl-embers) {
+  opacity: 0;
+}
+
+.tl-wave {
+  position: absolute;
+  top: calc(-30 * var(--u, 1px));
+  left: calc((var(--wx, 0) - 6) * var(--u, 1px));
+  width: calc(12 * var(--u, 1px));
+  height: calc(30 * var(--u, 1px));
+  opacity: 0;
+  transform-origin: 50% 100%;
+  will-change: transform, opacity;
+  animation: tl-wave var(--wd, 1.6s) linear var(--wdl, 0s) infinite;
+}
+
+.tl-wave svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.tl-ember {
+  position: absolute;
+  top: calc(-1.2 * var(--u, 1px));
+  left: calc(-1.2 * var(--u, 1px));
+  width: calc(2.4 * var(--u, 1px));
+  height: calc(2.4 * var(--u, 1px));
+  border-radius: 50%;
+  background: radial-gradient(closest-side, #fffbe6, #ffc24a 40%, rgb(242 96 26 / 0.6) 75%, rgb(168 30 12 / 0));
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: tl-ember var(--ep, 1.2s) linear var(--epd, 0s) infinite;
+}
+
+.tl-flash {
+  position: absolute;
+  top: calc(-10 * var(--u, 1px));
+  left: calc(-10 * var(--u, 1px));
+  box-sizing: border-box;
+  width: calc(20 * var(--u, 1px));
+  height: calc(20 * var(--u, 1px));
+  border: calc(2 * var(--u, 1px)) solid var(--logo-gold-1, #fff3c4);
+  border-radius: 50%;
+  opacity: 0;
+  animation: tl-flash 300ms ease-out;
+}
+
+.tl-smoke {
+  position: absolute;
+  top: calc(-5 * var(--u, 1px));
+  left: calc(-5 * var(--u, 1px));
+  width: calc(10 * var(--u, 1px));
+  height: calc(10 * var(--u, 1px));
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--smoke) 85%, transparent),
+    color-mix(in srgb, var(--smoke) 45%, transparent) 55%,
+    transparent
+  );
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: tl-smoke 900ms ease-out var(--smd, 0s) both;
+}
+
+.tl-fx.covered {
+  opacity: 0;
+  transition: opacity 140ms ease-out;
+}
+
+.tl-fx.covered :is(.tl-aura-boost, .tl-aura-glow, .tl-wave, .tl-ember, .tl-smoke) {
+  will-change: auto;
+  animation: none;
+}
+
+.timeline-note.hot .staff-note-head {
+  opacity: 0;
+}
+
+.tl-hot {
+  transition: opacity 400ms ease-out;
+}
+
+.tl-hot.cooling {
+  opacity: 0;
+}
+
+.tl-hot [data-k='heat'] {
+  opacity: var(--fx-heat, 0);
+  transition: opacity 400ms ease-out;
+}
+
+.tl-hot.fresh [data-k='heat'] {
+  animation: tl-heat 350ms ease-out;
+}
+
+@keyframes tl-boost {
+  from {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+  35% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes tl-breathe {
+  from {
+    opacity: 0.82;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes tl-heat {
+  from {
+    opacity: 1;
+  }
+}
+
+@keyframes tl-flash {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.7);
+  }
+}
+
+@keyframes tl-wave {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-8 * var(--u, 1px))) scaleY(0.7);
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(calc(-24 * var(--u, 1px))) scaleY(1.2);
+  }
+}
+
+@keyframes tl-ember {
+  from {
+    opacity: 0;
+    transform: translate(calc(var(--ex, 0) * var(--u, 1px)), calc(-6 * var(--u, 1px))) scale(var(--es, 1));
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translate(calc((var(--ex, 0) + var(--ed, 0)) * var(--u, 1px)), calc((-6 - var(--er, 30)) * var(--u, 1px))) scale(calc(var(--es, 1) * 0.5));
+  }
+}
+
+@keyframes tl-smoke {
+  from {
+    opacity: 0;
+    transform: translate(calc(var(--sx, 0) * var(--u, 1px)), calc(-4 * var(--u, 1px))) scale(1);
+  }
+  45% {
+    opacity: 0.9;
+  }
+  to {
+    opacity: 0;
+    transform: translate(calc((var(--sx, 0) + var(--sd, 0)) * var(--u, 1px)), calc(-34 * var(--u, 1px))) scale(3.4);
+  }
+}
+
+/* ---- HUD streak icon ---- */
+.hud-fx {
+  --hud-size: 1.3rem;
+  position: relative;
+  flex: none;
+  width: var(--hud-size);
+  height: var(--hud-size);
+  color: var(--ink-dim);
+  isolation: isolate;
+}
+
+.hud-fx-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.hud-fx-plain,
+.hud-fx-hot {
+  transition: opacity 300ms ease-out;
+}
+
+.hud-fx-hot {
+  opacity: 0;
+}
+
+.hud-fx.lit .hud-fx-hot {
+  opacity: 1;
+}
+
+.hud-fx.lit .hud-fx-plain {
+  opacity: 0;
+}
+
+.hud-fx-hot [data-k='heat'] {
+  opacity: var(--fx-heat, 0);
+}
+
+.hud-fx-aura {
+  position: absolute;
+  top: calc(var(--hud-size) * -0.25);
+  left: calc(var(--hud-size) * -0.25);
+  z-index: -1;
+  width: calc(var(--hud-size) * 1.5);
+  height: calc(var(--hud-size) * 1.5);
+  opacity: 0;
+  transform: scale(var(--fx-aura-s, 1));
+  transition:
+    opacity 350ms ease-out,
+    transform 350ms ease-out;
+}
+
+.hud-fx.lit .hud-fx-aura {
+  opacity: var(--fx-aura-o, 0);
+}
+
+.hud-fx-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgb(255 251 230 / 0.9),
+    rgb(255 224 138 / 0.75) 16%,
+    rgb(255 162 31 / 0.45) 36%,
+    rgb(240 90 20 / 0.2) 60%,
+    rgb(154 28 12 / 0.07) 82%,
+    rgb(90 15 4 / 0)
+  );
+}
+
+.hud-fx.lit .hud-fx-glow {
+  will-change: transform, opacity;
+  animation: tl-breathe 1.6s ease-in-out infinite alternate;
+}
+
+.hud-fx-ember {
+  position: absolute;
+  top: 25%;
+  left: 50%;
+  display: none;
+  width: calc(var(--hud-size) * 0.16);
+  height: calc(var(--hud-size) * 0.16);
+  margin-left: calc(var(--hud-size) * -0.08);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, #fffbe6, #ffc24a 40%, rgb(242 96 26 / 0.6) 75%, rgb(168 30 12 / 0));
+  opacity: 0;
+}
+
+.hud-fx.sparks .hud-fx-ember {
+  display: block;
+  will-change: transform, opacity;
+  animation: hud-ember 1.2s linear infinite;
+}
+
+.hud-fx.sparks .hud-fx-ember.second {
+  --hx: -0.25rem;
+  animation-delay: -0.6s;
+  animation-duration: 1.5s;
+}
+
+.hud-fx-smoke {
+  position: absolute;
+  top: calc(var(--hud-size) * 0.1);
+  left: calc(var(--hud-size) * 0.1);
+  width: calc(var(--hud-size) * 0.8);
+  height: calc(var(--hud-size) * 0.8);
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--smoke) 85%, transparent),
+    color-mix(in srgb, var(--smoke) 45%, transparent) 55%,
+    transparent
+  );
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: hud-smoke 700ms ease-out both;
+}
+
+.streak-value {
+  position: relative;
+}
+
+@keyframes hud-ember {
+  from {
+    opacity: 0;
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translate(var(--hx, 0.25rem), calc(var(--hud-size) * -0.9)) scale(0.5);
+  }
+}
+
+@keyframes hud-smoke {
+  from {
+    opacity: 0;
+    transform: translateY(0) scale(0.8);
+  }
+  35% {
+    opacity: 0.9;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(calc(var(--hud-size) * -0.8)) scale(2);
+  }
+}
+
+/* ---- Reduced motion: no keyframes, a static aura and hot head sized by the streak, two frozen embers ---- */
+:root[data-motion='reduced'] .timeline-fx :is(.tl-aura-boost, .tl-aura-glow, .tl-wave, .tl-ember, .tl-flash, .tl-smoke),
+:root[data-motion='reduced'] .hud-fx :is(.hud-fx-glow, .hud-fx-ember, .hud-fx-smoke) {
+  will-change: auto;
+  animation: none;
+}
+
+:root[data-motion='reduced'] .timeline-fx :is(.tl-wave, .tl-flash, .tl-smoke, .tl-ember.extra),
+:root[data-motion='reduced'] .hud-fx :is(.hud-fx-ember, .hud-fx-smoke) {
+  display: none;
+}
+
+:root[data-motion='reduced'] .timeline-fx .tl-ember {
+  opacity: var(--so, 0);
+  transform: translate(calc(var(--sx, 0) * var(--u, 1px)), calc(var(--sy, 0) * var(--u, 1px))) scale(var(--ss, 1));
+}
+
+:root[data-motion='reduced'] :is(.tl-aura, .tl-waves, .tl-embers, .tl-hot, .tl-hot [data-k='heat'], .hud-fx-aura, .hud-fx-plain, .hud-fx-hot) {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) .timeline-fx :is(.tl-aura-boost, .tl-aura-glow, .tl-wave, .tl-ember, .tl-flash, .tl-smoke),
+  :root:not([data-motion='full']) .hud-fx :is(.hud-fx-glow, .hud-fx-ember, .hud-fx-smoke) {
+    will-change: auto;
+    animation: none;
+  }
+
+  :root:not([data-motion='full']) .timeline-fx :is(.tl-wave, .tl-flash, .tl-smoke, .tl-ember.extra),
+  :root:not([data-motion='full']) .hud-fx :is(.hud-fx-ember, .hud-fx-smoke) {
+    display: none;
+  }
+
+  :root:not([data-motion='full']) .timeline-fx .tl-ember {
+    opacity: var(--so, 0);
+    transform: translate(calc(var(--sx, 0) * var(--u, 1px)), calc(var(--sy, 0) * var(--u, 1px))) scale(var(--ss, 1));
+  }
+
+  :root:not([data-motion='full']) :is(.tl-aura, .tl-waves, .tl-embers, .tl-hot, .tl-hot [data-k='heat'], .hud-fx-aura, .hud-fx-plain, .hud-fx-hot) {
+    transition: none;
+  }
+}

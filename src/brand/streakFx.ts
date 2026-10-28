@@ -30,7 +30,8 @@ const HEAT_BOOST = 0.5
 const HEAT_BOOST_SECONDS = 0.35
 const EMBER_DELAY_SECONDS = 0.12
 const FLASH_GROWTH = 1.7
-const WAVE_OPACITY = 0.75
+export const FX_WAVE_OPACITY = 0.75
+const WAVE_OPACITY = FX_WAVE_OPACITY
 
 const clamp = (value: number, low = 0, high = 1) => Math.max(low, Math.min(high, value))
 const span = (from: number, length: number, at: number) => clamp((at - from) / length)
@@ -130,7 +131,7 @@ export function fxHiddenFrame(): FxFrameValues {
 const auraScale = (intensity: number) => (AURA_RADIUS_BASE + AURA_RADIUS_EXTRA * intensity) / AURA_GRADIENT_RADIUS
 const baseAura = (intensity: number) => AURA_STRENGTH * (0.3 + 0.7 * intensity)
 const baseHeat = (intensity: number) => HEAT_STRENGTH * (0.25 + 0.75 * intensity)
-const emberCount = (intensity: number) => Math.round(FX_MAX_EMBERS * (0.3 + 0.7 * intensity))
+export const emberCount = (intensity: number) => Math.round(FX_MAX_EMBERS * (0.3 + 0.7 * intensity))
 
 function smokeParts(snuff: number): FxPart[] {
   return Array.from({ length: FX_SMOKE_COUNT }, (_, index) => {

@@ -39,9 +39,9 @@ import { resolveNaming } from '../i18n/naming'
 import { recordDaily, recordHistory, recordScoreBest, type Progress, type Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
 import { button, el } from './dom'
-import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
+import { burstConfetti, centerOf, floatText, restartAnimation } from './effects'
 import { installDemoHook } from './demoHook'
-import { createTimelineStaff, type TimelinePoint } from './timelineStaff'
+import { createTimelineStaff } from './timelineStaff'
 import { icon } from './icons'
 import { copyLink, downloadScoreFile, shareLink, shareRow } from './sharing'
 import { showToast } from './toast'
@@ -234,7 +234,7 @@ export function createSeries({
     }
     streak = missedCurrent ? 0 : streak + 1
     timeline.markAnswered(index, !missedCurrent)
-    onCorrect(item.pitch, item.fifths, timeline.notePoint(index))
+    onCorrect(item.pitch, item.fifths)
     index++
     if (answered.finished) finish()
     else nextTimeout = window.setTimeout(showItem, NEXT_DELAY_MS)
@@ -253,13 +253,12 @@ export function createSeries({
     restartAnimation(flash, 'flash-bad')
   }
 
-  function onCorrect(pitch: number, fifths: number, notePoint: TimelinePoint | null): void {
+  function onCorrect(pitch: number, fifths: number): void {
     sound.correct(streak)
     sound.playNote(spell(pitch, fifths < 0))
     vibrate(15)
     pad.flash(pitch, 'correct')
     restartAnimation(flash, 'flash-ok')
-    if (notePoint) burstParticles(effectsLayer, notePoint)
   }
 
   function finish(): void {

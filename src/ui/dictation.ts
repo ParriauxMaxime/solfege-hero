@@ -15,7 +15,7 @@ import { recordHistory, type Progress, type Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
 import { installDemoHook } from './demoHook'
 import { button, el } from './dom'
-import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
+import { burstConfetti, centerOf, floatText, restartAnimation } from './effects'
 import { icon } from './icons'
 import { copyLink, shareLink, shareRow } from './sharing'
 import type { ChallengeTarget } from './series'
@@ -233,7 +233,7 @@ export function createDictation({
     progress = recordHistory(progress, 'dictation', { kind: 'answer', correct: !missedCurrent, ms: performance.now() - shownAt })
     streak = missedCurrent ? 0 : streak + 1
     timeline.markAnswered(index, !missedCurrent)
-    onCorrect(item.pitch, timeline.notePoint(index))
+    onCorrect(item.pitch)
     index++
     if (answered.finished) finish()
     else later(showItem, NEXT_PAUSE_MS)
@@ -252,12 +252,11 @@ export function createDictation({
     restartAnimation(flash, 'flash-bad')
   }
 
-  function onCorrect(pitch: number, notePoint: ReturnType<typeof timeline.notePoint>): void {
+  function onCorrect(pitch: number): void {
     sound.correct(streak)
     vibrate(15)
     pad.flash(pitch, 'correct')
     restartAnimation(flash, 'flash-ok')
-    if (notePoint) burstParticles(effectsLayer, notePoint)
   }
 
   function finish(): void {

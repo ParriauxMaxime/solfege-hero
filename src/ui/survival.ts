@@ -28,7 +28,7 @@ import { resolveNaming } from '../i18n/naming'
 import { recordHistory, type Progress, type Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
 import { button, el, iconButton } from './dom'
-import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
+import { burstConfetti, centerOf, floatText, restartAnimation } from './effects'
 import { createHearts } from './hearts'
 import { installDemoHook } from './demoHook'
 import { createTimelineStaff } from './timelineStaff'
@@ -234,7 +234,6 @@ export function createSurvival({
     pad.flash(pitch, 'correct')
     restartAnimation(flash, 'flash-ok')
     timeline.markAnswered(noteIndex, true)
-    burstParticles(effectsLayer, timeline.notePoint(noteIndex) ?? centerOf(staffCard))
     schedule(showNote, NEXT_DELAY_MS)
   }
 

@@ -36,10 +36,10 @@ import { scoreTitle } from '../scores/title'
 import { recordHistory, type Progress, type Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
 import { button, el, iconButton, setIcon } from './dom'
-import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
+import { burstConfetti, centerOf, floatText, restartAnimation } from './effects'
 import { installDemoHook } from './demoHook'
 import { createScrollingStaff } from './heroStaff'
-import { createHudFlame } from './streakFlames'
+import { createHudStreak } from './hudStreak'
 
 const BARS_AHEAD = 3
 const CLICK_LOOKAHEAD_S = 0.15
@@ -140,8 +140,8 @@ export function createHero({
   const staff = createScrollingStaff(clef, fifths, time)
   const scoreValue = el('span', 'hud-value', '0')
   const streakValue = el('span', 'streak-value', '0')
-  const hudFlame = createHudFlame()
-  const streak = el('div', 'hud-streak', hudFlame.element, streakValue)
+  const hudStreak = createHudStreak()
+  const streak = el('div', 'hud-streak', hudStreak.element, streakValue)
   const multiplierValue = el('span', 'multiplier', '×1')
   const bpmValue = el('span', 'bpm-value', String(tempo.bpm))
   const bpm = el('div', 'bpm', bpmValue, el('small', '', 'BPM'))
@@ -357,7 +357,7 @@ export function createHero({
     streakValue.textContent = String(score.streak)
     multiplierValue.textContent = `×${multiplier(score.streak)}`
     streak.classList.toggle('hot', score.streak >= 5)
-    hudFlame.update(score.streak)
+    hudStreak.update(score.streak)
   }
 
   function onHit(id: number, note: Note, judgement: Judgement, gained: number, milestone: number | null): void {
@@ -369,7 +369,6 @@ export function createHero({
     restartAnimation(streakValue, 'bump')
     const origin = staff.notePoint(id)
     if (origin) {
-      burstParticles(effectsLayer, origin)
       floatText(effectsLayer, { x: origin.x, y: origin.y - FLOAT_OFFSET_PX }, `${t(JUDGEMENT_KEYS[judgement])} +${gained}`)
     }
     if (milestone !== null) {

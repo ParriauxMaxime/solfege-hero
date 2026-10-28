@@ -9,7 +9,7 @@ import { resolveNaming } from '../i18n/naming'
 import { recordHistory, type Progress, type Settings } from '../storage'
 import { button, el } from './dom'
 import { installDemoHook } from './demoHook'
-import { createHudFlame } from './streakFlames'
+import { createHudStreak } from './hudStreak'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
 import { trackHiddenTime } from '../platform/visibility'
 import { createAnswerPad } from './answerPad'
@@ -91,8 +91,8 @@ export function createDrillGame(
 
   const scoreValue = el('span', 'hud-value', '0')
   const streakValue = el('span', 'streak-value', '0')
-  const hudFlame = createHudFlame()
-  const streak = el('div', 'hud-streak', hudFlame.element, streakValue)
+  const hudStreak = createHudStreak()
+  const streak = el('div', 'hud-streak', hudStreak.element, streakValue)
   const multiplierValue = el('span', 'multiplier', '×1')
   const timerValue = el('span', 'timer', String(TIMED_SECONDS))
   timerValue.hidden = !settings.timed
@@ -184,7 +184,7 @@ export function createDrillGame(
     streakValue.textContent = String(score.streak)
     multiplierValue.textContent = `×${multiplier(score.streak)}`
     streak.classList.toggle('hot', score.streak >= 5)
-    hudFlame.update(score.streak)
+    hudStreak.update(score.streak)
   }
 
   function startTimer(): void {
@@ -282,7 +282,7 @@ export function createDrillGame(
     const noteHead = timeline ? null : staffCard.querySelector('.staff-note')
     const origin = (timeline && timeline.notePoint(roundIndex)) || centerOf(noteHead ?? staffCard.querySelector('.staff-key') ?? staffCard)
     noteHead?.classList.add('pop')
-    burstParticles(effectsLayer, origin)
+    if (!timeline) burstParticles(effectsLayer, origin)
     floatText(effectsLayer, origin, speedFactor > 1 ? t('learn.game.fast', { gained, factor: speedFactor }) : `+${gained}`)
     if (milestone !== null) {
       sound.milestone()
