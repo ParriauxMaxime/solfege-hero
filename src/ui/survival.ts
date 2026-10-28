@@ -1,6 +1,7 @@
 import type { Sound } from '../audio/sound'
 import { promptId, recordAnswer } from '../game/sampler'
 import { answerPitch, isCorrectAnswer, recordExactPitch, type Answer } from '../game/strictOctave'
+import { MAX_LEVEL, capsFor } from '../level/level'
 import { spell } from '../music/notes'
 import { motionReduced } from '../platform/appearance'
 import { confirmOverlay } from './confirm'
@@ -29,10 +30,15 @@ import { createAnswerPad } from './answerPad'
 import { button, el, iconButton } from './dom'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
 import { createHearts } from './hearts'
-import { renderStaff } from './staff'
+import { installDemoHook } from './demoHook'
+import { createTimelineStaff } from './timelineStaff'
 import { copyLink, shareLink, shareRow } from './sharing'
 import { appBase } from '../share/links'
 
+/** The widest key the melody generator draws (4 sharps or flats), whatever the level cap. */
+const WIDEST_GENERATED_FIFTHS = 4
+const TIMELINE_KEPT_NOTES = 40
+const TIMELINE_VISIBLE_NOTES = 4
 const NEXT_DELAY_MS = 150
 const MISS_REVEAL_MS = 900
 const GAME_OVER_DELAY_MS = 1100
@@ -82,6 +88,8 @@ export function createSurvival({
   let progress = initialProgress
   let state: SurvivalState = INITIAL_SURVIVAL
   let item: SeriesItem | null = null
+  let noteIndex = -1
+  let missedCurrent = false
   let streak = 0
   let locked = true
   let over = false
@@ -109,7 +117,9 @@ export function createSurvival({
     level,
     pauseButton,
   )
-  const staffCard = el('div', 'staff-card')
+  const maxFifths = config.armures ? Math.min(WIDEST_GENERATED_FIFTHS, capsFor(config.level ?? MAX_LEVEL).maxFifths) : 0
+  const timeline = createTimelineStaff({ maxFifths, maxKept: TIMELINE_KEPT_NOTES, visibleNotes: TIMELINE_VISIBLE_NOTES })
+  const staffCard = el('div', 'staff-card', timeline.element)
   const fill = el('div', 'survival-bar-fill')
   const bar = el('div', 'survival-bar', fill)
   const pad = createAnswerPad(submitAnswer, resolveNaming(settings.naming), settings.keyboardSpan, {
@@ -173,8 +183,11 @@ export function createSurvival({
   }
 
   function showNote(): void {
-    item = sequence.noteAt(state.played)
-    staffCard.replaceChildren(renderStaff(item.clef, item.note, item.fifths))
+    if (missedCurrent) timeline.markAnswered(noteIndex, false)
+    missedCurrent = false
+    noteIndex = state.played
+    item = sequence.noteAt(noteIndex)
+    timeline.setCurrent(noteIndex, { note: item.note, clef: item.clef, fifths: item.fifths })
     level.textContent = t('survival.level', { level: difficultyFor(state.played) })
     pad.setTarget(item.clef, item.pitch)
     pad.clear()
@@ -220,17 +233,16 @@ export function createSurvival({
     vibrate(15)
     pad.flash(pitch, 'correct')
     restartAnimation(flash, 'flash-ok')
-    const noteHead = staffCard.querySelector('.staff-note')
-    if (noteHead) {
-      noteHead.classList.add('pop')
-      burstParticles(effectsLayer, centerOf(noteHead))
-    }
+    timeline.markAnswered(noteIndex, true)
+    burstParticles(effectsLayer, timeline.notePoint(noteIndex) ?? centerOf(staffCard))
     schedule(showNote, NEXT_DELAY_MS)
   }
 
   function onMiss(chosen: Answer | null, label: string): void {
     locked = true
     streak = 0
+    missedCurrent = true
+    timeline.markWrong(noteIndex)
     renderBar()
     sound.wrong()
     vibrate([40, 30, 40])
@@ -376,13 +388,16 @@ export function createSurvival({
   showNote()
   frame = requestAnimationFrame(tick)
   if (pad.isBlocked()) holdWhileBlocked(true)
+  const removeDemoHook = installDemoHook(() => (item && !locked ? { pitch: item.pitch, dueInMs: 0 } : null), submitAnswer)
 
   return {
     element,
     pause,
     hold,
     destroy() {
+      removeDemoHook()
       stopTrackingHiddenTime()
+      timeline.destroy()
       cancelAnimationFrame(frame)
       cancelAnimationFrame(countUpFrame)
       window.clearTimeout(timer)

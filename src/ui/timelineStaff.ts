@@ -1,3 +1,4 @@
+import { liveFlameStart, streakFlameScale, streakRelief } from '../game/streakFlame'
 import { t, type MessageKey } from '../i18n'
 import { motionReduced } from '../platform/appearance'
 import { staffStep } from '../music/notes'
@@ -30,6 +31,15 @@ import {
   type ClefAndKey,
   type TimelineAnchor,
 } from './timelineLayout'
+import {
+  FLAME_ART_SCALE,
+  FLAME_HEAD_OFFSET,
+  createFlame,
+  placeFlame,
+  setFlameCovered,
+  setFlameFlickering,
+  snuffFlame,
+} from './streakFlames'
 
 const ACCIDENTAL_OFFSET = -22
 const HEADER_CLEF_X = 4
@@ -73,6 +83,14 @@ interface NoteNode {
   glyphDrawn: boolean
 }
 
+/** A burning note: the flame base in staff units and the flame size from the streak it was lit at. */
+interface FlameNode {
+  element: HTMLElement
+  x: number
+  y: number
+  size: number
+}
+
 function viewBox(width: number): string {
   return `0 ${STAFF_VIEW_TOP} ${width} ${STAFF_VIEW_HEIGHT}`
 }
@@ -110,6 +128,7 @@ export function createTimelineStaff({ maxFifths = 0, maxKept = Infinity, visible
   const items = new Map<number, TimelineItem>()
   const mistakes = new Map<number, number>()
   const nodes = new Map<number, NoteNode>()
+  const flames = new Map<number, FlameNode>()
   const changeNodes: { index: number; group: SVGElement; barX: number }[] = []
   let base = 0
   let anchor: TimelineAnchor | undefined
@@ -121,13 +140,15 @@ export function createTimelineStaff({ maxFifths = 0, maxKept = Infinity, visible
   let visibleUnits = 0
   let boxWidth = 0
   let shownHeader: ClefAndKey | null = null
+  let streak = 0
 
   const lines = svgElement('g', { class: 'timeline-lines' })
   const barGroup = svgElement('g', { stroke: 'currentColor' })
   const noteGroupLayer = svgElement('g', { class: 'timeline-notes-layer' })
   const notesSvg = sizedSvg('timeline-notes', 0, 1)
   notesSvg.append(lines, barGroup, noteGroupLayer)
-  const track = el('div', 'timeline-track', notesSvg)
+  const flameLayer = el('div', 'timeline-flames')
+  const track = el('div', 'timeline-track', notesSvg, flameLayer)
   const header = el('div', 'timeline-header')
   const fade = el('div', 'timeline-fade')
   const stage = el('div', 'timeline-stage', track, header, fade)
@@ -159,6 +180,8 @@ export function createTimelineStaff({ maxFifths = 0, maxKept = Infinity, visible
     for (let index = base; index < newBase; index++) {
       nodes.get(index)?.group.remove()
       nodes.delete(index)
+      flames.get(index)?.element.remove()
+      flames.delete(index)
       items.delete(index)
       mistakes.delete(index)
     }
@@ -222,9 +245,9 @@ export function createTimelineStaff({ maxFifths = 0, maxKept = Infinity, visible
     const { xs } = layoutUpTo(current)
     const offset = scrollOffset(xs, current - base, visibleUnits)
     const edge = headerWidth(shownHeader?.fifths ?? 0)
-    for (const [index, node] of nodes) {
-      node.group.classList.toggle('timeline-covered', index < current && isUnderHeader((xs[index - base] ?? 0) - NOTE_LEFT_EXTENT, offset, edge))
-    }
+    const coveredAt = (index: number) => index < current && isUnderHeader((xs[index - base] ?? 0) - NOTE_LEFT_EXTENT, offset, edge)
+    for (const [index, node] of nodes) node.group.classList.toggle('timeline-covered', coveredAt(index))
+    for (const [index, flame] of flames) setFlameCovered(flame.element, coveredAt(index))
     for (const change of changeNodes) change.group.classList.toggle('timeline-covered', isUnderHeader(change.barX, offset, edge))
     const smooth = animate && !motionReduced()
     if (!smooth) track.style.transition = 'none'
@@ -241,6 +264,7 @@ export function createTimelineStaff({ maxFifths = 0, maxKept = Infinity, visible
     visibleUnits = fitted.visibleUnits
     boxWidth = width
     stage.style.height = `${STAFF_VIEW_HEIGHT * scale}px`
+    for (const flame of flames.values()) placeFlameNode(flame)
     const item = items.get(current)
     if (item) {
       shownHeader = null
@@ -269,6 +293,37 @@ export function createTimelineStaff({ maxFifths = 0, maxKept = Infinity, visible
     element.setAttribute('aria-label', item ? t('learn.aria.timeline', { clef: t(CLEF_OF_KEYS[item.clef]), count: total }) : t('learn.aria.timelineEmpty'))
   }
 
+  function placeFlameNode({ element, x, y, size }: FlameNode): void {
+    placeFlame(element, x * scale, (y - STAFF_VIEW_TOP) * scale, scale * FLAME_ART_SCALE * size)
+  }
+
+  function refreshFlickers(): void {
+    const firstLive = liveFlameStart(flames.size)
+    let position = 0
+    for (const { element } of flames.values()) setFlameFlickering(element, position++ >= firstLive)
+  }
+
+  function ignite(index: number): void {
+    streak++
+    const item = items.get(index)
+    if (!item) return
+    const size = streakFlameScale(streak)
+    const x = noteX(index) + FLAME_HEAD_OFFSET.x
+    const y = stepY(staffStep(item.note, item.clef)) + FLAME_HEAD_OFFSET.y
+    flames.get(index)?.element.remove()
+    const flame = { element: createFlame(size, streakRelief(streak)), x, y, size }
+    placeFlameNode(flame)
+    flames.set(index, flame)
+    flameLayer.append(flame.element)
+    refreshFlickers()
+  }
+
+  function snuffAll(): void {
+    streak = 0
+    for (const { element } of flames.values()) snuffFlame(element)
+    flames.clear()
+  }
+
   function restartPop(group: SVGGElement): void {
     group.classList.remove('timeline-pop')
     void group.getBoundingClientRect()
@@ -294,6 +349,7 @@ export function createTimelineStaff({ maxFifths = 0, maxKept = Infinity, visible
     },
     markWrong(index) {
       mistakes.set(index, (mistakes.get(index) ?? 0) + 1)
+      snuffAll()
       refreshStates()
     },
     markAnswered(index, firstTry) {
@@ -303,6 +359,7 @@ export function createTimelineStaff({ maxFifths = 0, maxKept = Infinity, visible
         hiddenCurrent = false
       }
       refreshStates()
+      if (firstTry) ignite(index)
       const group = nodes.get(index)?.group
       if (group) restartPop(group)
     },
@@ -314,6 +371,8 @@ export function createTimelineStaff({ maxFifths = 0, maxKept = Infinity, visible
     },
     destroy() {
       resizeObserver.disconnect()
+      flameLayer.replaceChildren()
+      flames.clear()
     },
   }
 }

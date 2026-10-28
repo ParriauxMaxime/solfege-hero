@@ -8,7 +8,8 @@ import { t } from '../i18n'
 import { resolveNaming } from '../i18n/naming'
 import { recordHistory, type Progress, type Settings } from '../storage'
 import { button, el } from './dom'
-import { icon } from './icons'
+import { installDemoHook } from './demoHook'
+import { createHudFlame } from './streakFlames'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
 import { trackHiddenTime } from '../platform/visibility'
 import { createAnswerPad } from './answerPad'
@@ -90,7 +91,8 @@ export function createDrillGame(
 
   const scoreValue = el('span', 'hud-value', '0')
   const streakValue = el('span', 'streak-value', '0')
-  const streak = el('div', 'hud-streak', el('span', 'flame', icon('flame')), streakValue)
+  const hudFlame = createHudFlame()
+  const streak = el('div', 'hud-streak', hudFlame.element, streakValue)
   const multiplierValue = el('span', 'multiplier', '×1')
   const timerValue = el('span', 'timer', String(TIMED_SECONDS))
   timerValue.hidden = !settings.timed
@@ -182,6 +184,7 @@ export function createDrillGame(
     streakValue.textContent = String(score.streak)
     multiplierValue.textContent = `×${multiplier(score.streak)}`
     streak.classList.toggle('hot', score.streak >= 5)
+    hudFlame.update(score.streak)
   }
 
   function startTimer(): void {
@@ -313,11 +316,13 @@ export function createDrillGame(
   })
   startRound()
   if (pad.isBlocked()) holdWhileBlocked(true)
+  const removeDemoHook = installDemoHook(() => (shown && !locked ? { pitch: shown.keyPitch, dueInMs: 0 } : null), submitAnswer)
 
   return {
     element,
     hold,
     destroy() {
+      removeDemoHook()
       stopTrackingHiddenTime()
       pad.destroy()
       window.clearInterval(ticker)

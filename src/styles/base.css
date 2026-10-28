@@ -22,6 +22,7 @@
   --card-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
   --ink: #f2eefc;
   --ink-dim: #9d96b8;
+  --smoke: #b8b2ac;
   --accent: #7c5cff;
   --on-accent: #f2eefc;
   --success: #2ee6a6;
@@ -52,6 +53,7 @@
   --card-shadow: 0 1px 2px rgb(60 40 100 / 0.08), 0 6px 18px rgb(60 40 100 / 0.07);
   --ink: #221c33;
   --ink-dim: #6d6683;
+  --smoke: #8a837c;
   --accent: #6a47f0;
   --on-accent: #fff;
   --success: #0c8a63;
