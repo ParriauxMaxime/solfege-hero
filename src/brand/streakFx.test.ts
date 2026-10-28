@@ -160,8 +160,7 @@ describe('still frame and markup', () => {
   it('makes small statics simpler than full ones', () => {
     const small = hotNoteStatic('t', { shape: 'filled', rx: 10, ry: 7, intensity: 1, detail: 'small' })
     const full = hotNoteStatic('t', { shape: 'filled', rx: 10, ry: 7, intensity: 1, detail: 'full' })
-    expect(small).not.toContain('heatwave')
-    expect(full).toContain('heatwave')
+    expect(`${small}${full}`).not.toContain('heatwave')
     expect(small.match(/t-ember/g)?.length ?? 0).toBeLessThanOrEqual(2)
     expect(full.length).toBeGreaterThan(small.length)
   })

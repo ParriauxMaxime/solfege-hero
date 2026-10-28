@@ -294,7 +294,7 @@ export function hotHeadMarkup(prefix: string, shape: 'filled' | 'hollow', { rx, 
 export interface HotNoteStaticOptions extends Omit<HotHeadOptions, 'heat'> {
   shape: 'filled' | 'hollow'
   intensity: number
-  /** `small` (favicons): halo and head only, at most 2 embers. `full`: frozen heat waves and up to 4 embers. */
+  /** `small` (favicons): halo and head, at most 2 embers. `full`: up to 4 embers. No frozen heat waves: still, they read as smoke. */
   detail: 'small' | 'full'
 }
 
@@ -305,17 +305,11 @@ const partTransform = ({ x, y, scale }: FxPart) => `translate(${num(x)} ${num(y)
 export function hotNoteStatic(prefix: string, { shape, intensity, detail, ...head }: HotNoteStaticOptions): string {
   const level = clamp(intensity)
   const small = detail === 'small'
-  const frame = fxStillFrame(level, { embers: small ? Math.round(2 * level) : Math.min(4, emberCount(level)), waves: !small })
-  const waves = small
-    ? ''
-    : `<g fill="none" stroke="url(#${prefix}-heatwave)" stroke-linecap="round" stroke-width="1.1">${WAVE_XS.map(
-        (x, index) =>
-          `<path d="M${x} 0C${x + 3} -5 ${x - 3} -10 ${x} -15S${x + 3} -25 ${x} -30" transform="translate(0 ${num(frame.waves[index]?.y ?? 0)})" opacity="${num(frame.waves[index]?.opacity ?? 0)}"/>`,
-      ).join('')}</g>`
+  const frame = fxStillFrame(level, { embers: small ? Math.round(2 * level) : Math.min(4, emberCount(level)) })
   const embers = frame.embers
     .filter((ember) => ember.opacity > 0)
     .map((ember) => `<circle r="1.2" fill="url(#${prefix}-ember)" transform="${partTransform(ember)}" opacity="${num(ember.opacity)}"/>`)
     .join('')
-  return `<g stroke="none"><circle r="${AURA_GRADIENT_RADIUS}" fill="url(#${prefix}-aura)" transform="scale(${num(frame.aura.scale)})" opacity="${num(frame.aura.opacity)}"/>${waves}
+  return `<g stroke="none"><circle r="${AURA_GRADIENT_RADIUS}" fill="url(#${prefix}-aura)" transform="scale(${num(frame.aura.scale)})" opacity="${num(frame.aura.opacity)}"/>
   ${hotHeadMarkup(prefix, shape, { ...head, heat: num(frame.heat) })}${embers}</g>`
 }
