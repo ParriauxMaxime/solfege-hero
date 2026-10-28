@@ -36,10 +36,11 @@ import { scoreTitle } from '../scores/title'
 import { recordHistory, type Progress, type Settings } from '../storage'
 import { createAnswerPad } from './answerPad'
 import { button, el, iconButton, setIcon } from './dom'
-import { icon } from './icons'
 import { burstConfetti, burstParticles, centerOf, floatText, restartAnimation } from './effects'
 import { installDemoHook } from './demoHook'
 import { createScrollingStaff } from './heroStaff'
+import { createHudFlame } from './streakFlames'
+import { heroFlameScale, streakRelief } from '../game/streakFlame'
 
 const BARS_AHEAD = 3
 const CLICK_LOOKAHEAD_S = 0.15
@@ -140,7 +141,8 @@ export function createHero({
   const staff = createScrollingStaff(clef, fifths, time)
   const scoreValue = el('span', 'hud-value', '0')
   const streakValue = el('span', 'streak-value', '0')
-  const streak = el('div', 'hud-streak', el('span', 'flame', icon('flame')), streakValue)
+  const hudFlame = createHudFlame()
+  const streak = el('div', 'hud-streak', hudFlame.element, streakValue)
   const multiplierValue = el('span', 'multiplier', '×1')
   const bpmValue = el('span', 'bpm-value', String(tempo.bpm))
   const bpm = el('div', 'bpm', bpmValue, el('small', '', 'BPM'))
@@ -356,13 +358,14 @@ export function createHero({
     streakValue.textContent = String(score.streak)
     multiplierValue.textContent = `×${multiplier(score.streak)}`
     streak.classList.toggle('hot', score.streak >= 5)
+    hudFlame.update(score.streak)
   }
 
   function onHit(id: number, note: Note, judgement: Judgement, gained: number, milestone: number | null): void {
     sound.correct(score.streak)
     sound.playNote(note)
     vibrate(15)
-    staff.markHit(id)
+    staff.markHit(id, heroFlameScale(score.streak, judgement), streakRelief(score.streak))
     restartAnimation(flash, 'flash-ok')
     restartAnimation(streakValue, 'bump')
     const origin = staff.notePoint(id)

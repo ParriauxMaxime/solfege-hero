@@ -30,13 +30,18 @@ import {
   svgElement,
 } from './glyphs'
 import type { HeadFill } from './glyphs'
+import { liveFlameStart } from '../game/streakFlame'
+import type { Relief } from '../brand/art'
+import { motionReduced } from '../platform/appearance'
 import { restartAnimation } from './effects'
+import { FLAME_ART_SCALE, FLAME_HEAD_OFFSET, PUFF_DELAYS_MS, ensureFlameDefs, flameUse } from './streakFlames'
 
 export interface ScrollingStaff {
   element: SVGSVGElement
   setClef(clef: Clef, fifths: number, time?: TimeSignature): void
   render(notes: readonly HeroNote[], nowBeat: number, firstBarBeat: number): void
-  markHit(id: number): void
+  /** Lights the flame of a hit note: `scale` from heroFlameScale, `relief` from streakRelief. */
+  markHit(id: number, scale: number, relief: Relief): void
   markMiss(id: number, label: string): void
   notePoint(id: number): DOMPoint | null
 }
@@ -69,6 +74,42 @@ const HIT_BAND_HALF_WIDTH = 20
 const HIT_BAND_INSET = 4
 const MISS_LABEL_Y = CONTENT_TOP + 22
 const CLIP_ID = 'hero-notes-clip'
+const FILLED_FLAME_Y = -9
+const PUFF_SPOT_Y = -80
+const PUFF_RADIUS = 30
+
+const flameBaseY = (step: number, fill: HeadFill) => stepY(step) + (fill === 'hollow' ? FLAME_HEAD_OFFSET.y : FILLED_FLAME_Y)
+
+/** An svg flame whose base sits on the head: the group scales the art, `.sflame-live` animates around the base. */
+function createHeroFlame(x: number, y: number, scale: number, relief: Relief): SVGGElement {
+  const flame = svgElement('g', {
+    class: 'hero-flame sflame',
+    transform: `translate(${x} ${y}) scale(${scale * FLAME_ART_SCALE})`,
+  })
+  const dur = (1.1 + Math.random() * 0.4).toFixed(2)
+  const phase = (Math.random() * 0.4).toFixed(2)
+  flame.insertAdjacentHTML('beforeend', `<g class="sflame-live" style="--sf-dur:${dur}s;--sf-phase:${phase}s">${flameUse(relief)}</g>`)
+  return flame
+}
+
+/** Shrinks the flame and fades it with two grey puffs, then removes it. */
+function snuffHeroFlame(flame: SVGGElement): void {
+  if (flame.classList.contains('out')) return
+  if (motionReduced()) {
+    flame.remove()
+    return
+  }
+  flame.classList.add('out')
+  const puffs = PUFF_DELAYS_MS.map((delay) => {
+    const spot = svgElement('g', { transform: `translate(0 ${PUFF_SPOT_Y})` })
+    const puff = svgElement('circle', { class: 'hero-puff', r: PUFF_RADIUS, fill: 'url(#sf-puff)' })
+    puff.style.animationDelay = `${delay}ms`
+    spot.append(puff)
+    return spot
+  })
+  flame.append(...puffs)
+  puffs.at(-1)?.firstElementChild?.addEventListener('animationend', () => flame.remove(), { once: true })
+}
 
 interface Entry {
   group: SVGGElement
@@ -151,7 +192,9 @@ function appendBeams(group: SVGGElement, run: readonly PitchedNote[], fill: Head
   })
 }
 
-function createNoteGroup(
+const headFill = (hero: HeroNote): HeadFill => (hero.duration === 'whole' || hero.duration === 'half' ? 'hollow' : 'filled')
+
+function createNoteGlyph(
   notes: readonly HeroNote[],
   index: number,
   clef: Clef,
@@ -160,14 +203,14 @@ function createNoteGroup(
   beamUnit: number,
 ): SVGGElement {
   const hero = notes[index] as HeroNote
-  const group = inkGroup({ class: 'hero-note' })
+  const group = svgElement('g', { class: 'hero-glyph' })
   if (!hero.note) {
     group.append(restGlyph(hero.duration, 0), ...augmentationDots(REST_DOT_X, REST_DOT_STEP, hero.dots))
     return group
   }
 
   const step = staffStep(hero.note, clef)
-  const fill: HeadFill = hero.duration === 'whole' || hero.duration === 'half' ? 'hollow' : 'filled'
+  const fill = headFill(hero)
   group.append(...ledgerLines(step, 0))
   const accidental = inlineAccidental(hero.note, fifths)
   if (accidental) group.append(accidentalGlyph(accidental, ACCIDENTAL_OFFSET, step))
@@ -188,6 +231,20 @@ function createNoteGroup(
   for (let level = 0; level < flagCount; level++) {
     group.append(flag(stemX(fill, 0, up), tipY + (up ? 1 : -1) * level * FLAG_PITCH, up))
   }
+  return group
+}
+
+/** The glyph sits in its own group so a hit note fades without fading its flame. */
+function createNoteGroup(
+  notes: readonly HeroNote[],
+  index: number,
+  clef: Clef,
+  fifths: number,
+  pxPerBeat: number,
+  beamUnit: number,
+): SVGGElement {
+  const group = inkGroup({ class: 'hero-note' })
+  group.append(createNoteGlyph(notes, index, clef, fifths, pxPerBeat, beamUnit))
   return group
 }
 
@@ -238,6 +295,17 @@ export function createScrollingStaff(
 
   const bars = createKeyedLayer(barGroup)
   const notes = createKeyedLayer(noteGroup)
+  const burning = new Map<number, SVGGElement>()
+  let visibleNotes: readonly HeroNote[] = []
+  ensureFlameDefs()
+
+  /** Only the newest flames flicker: the older ones, still on screen under the clip, are drawn still. */
+  function refreshFlickers(): void {
+    for (const [id, flame] of burning) if (!flame.isConnected) burning.delete(id)
+    const firstLive = liveFlameStart(burning.size)
+    let position = 0
+    for (const flame of burning.values()) flame.classList.toggle('still', position++ < firstLive)
+  }
 
   function placeHitZone(): void {
     clipLeft = density.signatureX + CLIP_GAP_AFTER_SIGNATURE_START + keySignatureWidth(fifths) + (time ? timeSignatureWidth(time) : 0)
@@ -312,6 +380,7 @@ export function createScrollingStaff(
     element: svg,
     setClef,
     render(heroNotes, nowBeat, firstBarBeat) {
+      visibleNotes = heroNotes
       renderBars(nowBeat, firstBarBeat)
       notes.begin()
       for (let i = 0; i < heroNotes.length; i++) {
@@ -323,11 +392,21 @@ export function createScrollingStaff(
       }
       notes.end()
     },
-    markHit(id) {
-      notes.find(id)?.classList.add('hit')
+    markHit(id, scale, relief) {
+      const group = notes.find(id)
+      if (!group) return
+      group.classList.add('hit')
+      const hero = visibleNotes.find((candidate) => candidate.id === id)
+      if (!hero?.note || scale <= 0) return
+      const flame = createHeroFlame(FLAME_HEAD_OFFSET.x, flameBaseY(staffStep(hero.note, clef), headFill(hero)), scale, relief)
+      group.append(flame)
+      burning.set(id, flame)
+      refreshFlickers()
     },
     markMiss(id, text) {
       notes.find(id)?.classList.add('miss')
+      for (const flame of burning.values()) snuffHeroFlame(flame)
+      burning.clear()
       missLabel.textContent = text
       restartAnimation(missLabel, 'shown')
     },

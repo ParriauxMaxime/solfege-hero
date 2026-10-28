@@ -19,8 +19,8 @@
   transform-origin: 0 0;
   will-change: transform, opacity;
   animation:
-    sflame-ignite 300ms ease-out,
-    sflame-flicker var(--sf-dur, 1.3s) ease-in-out calc(300ms + var(--sf-phase, 0s)) infinite alternate;
+    sflame-ignite var(--sf-ignite, 300ms) ease-out,
+    sflame-flicker var(--sf-dur, 1.3s) ease-in-out calc(var(--sf-ignite, 300ms) + var(--sf-phase, 0s)) infinite alternate;
 }
 
 .sflame-live svg {
@@ -34,7 +34,7 @@
 
 .sflame.still .sflame-live {
   will-change: auto;
-  animation: sflame-ignite 300ms ease-out;
+  animation: sflame-ignite var(--sf-ignite, 300ms) ease-out;
 }
 
 .sflame.out .sflame-live {

@@ -11,7 +11,7 @@ export const FLAME_ART_SCALE = 0.27
 export const FLAME_HEAD_OFFSET = { x: -2, y: -11 }
 
 const DEFS_ID = 'sf-defs'
-const PUFF_DELAYS_MS = [0, 120]
+export const PUFF_DELAYS_MS = [0, 120]
 const SNUFF_FALLBACK_MS = 1200
 
 const boxAttribute = `${FLAME_BOX.x} ${FLAME_BOX.y} ${FLAME_BOX.width} ${FLAME_BOX.height}`

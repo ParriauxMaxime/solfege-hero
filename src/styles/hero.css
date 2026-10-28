@@ -14,7 +14,26 @@
 
 .hero-note.hit {
   color: var(--success);
+}
+
+.hero-note.hit .hero-glyph {
   animation: hero-hit-fade 0.7s ease-out forwards;
+}
+
+.hero-flame {
+  --sf-ignite: 180ms;
+  stroke: none;
+}
+
+.hero-flame .sflame-live,
+.hero-puff {
+  transform-box: view-box;
+  transform-origin: 0 0;
+}
+
+.hero-puff {
+  will-change: transform, opacity;
+  animation: hero-puff 800ms ease-out both;
 }
 
 .hero-note.miss {
@@ -44,6 +63,20 @@
 
 @keyframes hero-hit-fade {
   to {
+    opacity: 0.55;
+  }
+}
+
+@keyframes hero-puff {
+  from {
     opacity: 0;
+    transform: translateY(0) scale(0.8);
+  }
+  25% {
+    opacity: 0.9;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-70px) scale(2.2);
   }
 }
