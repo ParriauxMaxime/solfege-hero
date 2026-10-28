@@ -52,6 +52,7 @@
   <body>
     <div id="app">
       <main style="font-family: system-ui, sans-serif; padding: 1.5rem; max-width: 40rem; margin: 0 auto; line-height: 1.5">
+        %BRAND_LOGO%
         <h1>Solfège hero</h1>
         <p>Application gratuite pour apprendre à lire les notes sur la portée, hors ligne.</p>
         <ul>
@@ -64,12 +65,17 @@
           <li><strong>Partitions</strong> : bibliothèque de fichiers MusicXML à jouer.</li>
         </ul>
       </main>
+      <noscript>
+        <style>
+          #app {
+            overflow-y: auto;
+          }
+        </style>
+        <p style="font-family: system-ui, sans-serif; padding: 0 1.5rem 1.5rem; max-width: 40rem; margin: 0 auto">
+          Solfège hero est une application d'entraînement à la lecture des notes. JavaScript est nécessaire pour l'utiliser : activez-le dans votre navigateur.
+        </p>
+      </noscript>
     </div>
-    <noscript>
-      <p style="font-family: system-ui, sans-serif; padding: 1.5rem">
-        Solfège hero est une application d'entraînement à la lecture des notes. JavaScript est nécessaire pour l'utiliser : activez-le dans votre navigateur.
-      </p>
-    </noscript>
     <script type="module" src="./src/main.ts"></script>
   </body>
 </html>

@@ -1,6 +1,7 @@
 import { t, type MessageKey } from '../../i18n'
 import { formatPercent } from '../../i18n/format'
 import type { OmrStage } from '../../omr/types'
+import { createBrandLogo } from '../brandLogo'
 import { button, el } from '../dom'
 import { icon } from '../icons'
 
@@ -41,7 +42,7 @@ export function createProgress({ onCancel, onBack }: ProgressOptions): ProgressS
   const cancel = button('segment-button', t('omr.progress.cancel'), onCancel)
   const back = button('primary', t('omr.progress.back'), onBack)
   back.hidden = true
-  const element = el('section', 'omr-progress', heading, el('div', 'omr-bar-row', bar, percentLabel), el('ol', 'omr-steps', ...items.values()), errorText, cancel, back)
+  const element = el('section', 'omr-progress', createBrandLogo('brand-logo omr-logo'), heading, el('div', 'omr-bar-row', bar, percentLabel), el('ol', 'omr-steps', ...items.values()), errorText, cancel, back)
 
   function update(step: ProgressStep, percent: number): void {
     const current = STEPS.indexOf(step)

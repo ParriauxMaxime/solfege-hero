@@ -1,3 +1,4 @@
+import { splashLogoSvg } from '../src/brand/logoMarkup.ts'
 import { PAGE_IMAGES, PAGE_TEXTS } from './page-texts.mjs'
 import { siteBasePath } from './site-url.mjs'
 import { LANDING_ONLY, LEGACY_REDIRECTS, ROUTES, routeSegments } from './routes.mjs'
@@ -68,11 +69,11 @@ export function renderRoutePage(indexHtml, { segment, lang, prefix = '', title, 
   html = setMeta(html, 'name', 'twitter:title', title)
   html = setMeta(html, 'name', 'twitter:description', description)
   html = setMeta(html, 'name', 'twitter:image', imageUrl)
-  if (lang === 'en') html = html.replace(/(<noscript>\s*<p[^>]*>)[^<]*(<\/p>)/, `$1\n        ${NOSCRIPT_EN}\n      $2`)
+  if (lang === 'en') html = html.replace(/(<noscript>[\s\S]*?<p[^>]*>)[^<]*(<\/p>)/, `$1\n        ${NOSCRIPT_EN}\n      $2`)
   return replaceOnce(
     html,
     /<div id="app">\s*<main(\s[^>]*)?>[\s\S]*?<\/main>/,
-    `<div id="app">\n      <main style="font-family: system-ui, sans-serif; padding: 1.5rem; max-width: 40rem; margin: 0 auto; line-height: 1.5">\n        <h1>${escapeHtml(h1)}</h1>\n        <p>${escapeHtml(intro)}</p>\n      </main>`,
+    `<div id="app">\n      <main style="font-family: system-ui, sans-serif; padding: 1.5rem; max-width: 40rem; margin: 0 auto; line-height: 1.5">\n        ${splashLogoSvg()}\n        <h1>${escapeHtml(h1)}</h1>\n        <p>${escapeHtml(intro)}</p>\n      </main>`,
     'pre-rendered <main> in #app',
   )
 }

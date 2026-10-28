@@ -40,6 +40,16 @@ The Tailscale node needs `.env` with `TS_AUTHKEY` (copied from the `maisons` rep
 - Niveau caps what is sampled, never locks anything. Séries are generated at the player's level, carried in the link (`v=4&l=`; Survie and hero challenge links carry `l=` below 100) so a friend plays the identical series; old links decode as before. Défi du jour is identical for everyone at a fixed level 50.
 - Hero judgement: Parfait ±80 ms (×2), Bien ±200 ms, Raté outside or wrong pitch, Raté breaks the streak, no lives, endless.
 
+## Brand (settled Oct 2026, only the owner reopens it)
+
+- **Palette**: warm near-black `#15100c` tiles and share cards, gold note `#fff3c4 → #ffc24a → #f0a020` (light theme `#e0a020 → #d08a0a → #b06a00`, stem `#8a4a00`), ember orange `#f97316`, cream ink `#fffaf2`. App UI palette and manifest/theme-color `#12101a` unchanged.
+- **Flame**: C1 "rising wisp" (one shaded wisp tilted −14° above the gold note head), drawn with gradients and opacity only, never SVG filters or CSS blur. **R2** (strong relief) on big renders: share images, animated logo everywhere it appears. **R1** (light relief) on small renders: app icons, favicons, apple-touch. Single source: `src/brand/art.ts` (pure string builders, no imports, erasable TS only so Node scripts import it directly).
+- **Treble clef**: only in the animated logo. Never on icons/favicons nor share images (staff + notes only, recentred).
+- **Share images** (`scripts/og-images.mjs`, FR + EN): flame on the brand note only, accent notes plain cream, content inside the centre 630 square (WhatsApp crop), each < 150 kB.
+- **Icons** (`scripts/generate-icons.mjs`, `npm run icons`): D1 sans clé (staff + gold note + flame). Detailed drawing (5 lines) for 192/512/maskable/apple-touch; simplified drawing (3 thick lines, bigger note) for `favicon.svg` and `favicon-16/32/48.png`.
+- **Animated logo** (`src/ui/brandLogo.ts`, pure parts `src/brand/logoScore.ts` + `logoMarkup.ts`): clef fixed at left, quarter notes and bar lines (every 4 beats) scroll right to left at 70 BPM, notes fade under the clef. Invisible hit spot (x 128): each hit note ignites gold and keeps an R2 flame until it leaves under the clef; flames grow slightly with the streak (0.75 → 1.05 at 10). A miss every 12–30 notes (random) turns that note `--error` red, all flames go out (shrink, fade, grey puffs), the streak restarts. Notes come from a seeded tonal walk (D4..G5, no ledger lines, mostly steps, no 6-note pattern repeated within 256 notes), random seed per session, infinite. One shared rAF ticker, transforms/opacity attributes only, paused when the tab is hidden or the logo is off-screen, released when removed. Reduced motion = static frame with burning notes.
+- **Where the logo appears**: home header, onboarding, PDF import progress screen (pdf.js lazy load and recognition), and as the static inline SVG frame in the pre-rendered `<main>` of `index.html` (`%BRAND_LOGO%`, filled by the vite plugin) and of every route page (`scripts/pages.mjs`), which doubles as the pre-JS splash.
+
 ## Current state
 
 - Clefs: sol (default), fa, ut 3, multi-select, random per prompt.

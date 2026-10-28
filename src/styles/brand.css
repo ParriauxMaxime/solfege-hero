@@ -1,0 +1,40 @@
+.brand-logo {
+  --logo-gold-1: #fff3c4;
+  --logo-gold-2: #ffc24a;
+  --logo-gold-3: #f0a020;
+  --logo-stem-lit: #fffbe6;
+  overflow: visible;
+}
+
+:root[data-theme='light'] .brand-logo {
+  --logo-gold-1: #e0a020;
+  --logo-gold-2: #d08a0a;
+  --logo-gold-3: #b06a00;
+  --logo-stem-lit: #8a4a00;
+}
+
+.brand-logo-splash {
+  display: block;
+  width: 96px;
+  height: auto;
+  margin: 0 auto 0.75rem;
+}
+
+.omr-logo {
+  display: block;
+  width: 96px;
+  height: auto;
+  margin: 0 auto;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .omr-logo {
+    width: 48px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 340px) {
+  .omr-logo {
+    display: none;
+  }
+}

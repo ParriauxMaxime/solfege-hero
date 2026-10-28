@@ -31,6 +31,10 @@ const INDEX_HTML = `<!doctype html>
         <h1>Home</h1>
         <ul><li>x</li></ul>
       </main>
+      <noscript>
+        <style>#app { overflow-y: auto; }</style>
+        <p style="padding: 0">Texte sans script</p>
+      </noscript>
     </div>
     <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"t"}'></script>
   </body>
@@ -86,6 +90,25 @@ describe('renderRoutePage', () => {
     expect(html).toContain('<p>Deux phrases. Voilà.</p>')
     expect(html).not.toContain('<li>x</li>')
     expect(count(html, '<main')).toBe(1)
+  })
+
+  it('keeps the no-script text inside the app, after the pre-rendered main', () => {
+    expect(html.indexOf('Texte sans script')).toBeGreaterThan(html.indexOf('</main>'))
+    expect(html.indexOf('Texte sans script')).toBeLessThan(html.indexOf('</div>'))
+    expect(html).toContain('#app { overflow-y: auto; }')
+  })
+
+  it('translates the no-script text on English pages only', () => {
+    const english = renderRoutePage(INDEX_HTML, { ...OPTIONS, lang: 'en' }, SITE)
+    expect(english).toContain('JavaScript is required')
+    expect(english).not.toContain('Texte sans script')
+    expect(english).toContain('#app { overflow-y: auto; }')
+  })
+
+  it('draws the still logo above the heading of the pre-rendered main', () => {
+    expect(count(html, '<svg class="brand-logo brand-logo-splash"')).toBe(1)
+    expect(html.indexOf('brand-logo-splash')).toBeGreaterThan(html.indexOf('<main'))
+    expect(html.indexOf('brand-logo-splash')).toBeLessThan(html.indexOf('<h1>'))
   })
 
   it('escapes html in texts', () => {

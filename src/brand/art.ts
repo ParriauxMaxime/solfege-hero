@@ -41,7 +41,9 @@ export const DARK_COLORS: BrandColors = { gold: ['#fff3c4', '#ffc24a', '#f0a020'
 
 type Stop = [offset: number, color: string, opacity?: number]
 
-const stops = (list: Stop[]) => list.map(([offset, color, opacity = 1]) => `<stop offset="${offset}" style="stop-color:${color}" stop-opacity="${opacity}"/>`).join('')
+const stopColor = (color: string) => (color.startsWith('var(') ? `style="stop-color:${color}"` : `stop-color="${color}"`)
+
+const stops = (list: Stop[]) => list.map(([offset, color, opacity = 1]) => `<stop offset="${offset}" ${stopColor(color)}${opacity === 1 ? '' : ` stop-opacity="${opacity}"`}/>`).join('')
 
 export const brandDefs = (prefix: string, { gold }: Pick<BrandColors, 'gold'> = DARK_COLORS) => `<defs>
   <radialGradient id="${prefix}-glow">${stops([[0, '#ffb04a', 0.8], [0.45, '#f97316', 0.35], [1, '#f97316', 0]])}</radialGradient>

@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { loadEnv } from 'vite'
+import { splashLogoSvg } from './src/brand/logoMarkup.ts'
 import { PAGE_TEXTS } from './scripts/page-texts.mjs'
 import { ROUTE_PAGES, addHreflang, generateSitePages, injectBase, renderRedirectPage, renderRoutePage, routePageOptions } from './scripts/pages.mjs'
 import { LEGACY_REDIRECTS } from './scripts/routes.mjs'
@@ -62,7 +63,7 @@ function siteFiles(siteUrl: string, beaconToken: string): Plugin {
       order: 'pre',
       // Absolute <base> in the built home only (the dev server serves from its own root): any html served at any path boots.
       handler: (html, context) => {
-        const filled = html.replaceAll('%SITE_URL%', siteUrl).replace('</body>', () => closeBody)
+        const filled = html.replaceAll('%SITE_URL%', siteUrl).replace('%BRAND_LOGO%', splashLogoSvg).replace('</body>', () => closeBody)
         return context.server ? filled : injectBase(filled, siteBasePath(siteUrl))
       },
     },
