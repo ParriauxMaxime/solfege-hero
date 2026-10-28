@@ -1,12 +1,14 @@
-import { BRAND_HEAD_RX, CLEF, NOTE_TILT, brandDefs, flameWisp, goldHead, headShadow, type Relief } from './art.ts'
+import { CLEF, NOTE_TILT } from './art.ts'
+import { FX_RIM, fxBehindMarkup, fxDefs, fxFrontMarkup, hotHeadMarkup, hotNoteStatic } from './streakFx.ts'
 
-/** Wide staff (420 x 160, clef at the far left) with headroom above for the tallest flame, so nothing is clipped on the highest note. */
+/** Wide staff (420 x 160, clef at the far left) with headroom above for the embers and the aura of the highest note. */
 export const LOGO_VIEW_BOX = '24 6 420 160'
 export const LOGO_WIDTH = 420
 export const LOGO_HEIGHT = 160
 
 export const TOP_LINE_Y = 68
 export const BOTTOM_LINE_Y = 132
+export const MIDDLE_LINE_Y = 100
 export const STEP_HEIGHT = 8
 export const HIT_X = 252
 export const PX_PER_BEAT = 52
@@ -15,26 +17,22 @@ export const FADE_LEFT_WIDTH = 10
 export const FADE_RIGHT_X = 446
 export const FADE_RIGHT_WIDTH = 22
 
+/** Same drawing as `QUARTER_REST_PATH` in src/ui/glyphs.ts (copied: this module must stay importable from Node). */
+export const QUARTER_REST_PATH = 'M-4 -16 L3 -9 L-3 -1 L4 7 C-4 8 -5 14 2 18'
+
 const STAFF_LEFT_X = 24
 const STAFF_RIGHT_X = 444
 const STAFF_STROKE = 1.6
 const CLEF_STROKE = 4
-const RELIEF_LEVEL: Relief = 2
+const REST_STROKE = 3
 const HEAD_RX = 10.5
 const HEAD_RY = 7.5
-const ART_SCALE = Number((HEAD_RX / BRAND_HEAD_RX).toFixed(4))
 const STEM_OFFSET = 9.6
 const STEM_LENGTH = 33
 const STEM_WIDTH = 2.4
 const BAR_OFFSET = 0.45 * PX_PER_BEAT
-const GLOW_RADIUS = 17
-const SPARK_RADIUS = 1.5
-const PUFF_RADIUS = 3.4
-const STATIC_GLOW_OPACITY = 0.2
-const STEM_LIT = 'var(--logo-stem-lit)'
-const WRONG = 'var(--error)'
-
-const GOLD: [string, string, string] = ['var(--logo-gold-1)', 'var(--logo-gold-2)', 'var(--logo-gold-3)']
+const STEM_LIT = FX_RIM
+const WRONG = 'var(--error, #ff4d6d)'
 
 export const staffY = (step: number) => BOTTOM_LINE_Y - step * STEP_HEIGHT
 
@@ -44,11 +42,6 @@ export const edgeOpacity = (x: number) => Math.max(0, Math.min(1, (x - FADE_LEFT
 export const stemPath = (up: boolean) => `M${up ? STEM_OFFSET : -STEM_OFFSET} 0V${up ? -STEM_LENGTH : STEM_LENGTH}`
 
 const round = (value: number) => Number(value.toFixed(2))
-
-const gradientDefs = (prefix: string) => brandDefs(prefix, { gold: GOLD })
-
-const puffDefs = (prefix: string) =>
-  `<defs><radialGradient id="${prefix}-puff"><stop offset="0" stop-color="#b8b2ac" stop-opacity="0.55"/><stop offset="1" stop-color="#b8b2ac" stop-opacity="0"/></radialGradient></defs>`
 
 const staffMarkup = () =>
   `<path d="${[0, 2, 4, 6, 8].map((step) => `M${STAFF_LEFT_X} ${staffY(step)}H${STAFF_RIGHT_X}`).join('')}" stroke="currentColor" stroke-width="${STAFF_STROKE}"/>`
@@ -60,26 +53,24 @@ const headMarkup = (fill: string) => `<ellipse rx="${HEAD_RX}" ry="${HEAD_RY}" t
 
 const stemMarkup = (color: string, d = '') => `<path data-k="stem" d="${d}" stroke="${color}" stroke-width="${STEM_WIDTH}" stroke-linecap="round" fill="none"/>`
 
-const goldHeadMarkup = (prefix: string) => goldHead(prefix, RELIEF_LEVEL, { rx: HEAD_RX, ry: HEAD_RY, rim: STEM_LIT, rimWidth: 0.8 })
+const restMarkup = (attributes = '') =>
+  `<g${attributes}><path d="${QUARTER_REST_PATH}" transform="translate(0 ${MIDDLE_LINE_Y})" fill="none" stroke="currentColor" stroke-width="${REST_STROKE}" stroke-linejoin="round"/></g>`
 
-const headShadowMarkup = (prefix: string) => headShadow(prefix, RELIEF_LEVEL, { rx: HEAD_RX, ry: HEAD_RY })
+const barMarkup = (x: number, attributes: string) =>
+  `<path ${attributes} d="M${round(x)} ${TOP_LINE_Y}V${BOTTOM_LINE_Y}" stroke="currentColor" stroke-width="${STAFF_STROKE}"/>`
 
-const wispMarkup = (prefix: string) => `<g transform="scale(${ART_SCALE})">${flameWisp(prefix, RELIEF_LEVEL)}</g>`
+const hotHead = (prefix: string) => hotHeadMarkup(prefix, 'filled', { rx: HEAD_RX, ry: HEAD_RY, tilt: NOTE_TILT })
 
-const glowMarkup = (prefix: string, opacity: number) => `<circle r="${GLOW_RADIUS}" fill="url(#${prefix}-glow)" opacity="${opacity}"/>`
-
-/** One recyclable note of the scrolling logo; the runtime drives every layer through its `data-k` attribute. */
+/** One recyclable beat of the scrolling logo (a note or a rest); the runtime drives every layer through its `data-k` attribute. */
 export const noteSlotMarkup = (prefix: string) => `<g data-k="slot">
-<path data-k="bar" d="M${-BAR_OFFSET} ${TOP_LINE_Y}V${BOTTOM_LINE_Y}" stroke="currentColor" stroke-width="${STAFF_STROKE}" opacity="0"/>
+${barMarkup(-BAR_OFFSET, 'data-k="bar" opacity="0"')}
+${restMarkup(' data-k="rest" opacity="0"')}
 <g data-k="note">
-<circle data-k="glow" r="${GLOW_RADIUS}" fill="url(#${prefix}-glow)" opacity="0"/>
+${fxBehindMarkup(prefix)}
 <g data-k="ink">${stemMarkup('currentColor')}${headMarkup('currentColor')}</g>
-<g data-k="lit" opacity="0">${headShadowMarkup(prefix)}${stemMarkup(STEM_LIT)}<g data-k="pop">${goldHeadMarkup(prefix)}</g></g>
+<g data-k="lit" opacity="0">${stemMarkup(STEM_LIT)}<g data-k="pop">${hotHead(prefix)}</g></g>
 <g data-k="miss" opacity="0">${stemMarkup(WRONG)}${headMarkup(WRONG)}</g>
-<g data-k="wisp" opacity="0"><g data-k="sway">${wispMarkup(prefix)}</g></g>
-<circle data-k="spark" r="${SPARK_RADIUS}" fill="url(#${prefix}-spark)" opacity="0"/>
-<circle data-k="puff" r="${PUFF_RADIUS}" fill="url(#${prefix}-puff)" opacity="0"/>
-<circle data-k="puff" r="${PUFF_RADIUS}" fill="url(#${prefix}-puff)" opacity="0"/>
+${fxFrontMarkup(prefix)}
 </g>
 </g>`
 
@@ -87,45 +78,45 @@ export const noteSlotMarkup = (prefix: string) => `<g data-k="slot">
 export const POOL_SIZE = 10
 
 export const animatedLogoContent = (prefix: string) =>
-  `${gradientDefs(prefix)}${puffDefs(prefix)}${staffMarkup()}<g data-k="scroll">${Array.from({ length: POOL_SIZE }, () => noteSlotMarkup(prefix)).join('')}</g>${clefMarkup()}`
+  `${fxDefs(prefix)}${staffMarkup()}<g data-k="scroll">${Array.from({ length: POOL_SIZE }, () => noteSlotMarkup(prefix)).join('')}</g>${clefMarkup()}`
 
-interface StaticNote {
-  x: number
-  step: number
-  flame?: number
+interface StaticBeat {
+  /** Beats from the hit spot. */
+  beat: number
+  step?: number
+  /** Heat of a burning note, 0 to 1; plain ink when absent. */
+  intensity?: number
+  barStart?: boolean
 }
 
-/** Beats from the hit spot: four burning notes trail behind it (the one on it burns fullest), three plain ones are still to come. */
-const STATIC_NOTES: StaticNote[] = [
-  { x: HIT_X - 3 * PX_PER_BEAT, step: 2, flame: 0.78 },
-  { x: HIT_X - 2 * PX_PER_BEAT, step: 4, flame: 0.84 },
-  { x: HIT_X - PX_PER_BEAT, step: 3, flame: 0.93 },
-  { x: HIT_X, step: 5, flame: 1.02 },
-  { x: HIT_X + PX_PER_BEAT, step: 6 },
-  { x: HIT_X + 2 * PX_PER_BEAT, step: 4 },
-  { x: HIT_X + 3 * PX_PER_BEAT, step: 2 },
+/** One bar of four beats ends on the hit spot: a burning note, a rest, two notes burning fuller; the next bar is still plain ink. */
+const STATIC_BEATS: StaticBeat[] = [
+  { beat: -3, step: 2, intensity: 0.3, barStart: true },
+  { beat: -2 },
+  { beat: -1, step: 3, intensity: 0.65 },
+  { beat: 0, step: 5, intensity: 1 },
+  { beat: 1, step: 6, barStart: true },
+  { beat: 2, step: 4 },
+  { beat: 3, step: 2 },
 ]
-/** A bar line every two beats, just before the first note of each bar (the first, third, fifth and seventh note). */
-const STATIC_BAR_XS = STATIC_NOTES.filter((_, index) => index % 2 === 0).map(({ x }) => x - BAR_OFFSET)
 
-const staticBarsMarkup = () =>
-  STATIC_BAR_XS.map((x) => `<path d="M${round(x)} ${TOP_LINE_Y}V${BOTTOM_LINE_Y}" stroke="currentColor" stroke-width="${STAFF_STROKE}" opacity="${round(edgeOpacity(x))}"/>`).join('')
-
-const staticNoteMarkup = (prefix: string, { x, step, flame }: StaticNote) => {
-  const up = step < 4
+const staticBeatMarkup = (prefix: string, { beat, step, intensity, barStart }: StaticBeat) => {
+  const x = HIT_X + beat * PX_PER_BEAT
   const opacity = round(edgeOpacity(x))
-  const head = flame === undefined
-    ? `<path d="${stemPath(up)}" stroke="currentColor" stroke-width="${STEM_WIDTH}" stroke-linecap="round" fill="none"/>${headMarkup('currentColor')}`
-    : `${glowMarkup(prefix, STATIC_GLOW_OPACITY)}<use href="#${prefix}-cast"/><path d="${stemPath(up)}" stroke="${STEM_LIT}" stroke-width="${STEM_WIDTH}" stroke-linecap="round" fill="none"/><use href="#${prefix}-head"/><use href="#${prefix}-flame" transform="scale(${flame})"/>`
-  return `<g transform="translate(${x} ${staffY(step)})" opacity="${opacity}">${head}</g>`
+  const barOpacity = round(edgeOpacity(x - BAR_OFFSET))
+  const bar = barStart && barOpacity > 0 ? barMarkup(x - BAR_OFFSET, `opacity="${barOpacity}"`) : ''
+  if (step === undefined) return `${bar}<g transform="translate(${x} 0)" opacity="${opacity}">${restMarkup()}</g>`
+  const up = step < 4
+  const body =
+    intensity === undefined
+      ? `${stemMarkup('currentColor', stemPath(up))}${headMarkup('currentColor')}`
+      : `${stemMarkup(STEM_LIT, stemPath(up))}${hotNoteStatic(prefix, { shape: 'filled', rx: HEAD_RX, ry: HEAD_RY, tilt: NOTE_TILT, intensity, detail: 'full' })}`
+  return `${bar}<g transform="translate(${x} ${staffY(step)})" opacity="${opacity}">${body}</g>`
 }
 
-const staticDefs = (prefix: string) =>
-  `${gradientDefs(prefix)}<defs><g id="${prefix}-flame">${wispMarkup(prefix)}</g><g id="${prefix}-cast">${headShadowMarkup(prefix)}</g><g id="${prefix}-head">${goldHeadMarkup(prefix)}</g></defs>`
-
-/** Still frame: burning notes trailing from the hit spot, plain ink notes still to come. */
+/** Still frame (reduced motion, pre-rendered pages): burning notes trailing from the hit spot with a rest among them, plain ink notes still to come. */
 export const staticLogoContent = (prefix: string) =>
-  `${staticDefs(prefix)}${staffMarkup()}${staticBarsMarkup()}${STATIC_NOTES.map((note) => staticNoteMarkup(prefix, note)).join('')}${clefMarkup()}`
+  `${fxDefs(prefix)}${staffMarkup()}${STATIC_BEATS.map((beat) => staticBeatMarkup(prefix, beat)).join('')}${clefMarkup()}`
 
 export const logoSvg = (className: string, content: string, { sized = false } = {}) =>
   `<svg class="${className}" viewBox="${LOGO_VIEW_BOX}"${sized ? ` width="${LOGO_WIDTH}" height="${LOGO_HEIGHT}"` : ''} aria-hidden="true">${content}</svg>`

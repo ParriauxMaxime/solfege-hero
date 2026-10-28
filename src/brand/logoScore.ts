@@ -1,17 +1,22 @@
 import { seededRandom } from '../random'
 
+/** One beat of the score: a quarter note or a quarter rest. A rest is never played: it carries the streak through unchanged. */
 export interface LogoNote {
+  /** Beat number, rests included. */
   index: number
+  rest: boolean
   step: number
   stemUp: boolean
   barStart: boolean
   miss: boolean
   streak: number
-  /** Index of the first miss after this note: the note's flame goes out then. */
+  /** Beat of the first miss after this one: the burning notes go out then. */
   snuffIndex: number
 }
 
-export const BEATS_PER_BAR = 2
+export const BEATS_PER_BAR = 4
+/** A rest follows a note with this chance, never another rest: about one beat in five is silent. */
+export const REST_CHANCE = 0.25
 export const MIN_MISS_GAP = 12
 export const MAX_MISS_GAP = 30
 /** D4 to G5 on the treble staff: every step is on or between the five lines, never on a ledger line. */
@@ -21,6 +26,7 @@ export const HIGHEST_STEP = 9
 const MIDDLE_LINE_STEP = 4
 const WALK_SEED_SALT = 0x27d4eb2f
 const MISS_SEED_SALT = 0x5bd1e995
+const REST_SEED_SALT = 0x1b873593
 const MAX_LEAP = 5
 const LEAP_WEIGHTS = [0.8, 4, 2.5, 0.6, 0.35, 0.2]
 const MAX_IDENTICAL_IN_A_ROW = 2
@@ -29,14 +35,6 @@ const DRIFT_PER_STEP = 0.5
 const PATTERN_LENGTH = 6
 const PATTERN_BASE = HIGHEST_STEP - LOWEST_STEP + 1
 const HISTORY_NOTES = 256
-
-const FLAME_SCALE_AT_FIRST_HIT = 0.75
-const FLAME_SCALE_AT_FULL_STREAK = 1.05
-const FULL_STREAK = 10
-
-/** Flames grow with the streak up to a cap. */
-export const flameScale = (streak: number) =>
-  FLAME_SCALE_AT_FIRST_HIT + (FLAME_SCALE_AT_FULL_STREAK - FLAME_SCALE_AT_FIRST_HIT) * Math.max(0, Math.min(1, (streak - 1) / (FULL_STREAK - 1)))
 
 /** Weight of moving from `step` by `change`: small steps first, leaps rarely, a gentle pull back to the middle near the edges. */
 function moveWeight(step: number, change: number): number {
@@ -83,21 +81,38 @@ function createWalk(seed: number): () => number {
   }
 }
 
-/** Endless stream of quarter notes from a seeded tonal walk, with a miss every 12 to 30 notes. */
+type Beat = Omit<LogoNote, 'snuffIndex'>
+
+/** Endless stream of beats (quarter notes from a seeded tonal walk, about one in five a quarter rest), with a miss every 12 to 30 notes. */
 export function createLogoScore(seed: number): () => LogoNote {
   const nextStep = createWalk(seed ^ WALK_SEED_SALT)
   const missGaps = seededRandom(seed ^ MISS_SEED_SALT)
+  const restDraws = seededRandom(seed ^ REST_SEED_SALT)
   const nextMissGap = () => MIN_MISS_GAP + Math.floor(missGaps() * (MAX_MISS_GAP - MIN_MISS_GAP + 1))
+  const ahead: Beat[] = []
   let index = 0
+  let notes = 0
   let streak = 0
   let nextMiss = nextMissGap()
+  let previousRest = false
 
-  return () => {
-    const step = nextStep()
+  function generate(): Beat {
     const current = index++
-    const miss = current === nextMiss
+    const barStart = current % BEATS_PER_BAR === 0
+    const rest = !previousRest && restDraws() < REST_CHANCE
+    previousRest = rest
+    if (rest) return { index: current, rest, step: MIDDLE_LINE_STEP, stemUp: false, barStart, miss: false, streak }
+    const step = nextStep()
+    const miss = notes++ === nextMiss
     if (miss) nextMiss += nextMissGap()
     streak = miss ? 0 : streak + 1
-    return { index: current, step, stemUp: step < MIDDLE_LINE_STEP, barStart: current % BEATS_PER_BAR === 0, miss, streak, snuffIndex: nextMiss }
+    return { index: current, rest, step, stemUp: step < MIDDLE_LINE_STEP, barStart, miss, streak }
+  }
+
+  return () => {
+    while (!ahead.slice(1).some(({ miss }) => miss)) ahead.push(generate())
+    const beat = ahead.shift() as Beat
+    const snuff = ahead.find(({ miss }) => miss) as Beat
+    return { ...beat, snuffIndex: snuff.index }
   }
 }

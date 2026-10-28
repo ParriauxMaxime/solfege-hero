@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BEATS_PER_BAR, HIGHEST_STEP, LOWEST_STEP, MAX_MISS_GAP, MIN_MISS_GAP, createLogoScore, flameScale, type LogoNote } from './logoScore'
+import { BEATS_PER_BAR, HIGHEST_STEP, LOWEST_STEP, MAX_MISS_GAP, MIN_MISS_GAP, createLogoScore, type LogoNote } from './logoScore'
 
 const take = (seed: number, count: number): LogoNote[] => {
   const next = createLogoScore(seed)
@@ -7,11 +7,15 @@ const take = (seed: number, count: number): LogoNote[] => {
 }
 
 const SEEDS = Array.from({ length: 200 }, (_, seed) => seed * 7919 + 1)
-const NOTES = 600
+const BEATS = 600
 const WINDOW = 12
 const MAX_ECHO = 5
+const REST_BEATS = 2000
+const REST_RATIO = 0.2
+const REST_RATIO_TOLERANCE = 0.03
 
-const stepsOf = (seed: number) => take(seed, NOTES).map(({ step }) => step)
+const playedOf = (seed: number, count = BEATS) => take(seed, count).filter(({ rest }) => !rest)
+const stepsOf = (seed: number) => playedOf(seed).map(({ step }) => step)
 
 /** Longest run of notes that repeat the note a period earlier: a loop spans that run plus one period. */
 function longestEcho(steps: number[], period: number): number {
@@ -74,22 +78,71 @@ describe('logo score', () => {
     }
   })
 
-  it('numbers notes and starts a bar every four beats', () => {
-    const notes = take(5, 40)
-    expect(notes.map(({ index }) => index)).toEqual(notes.map((_, position) => position))
-    for (const { index, barStart } of notes) expect(barStart).toBe(index % BEATS_PER_BAR === 0)
+  it('numbers every beat and starts a bar every four beats', () => {
+    const beats = take(5, 40)
+    expect(BEATS_PER_BAR).toBe(4)
+    expect(beats.map(({ index }) => index)).toEqual(beats.map((_, position) => position))
+    for (const { index, barStart } of beats) expect(barStart).toBe(index % BEATS_PER_BAR === 0)
   })
 
   it('points stems up below the middle line and down from it', () => {
-    for (const { step, stemUp } of take(11, 200)) expect(stemUp).toBe(step < 4)
+    for (const { step, stemUp } of playedOf(11, 200)) expect(stemUp).toBe(step < 4)
   })
 
-  it('misses every 12 to 30 notes, the first one included', () => {
+  describe('rests', () => {
+    it('fill about one beat in five', () => {
+      let rests = 0
+      let beats = 0
+      for (const seed of SEEDS.slice(0, 20)) {
+        for (const { rest } of take(seed, REST_BEATS)) {
+          beats++
+          if (rest) rests++
+        }
+      }
+      expect(Math.abs(rests / beats - REST_RATIO)).toBeLessThan(REST_RATIO_TOLERANCE)
+    })
+
+    it('never come twice in a row nor fill a whole bar', () => {
+      for (const seed of SEEDS) {
+        const beats = take(seed, BEATS)
+        beats.forEach(({ rest }, position) => expect(rest && beats[position - 1]?.rest).toBeFalsy())
+        for (let start = 0; start < BEATS; start += BEATS_PER_BAR) {
+          expect(beats.slice(start, start + BEATS_PER_BAR).every(({ rest }) => rest)).toBe(false)
+        }
+      }
+    })
+
+    it('are never missed, burn nothing and leave the streak as it was', () => {
+      for (const seed of SEEDS) {
+        const beats = take(seed, BEATS)
+        beats.forEach((beat, position) => {
+          if (!beat.rest) return
+          expect(beat.miss).toBe(false)
+          expect(beat.streak).toBe(beats[position - 1]?.streak ?? 0)
+        })
+        expect(beats.some(({ rest }) => rest)).toBe(true)
+      }
+    })
+
+    it('do not shift the notes: the same seed gives the same tonal walk whatever the rests', () => {
+      const notes = playedOf(9, 300).map(({ step }) => step)
+      const next = createLogoScore(9)
+      const steps: number[] = []
+      while (steps.length < notes.length) {
+        const beat = next()
+        if (!beat.rest) steps.push(beat.step)
+      }
+      expect(steps).toEqual(notes)
+    })
+  })
+
+  it('misses every 12 to 30 notes, rests not counted, the first miss included', () => {
     for (const seed of SEEDS) {
-      const misses = take(seed, NOTES).filter(({ miss }) => miss).map(({ index }) => index)
-      expect(misses.length).toBeGreaterThan(15)
-      misses.forEach((index, position) => {
-        const gap = index - (misses[position - 1] ?? 0)
+      const played = playedOf(seed)
+      const misses = played.map((beat, ordinal) => (beat.miss ? ordinal : -1)).filter((ordinal) => ordinal >= 0)
+      expect(misses.length).toBeGreaterThan(12)
+      misses.forEach((ordinal, position) => {
+        const gap = ordinal - (misses[position - 1] ?? 0)
         expect(gap).toBeGreaterThanOrEqual(MIN_MISS_GAP)
         expect(gap).toBeLessThanOrEqual(MAX_MISS_GAP)
       })
@@ -98,27 +151,20 @@ describe('logo score', () => {
 
   it('resets the streak on a miss and builds it again with the next hits', () => {
     for (const seed of SEEDS) {
-      const notes = take(seed, NOTES)
-      notes.forEach((note, position) => {
-        const previous = notes[position - 1]?.streak ?? 0
+      const played = playedOf(seed)
+      played.forEach((note, position) => {
+        const previous = played[position - 1]?.streak ?? 0
         expect(note.streak).toBe(note.miss ? 0 : previous + 1)
       })
-      expect(notes.some(({ miss }) => miss)).toBe(true)
+      expect(played.some(({ miss }) => miss)).toBe(true)
     }
   })
 
-  it('tells each note which miss puts its flame out', () => {
-    const notes = take(4, 300)
-    notes.forEach(({ index, snuffIndex }) => {
-      const next = notes.find((other) => other.miss && other.index > index)
+  it('tells each beat which miss puts the fire out', () => {
+    const beats = take(4, 300)
+    beats.forEach(({ index, snuffIndex }) => {
+      const next = beats.find((other) => other.miss && other.index > index)
       if (next) expect(snuffIndex).toBe(next.index)
     })
-  })
-
-  it('grows flames with the streak up to a cap', () => {
-    expect(flameScale(1)).toBeCloseTo(0.75)
-    expect(flameScale(5)).toBeGreaterThan(flameScale(2))
-    expect(flameScale(10)).toBeCloseTo(1.05)
-    expect(flameScale(40)).toBeCloseTo(1.05)
   })
 })
