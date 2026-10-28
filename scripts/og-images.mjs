@@ -2,7 +2,8 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, renameSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-import { BRAND_HEAD_RX, BRAND_HEAD_RY, NOTE_TILT, brandDefs, flameWisp, goldHead, headShadow, litStaff, litStem, sparkDots } from '../src/brand/art.ts'
+import { BRAND_HEAD_RX, BRAND_HEAD_RY, DARK_COLORS, NOTE_TILT, litStaff, litStem } from '../src/brand/art.ts'
+import { fxDefs, hotHeadMarkup, hotNoteStatic } from '../src/brand/streakFx.ts'
 
 const outDir = new URL('../public/og/', import.meta.url)
 const maxBytes = 150 * 1024
@@ -60,12 +61,13 @@ const ember = '#f97316'
 const accentHeadInk = '#ffd9b0'
 const accentStemInk = '#f3dcc0'
 
-const reliefLevel = 2
 const brandId = 'brand'
 const brandHead = { rx: BRAND_HEAD_RX, ry: BRAND_HEAD_RY }
 const brandStemWidth = 8
 const brandLitReach = 110
-const brandSparks = [[-50, -150, 2], [-24, -172, 1.6]]
+// streakFx draws a head of rx about 10.5 note-local units: this scale brings it to the brand head.
+const brandFxScale = 3.6
+const brandHot = { shape: 'filled', rx: BRAND_HEAD_RX / brandFxScale, ry: BRAND_HEAD_RY / brandFxScale, rim: '#fffbe6' }
 
 const mix = (from, to, amount) => {
   const channel = (hex, start) => parseInt(hex.slice(start, start + 2), 16)
@@ -104,11 +106,9 @@ const brandNote = (x, y) => {
   const litLines = staffLines.filter((lineY) => lineY <= y + staffSpace)
   return `${litStaff(brandId, { x, reach: brandLitReach, lines: litLines, width: 5, opacity: 0.8 })}
   <g transform="translate(${x} ${y})">
-    <g class="flame"><circle r="70" cy="-10" fill="url(#${brandId}-glow)" opacity="0.4"/>${flameWisp(brandId, reliefLevel)}</g>
-    ${headShadow(brandId, reliefLevel, brandHead)}
-    ${litStem(reliefLevel, { x: stemX, y1: start, y2: start - side * stemLength, width: brandStemWidth })}
-    ${goldHead(brandId, reliefLevel, { ...brandHead, rimWidth: 2.5 })}
-    <g class="spark">${sparkDots(brandId, 1, brandSparks)}</g>
+    <g class="flame" transform="scale(${brandFxScale})">${hotNoteStatic(brandId, { ...brandHot, intensity: 1, detail: 'full' })}</g>
+    ${litStem(1, { x: stemX, y1: start, y2: start - side * stemLength, width: brandStemWidth })}
+    <g transform="scale(${brandFxScale})">${hotHeadMarkup(brandId, 'filled', { ...brandHot, heat: 1 })}</g>
   </g>`
 }
 
@@ -128,7 +128,7 @@ h1 { margin: 0 auto; width: 560px; font-size: 96px; line-height: 1.02; font-weig
 </style>
 <div class="composition">
 <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
-  ${brandDefs(brandId)}
+  ${fxDefs(brandId, { gold: DARK_COLORS.gold, smoke: '#b8b2ac' })}
   <defs><radialGradient id="accent" gradientUnits="userSpaceOnUse" cx="600" cy="170" r="470"><stop offset="0" stop-color="${wash}" stop-opacity="0.26"/><stop offset="1" stop-color="${wash}" stop-opacity="0"/></radialGradient></defs>
   <rect x="-600" y="-600" width="2400" height="1800" fill="${background}"/>
   <rect x="-600" y="-600" width="2400" height="1800" fill="url(#accent)"/>
